@@ -21,12 +21,38 @@ export default function WelcomeModal({ isVisible, defaultName, onContinue }: Wel
   return (
     <Modal
       visible={isVisible}
-      transparent
-      animationType="slide"
-      statusBarTranslucent
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
     >
-      <View className="flex-1 bg-black/50 justify-center items-center px-6">
-        <View className="bg-white rounded-lg p-6 w-full max-w-sm">
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+          zIndex: 1000,
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 24,
+            width: '100%',
+            maxWidth: 400,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            elevation: 8,
+          }}
+        >
           <Text className="text-2xl font-bold text-center mb-2 text-gray-900">
             Welcome to Perfect Task!
           </Text>
