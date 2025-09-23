@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Slot } from 'expo-router';
 import { useSession } from '@perfect-task-app/data/hooks/useAuth';
 import { useCurrentProfile, useUpdateProfile } from '@perfect-task-app/data/hooks/useProfile';
+import { supabase } from '@perfect-task-app/data/supabase';
 import WelcomeModal from '../../components/WelcomeModal';
 
 export default function AppLayout() {
@@ -32,14 +33,25 @@ export default function AppLayout() {
   if (!profile) {
     return (
       <View className="flex-1 bg-white justify-center items-center px-6">
-        <Text className="text-lg text-red-600 text-center">
-          Failed to load profile. Please try restarting the app.
+        <Text className="text-lg text-red-600 text-center mb-6">
+          Failed to load profile. You may have signed in before the database trigger was created.
         </Text>
+        <Pressable
+          onPress={async () => {
+            await supabase.auth.signOut();
+            // The session hook will handle the redirect to login
+          }}
+          className="bg-blue-600 px-6 py-3 rounded-lg"
+        >
+          <Text className="text-white font-medium">
+            Sign Out & Try Again
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
-  const needsOnboarding = !profile.full_name;
+  const needsOnboarding = !profile.first_name;
 
   // Get display name from user metadata for pre-filling the modal
   const defaultName = session.user.user_metadata?.full_name ||
@@ -47,14 +59,28 @@ export default function AppLayout() {
                      session.user.email?.split('@')[0] ||
                      '';
 
-  const handleWelcomeContinue = (fullName: string) => {
+  const handleWelcomeContinue = (firstName: string) => {
     updateProfileMutation.mutate({
-      fullName: fullName,
+      firstName: firstName,
     });
   };
 
   return (
-    <>
+    <View className="flex-1">
+      {/* Logout Button - Fixed Position */}
+      <View className="absolute top-12 right-4 z-50">
+        <Pressable
+          onPress={async () => {
+            await supabase.auth.signOut();
+          }}
+          className="bg-red-500 px-3 py-2 rounded-lg shadow-lg"
+        >
+          <Text className="text-white font-medium text-sm">
+            Logout
+          </Text>
+        </Pressable>
+      </View>
+
       <Slot />
 
       {needsOnboarding && (
@@ -64,6 +90,6 @@ export default function AppLayout() {
           onContinue={handleWelcomeContinue}
         />
       )}
-    </>
+    </View>
   );
 }

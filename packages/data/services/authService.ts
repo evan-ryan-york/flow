@@ -72,6 +72,13 @@ export const getSession = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
 
+    console.log('AuthService.getSession debug:', {
+      hasSession: !!data.session,
+      hasUser: !!data.session?.user,
+      userId: data.session?.user?.id,
+      error: error?.message
+    });
+
     if (error) {
       throw new Error(`Get session failed: ${error.message}`);
     }
