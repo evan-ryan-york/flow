@@ -40,6 +40,7 @@ export default {
     web: {
       favicon: "./assets/favicon.png"
     },
+    scheme: "perfect-task-app",
     extra: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,

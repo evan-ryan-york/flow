@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSignInWithGoogleIdToken } from '@perfect-task-app/data/hooks/useAuth';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,6 +15,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const signInMutation = useSignInWithGoogleIdToken();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: Constants.expoConfig?.extra?.googleClientId || 'placeholder-client-id',
@@ -104,6 +106,7 @@ export default function LoginScreen() {
 
   const handleSupabaseGoogleSignIn = async () => {
     console.log('handleSupabaseGoogleSignIn clicked');
+    console.log('Constants.linkingUri:', Constants.linkingUri);
     setIsLoading(true);
 
     try {
@@ -116,17 +119,36 @@ export default function LoginScreen() {
       if (error) {
         console.error('Supabase Google auth error:', error);
         Alert.alert('Sign In Error', error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // For mobile, manually open the OAuth URL
+      if (data?.url && Platform.OS !== 'web') {
+        console.log('Opening OAuth URL:', data.url);
+        const result = await WebBrowser.openBrowserAsync(data.url);
+        console.log('WebBrowser result:', result);
+
+        if (result.type === 'success') {
+          // The auth state change listener will handle the session
+          console.log('OAuth completed successfully');
+        } else {
+          console.log('OAuth cancelled or failed:', result);
+          setIsLoading(false);
+        }
       }
     } catch (error) {
       console.error('Supabase Google auth error:', error);
       Alert.alert('Sign In Error', 'Failed to sign in with Google.');
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <View className="flex-1 bg-white justify-center items-center px-6">
+    <View
+      className="flex-1 bg-white justify-center items-center px-6"
+      style={{ paddingTop: insets.top + 20 }}
+    >
       <View className="w-full max-w-sm">
         <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
           Welcome to Perfect Task
@@ -138,41 +160,30 @@ export default function LoginScreen() {
         <Pressable
           onPress={handleGoogleSignIn}
           disabled={isLoading || !request}
-          className={`w-full py-4 px-6 rounded-lg border border-gray-300 flex-row items-center justify-center mb-4 ${
+          className={`w-full py-6 px-6 rounded-lg border-2 border-gray-300 flex-row items-center justify-center ${
             isLoading || !request ? 'opacity-50' : 'active:bg-gray-50'
           }`}
+          style={{ marginBottom: 40 }}
         >
-          {!isLoading ? (
-            <>
-              <Text className="text-lg font-medium text-gray-900 ml-3">
-                Sign in with Google (Expo)
-              </Text>
-            </>
-          ) : (
-            <Text className="text-lg font-medium text-gray-600">
-              Signing in...
-            </Text>
-          )}
+          <Text className={`text-lg font-semibold ${
+            isLoading || !request ? 'text-gray-400' : 'text-gray-900'
+          }`}>
+            {isLoading ? 'Signing in...' : 'Sign in with Google (Expo)'}
+          </Text>
         </Pressable>
 
         <Pressable
           onPress={handleSupabaseGoogleSignIn}
           disabled={isLoading}
-          className={`w-full py-4 px-6 rounded-lg bg-blue-600 flex-row items-center justify-center ${
+          className={`w-full py-6 px-6 rounded-lg bg-blue-600 flex-row items-center justify-center ${
             isLoading ? 'opacity-50' : 'active:bg-blue-700'
           }`}
         >
-          {!isLoading ? (
-            <>
-              <Text className="text-lg font-medium text-white ml-3">
-                Sign in with Google (Supabase)
-              </Text>
-            </>
-          ) : (
-            <Text className="text-lg font-medium text-blue-200">
-              Signing in...
-            </Text>
-          )}
+          <Text className={`text-lg font-semibold ${
+            isLoading ? 'text-blue-200' : 'text-white'
+          }`}>
+            {isLoading ? 'Signing in...' : 'Sign in with Google (Supabase)'}
+          </Text>
         </Pressable>
       </View>
     </View>
