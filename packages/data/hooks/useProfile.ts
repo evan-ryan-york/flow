@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProfile, updateProfile, getCurrentProfile } from '../services/profileService';
+import { useSession } from './useAuth';
 
 // Query key factory
 const PROFILE_KEYS = {
@@ -18,10 +19,14 @@ export const useProfile = (userId: string | undefined) => {
 };
 
 export const useCurrentProfile = () => {
+  const { data: session } = useSession();
+
   return useQuery({
     queryKey: PROFILE_KEYS.current,
     queryFn: getCurrentProfile,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!session?.user, // Only run when we have a session
+    retry: false,
   });
 };
 
