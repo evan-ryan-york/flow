@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getTasksForProject,
+  getTasksForUser,
   createTask,
   updateTask,
   deleteTask,
@@ -13,6 +14,7 @@ import {
 const TASK_KEYS = {
   all: ['tasks'] as const,
   project: (projectId: string) => ['tasks', 'project', projectId] as const,
+  user: (userId: string) => ['tasks', 'user', userId] as const,
   task: (taskId: string) => ['tasks', 'task', taskId] as const,
 };
 
@@ -21,6 +23,15 @@ export const useProjectTasks = (projectId: string) => {
     queryKey: TASK_KEYS.project(projectId),
     queryFn: () => getTasksForProject(projectId),
     enabled: !!projectId,
+    staleTime: 1000 * 30, // 30 seconds
+  });
+};
+
+export const useUserTasks = (userId: string) => {
+  return useQuery({
+    queryKey: TASK_KEYS.user(userId),
+    queryFn: () => getTasksForUser(userId),
+    enabled: !!userId,
     staleTime: 1000 * 30, // 30 seconds
   });
 };
@@ -45,6 +56,11 @@ export const useCreateTask = () => {
         queryKey: TASK_KEYS.project(newTask.project_id)
       });
 
+      // Invalidate user tasks queries
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', 'user']
+      });
+
       // Add the new task to the cache
       queryClient.setQueryData(TASK_KEYS.task(newTask.id), newTask);
     },
@@ -64,6 +80,11 @@ export const useUpdateTask = () => {
       // Invalidate project tasks query to ensure consistency
       queryClient.invalidateQueries({
         queryKey: TASK_KEYS.project(updatedTask.project_id)
+      });
+
+      // Invalidate user tasks queries
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', 'user']
       });
     },
   });

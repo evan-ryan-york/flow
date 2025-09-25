@@ -1,5 +1,7 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import type { User } from '@supabase/supabase-js';
+
+const supabase = getSupabaseClient();
 
 export interface SignUpCredentials {
   email: string;

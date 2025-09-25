@@ -1,4 +1,6 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
+
+const supabase = getSupabaseClient();
 import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 
 export interface ProfileUpdates {

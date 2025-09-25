@@ -1,5 +1,7 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from '@perfect-task-app/models';
+
+const supabase = getSupabaseClient();
 
 export interface CreateProjectData {
   name: string;
