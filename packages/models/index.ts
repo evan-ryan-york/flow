@@ -21,6 +21,7 @@ export const ProjectSchema = z.object({
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   name: z.string().min(1).max(50),
+  color: z.enum(['rose', 'amber', 'mint', 'sky', 'violet', 'lime', 'teal', 'crimson']).default('sky'),
   is_general: z.boolean().default(false),
   created_at: z.string(), // More flexible datetime validation
   updated_at: z.string(), // More flexible datetime validation
@@ -34,6 +35,7 @@ export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
 export const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(50).trim().optional(),
+  color: z.enum(['rose', 'amber', 'mint', 'sky', 'violet', 'lime', 'teal', 'crimson']).optional(),
 });
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
 
