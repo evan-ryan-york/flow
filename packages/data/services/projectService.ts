@@ -4,14 +4,11 @@ import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from
 const supabase = getSupabaseClient();
 
 export interface CreateProjectData {
-  project_name: string;
-  project_color?: string;
+  name: string;
 }
 
 export interface UpdateProjectData {
-  project_name?: string;
-  project_color?: string;
-  display_order?: number;
+  name?: string;
 }
 
 export interface AddProjectMemberData {
@@ -30,10 +27,8 @@ export const createProject = async (data: CreateProjectData & { ownerId: string 
       .from('projects')
       .insert({
         owner_id: data.ownerId,
-        project_name: data.project_name,
-        project_color: data.project_color || '#3B82F6',
-        is_default: false,
-        display_order: 999, // New projects go at the end
+        name: data.name,
+        is_general: false,
       })
       .select('*')
       .single();
@@ -58,39 +53,54 @@ export const createProject = async (data: CreateProjectData & { ownerId: string 
 
 export const getProjectsForUser = async (userId: string): Promise<ProjectWithRole[]> => {
   try {
-    // This is the most complex query - joins projects and project_users
-    const { data, error } = await supabase
+    // Get projects where user is owner OR member
+    // We need to do this in two separate queries and merge the results
+
+    // First, get projects where user is the owner
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', userId);
+
+    if (ownedError) {
+      throw new Error(`Failed to fetch owned projects: ${ownedError.message}`);
+    }
+
+
+    // Second, get projects where user is a member
+    const { data: memberProjects, error: memberError } = await supabase
       .from('projects')
       .select(`
         *,
         project_users!inner(role)
       `)
-      .or(`owner_id.eq.${userId},project_users.user_id.eq.${userId}`)
-      .order('is_default', { ascending: false })
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
+      .eq('project_users.user_id', userId)
+      .neq('owner_id', userId); // Exclude owned projects to avoid duplicates
 
-    if (error) {
-      throw new Error(`Failed to fetch projects for user: ${error.message}`);
+    if (memberError) {
+      throw new Error(`Failed to fetch member projects: ${memberError.message}`);
     }
 
-    if (!data) {
-      return [];
-    }
+    // Combine and deduplicate results
+    const allProjects = [
+      ...(ownedProjects || []).map(project => ({ ...project, project_users: [] })),
+      ...(memberProjects || [])
+    ];
+
+    // Sort the combined results
+    const sortedProjects = allProjects.sort((a, b) => {
+      // General projects first
+      if (a.is_general && !b.is_general) return -1;
+      if (!a.is_general && b.is_general) return 1;
+
+      // Then by created_at
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
 
     // Transform the data to include user role and validate
-    const projectsWithRole: ProjectWithRole[] = data.map((item: any) => {
+    const projectsWithRole: ProjectWithRole[] = sortedProjects.map((item: any) => {
       // Validate the base project data
-      const project = ProjectSchema.parse({
-        id: item.id,
-        owner_id: item.owner_id,
-        project_name: item.project_name,
-        is_default: item.is_default,
-        project_color: item.project_color,
-        display_order: item.display_order,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-      });
+      const project = ProjectSchema.parse(item);
 
       // Determine user role
       let userRole: 'owner' | 'admin' | 'member' | 'viewer';
@@ -172,10 +182,10 @@ export const updateProject = async (projectId: string, updates: UpdateProjectDat
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
-    // First check if this is a default project
+    // First check if this is a general project
     const { data: project, error: fetchError } = await supabase
       .from('projects')
-      .select('is_default')
+      .select('is_general')
       .eq('id', projectId)
       .single();
 
@@ -183,8 +193,8 @@ export const deleteProject = async (projectId: string): Promise<void> => {
       throw new Error(`Failed to fetch project: ${fetchError.message}`);
     }
 
-    if (project?.is_default) {
-      throw new Error('Cannot delete the default General project');
+    if (project?.is_general) {
+      throw new Error('Cannot delete the General project');
     }
 
     const { error } = await supabase
@@ -329,22 +339,22 @@ export const reassignProjectTasks = async (fromProjectId: string, toProjectId: s
 };
 
 /**
- * Get the default "General" project for a user
+ * Get the "General" project for a user
  */
-export const getDefaultProject = async (userId: string): Promise<Project | null> => {
+export const getGeneralProject = async (userId: string): Promise<Project | null> => {
   try {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('owner_id', userId)
-      .eq('is_default', true)
+      .eq('is_general', true)
       .single();
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return null; // No default project found
+        return null; // No general project found
       }
-      throw new Error(`Failed to fetch default project: ${error.message}`);
+      throw new Error(`Failed to fetch general project: ${error.message}`);
     }
 
     const validatedProject = ProjectSchema.parse(data);

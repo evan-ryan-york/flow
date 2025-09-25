@@ -57,7 +57,7 @@ export function DeleteProjectDialog({
         <DialogHeader>
           <DialogTitle>Delete Project</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{project.project_name}"? This action cannot be undone.
+            Are you sure you want to delete "{project.name}"? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
@@ -76,9 +76,9 @@ export function DeleteProjectDialog({
                     <div className="flex items-center">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: p.project_color }}
+                        style={{ backgroundColor: '#3B82F6' }}
                       />
-                      {p.project_name}
+                      {p.name}
                     </div>
                   </SelectItem>
                 ))}

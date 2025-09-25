@@ -25,7 +25,7 @@ export function RenameProjectDialog({
   open,
   onOpenChange
 }: RenameProjectDialogProps) {
-  const [projectName, setProjectName] = useState(project.project_name);
+  const [projectName, setProjectName] = useState(project.name);
   const [error, setError] = useState<string | null>(null);
   const updateProjectMutation = useUpdateProject();
 
@@ -42,7 +42,7 @@ export function RenameProjectDialog({
       return;
     }
 
-    if (trimmedName === project.project_name) {
+    if (trimmedName === project.name) {
       onOpenChange(false);
       return;
     }
@@ -50,7 +50,7 @@ export function RenameProjectDialog({
     try {
       await updateProjectMutation.mutateAsync({
         projectId: project.id,
-        updates: { project_name: trimmedName }
+        updates: { name: trimmedName }
       });
       onOpenChange(false);
       setError(null);
@@ -60,7 +60,7 @@ export function RenameProjectDialog({
   };
 
   const handleCancel = () => {
-    setProjectName(project.project_name);
+    setProjectName(project.name);
     setError(null);
     onOpenChange(false);
   };
@@ -79,7 +79,7 @@ export function RenameProjectDialog({
         <DialogHeader>
           <DialogTitle>Rename Project</DialogTitle>
           <DialogDescription>
-            Enter a new name for "{project.project_name}".
+            Enter a new name for "{project.name}".
           </DialogDescription>
         </DialogHeader>
 

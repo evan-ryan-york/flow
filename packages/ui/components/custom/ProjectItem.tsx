@@ -38,24 +38,24 @@ export function ProjectItem({
         {/* Color indicator */}
         <div
           className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-          style={{ backgroundColor: project.project_color }}
+          style={{ backgroundColor: '#3B82F6' }}
         />
 
         {/* Project name */}
         <span className="flex-1 text-left truncate">
-          {project.project_name}
+          {project.name}
         </span>
 
-        {/* Default badge */}
-        {project.is_default && (
+        {/* General badge */}
+        {project.is_general && (
           <Badge variant="secondary" className="ml-2 text-xs">
-            Default
+            General
           </Badge>
         )}
       </Button>
 
-      {/* Context menu (only for non-default projects) */}
-      {!project.is_default && (
+      {/* Context menu (only for non-general projects) */}
+      {!project.is_general && (
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <ProjectContextMenu project={project} userId={userId} />
         </div>
