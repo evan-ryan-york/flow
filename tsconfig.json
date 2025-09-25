@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,7 +20,8 @@
       "@perfect-task-app/data": ["./packages/data"],
       "@perfect-task-app/data/*": ["./packages/data/*"],
       "@perfect-task-app/ui": ["./packages/ui"],
-      "@perfect-task-app/ui/*": ["./packages/ui/*"]
+      "@perfect-task-app/ui/*": ["./packages/ui/*"],
+      "@/*": ["./apps/web/*"]
     }
   },
   "include": [

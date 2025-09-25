@@ -4,7 +4,7 @@ import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import reactNative from 'eslint-plugin-react-native';
+// React Native plugin removed - using Capacitor instead
 
 export default [
   js.configs.recommended,
@@ -39,7 +39,7 @@ export default [
         afterEach: 'readonly',
         beforeAll: 'readonly',
         afterAll: 'readonly',
-        // Browser globals
+        // Browser/DOM globals
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
@@ -48,13 +48,27 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         fetch: 'readonly',
+        URL: 'readonly',
+        FormData: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        HTMLHeadingElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        FileReader: 'readonly',
+        alert: 'readonly',
+        prompt: 'readonly',
+        Notification: 'readonly',
+        React: 'readonly',
       },
     },
     plugins: {
       '@typescript-eslint': typescript,
       react,
       'react-hooks': reactHooks,
-      'react-native': reactNative,
     },
     rules: {
       // TypeScript rules
@@ -78,16 +92,7 @@ export default [
       },
     },
   },
-  {
-    // Specific rules for React Native files
-    files: ['apps/mobile/**/*.{ts,tsx}'],
-    rules: {
-      'react-native/no-unused-styles': 'warn',
-      'react-native/split-platform-components': 'warn',
-      'react-native/no-inline-styles': 'warn',
-      'react-native/no-color-literals': 'warn',
-    },
-  },
+  // React Native rules removed - using Capacitor
   {
     // Ignore patterns
     ignores: [
@@ -99,6 +104,10 @@ export default [
       'supabase/**',
       'test-phase*.js', // Ignore test phase files
       '**/__tests__/**', // Ignore test directories for now
+      'apps/mobile/ios/**', // Ignore Capacitor iOS build files
+      'apps/mobile/android/**', // Ignore Capacitor Android build files
+      '**/nativeBridge.ts', // Ignore Capacitor native bridge files
+      '**/native-bridge.js', // Ignore Capacitor native bridge files
     ],
   },
 ];

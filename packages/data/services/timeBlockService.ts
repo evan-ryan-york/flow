@@ -1,4 +1,6 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
+
+const supabase = getSupabaseClient();
 import { TimeBlockSchema, TaskSchema, type TimeBlock, type Task } from '@perfect-task-app/models';
 
 export interface CreateTimeBlockData {

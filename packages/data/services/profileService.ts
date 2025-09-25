@@ -1,4 +1,6 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
+
+const supabase = getSupabaseClient();
 import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 
 export interface ProfileUpdates {
@@ -34,12 +36,12 @@ export const getProfile = async (userId: string): Promise<Profile> => {
   }
 };
 
-export const updateProfile = async (updates: { fullName: string }): Promise<Profile> => {
+export const updateProfile = async (updates: { firstName: string }): Promise<Profile> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .update({
-        full_name: updates.fullName,
+        first_name: updates.firstName,
         updated_at: new Date().toISOString(),
       })
       .eq('id', (await supabase.auth.getUser()).data.user?.id)
@@ -66,9 +68,21 @@ export const updateProfile = async (updates: { fullName: string }): Promise<Prof
 
 export const getCurrentProfile = async (): Promise<Profile> => {
   try {
+    // Get the current user first
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      throw new Error(`Failed to get current user: ${userError.message}`);
+    }
+
+    if (!user) {
+      throw new Error('No authenticated user found');
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .eq('id', user.id)
       .single();
 
     if (error) {
