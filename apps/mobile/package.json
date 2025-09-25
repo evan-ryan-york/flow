@@ -1,46 +1,33 @@
 {
   "name": "mobile",
   "version": "1.0.0",
-  "main": "index.ts",
+  "description": "Perfect Task App Mobile",
+  "main": "index.js",
   "scripts": {
-    "dev": "expo start --port 8086",
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "build": "npm run sync",
+    "sync": "cap sync",
+    "dev": "cap run ios --livereload --external",
+    "dev:android": "cap run android --livereload --external",
+    "ios": "cap run ios",
+    "android": "cap run android",
+    "add:ios": "cap add ios",
+    "add:android": "cap add android",
+    "copy": "cap copy",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
-    "@perfect-task-app/data": "workspace:*",
-    "@perfect-task-app/models": "workspace:*",
-    "@perfect-task-app/ui": "workspace:*",
-    "@react-native-async-storage/async-storage": "^2.2.0",
-    "@react-navigation/bottom-tabs": "^7.4.7",
-    "@react-navigation/native": "^7.1.17",
-    "@tanstack/react-query": "^5.61.1",
-    "dotenv": "^17.2.2",
-    "expo": "~54.0.9",
-    "expo-auth-session": "~5.5.2",
-    "expo-constants": "~17.0.3",
-    "expo-crypto": "~13.0.2",
-    "expo-router": "~4.0.12",
-    "expo-status-bar": "~2.0.0",
-    "expo-web-browser": "~13.0.3",
-    "nativewind": "^4.2.1",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-hook-form": "^7.63.0",
-    "react-native": "0.81.4",
-    "react-native-safe-area-context": "^5.6.1",
-    "react-native-screens": "^4.16.0",
-    "react-native-web": "^0.21.1",
-    "tailwindcss": "^3.4.17",
-    "zod": "^4.1.11",
-    "zustand": "^5.0.8"
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/local-notifications": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/share": "^6.0.0"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
-  },
-  "private": true
+    "@capacitor/cli": "^6.0.0"
+  }
 }

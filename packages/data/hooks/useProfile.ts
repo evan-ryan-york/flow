@@ -34,7 +34,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (updates: { fullName: string }) => updateProfile(updates),
+    mutationFn: (updates: { firstName: string }) => updateProfile(updates),
     onSuccess: (updatedProfile) => {
       // Update the specific profile in cache as specified in build-spec
       queryClient.setQueryData(
