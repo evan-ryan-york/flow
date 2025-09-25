@@ -9,6 +9,8 @@ import {
   addProjectMember,
   removeProjectMember,
   updateMemberRole,
+  reassignProjectTasks,
+  getGeneralProject,
   type UpdateProjectData,
   type ProjectWithRole,
 } from '../services/projectService';
@@ -58,8 +60,8 @@ export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ownerId, name }: { ownerId: string; name: string }) =>
-      createProject(ownerId, name),
+    mutationFn: (data: { ownerId: string; name: string }) =>
+      createProject(data),
     onSuccess: (newProject, { ownerId }) => {
       // Add the new project to the user's project list cache
       queryClient.setQueryData<ProjectWithRole[]>(
@@ -194,6 +196,52 @@ export const useUpdateMemberRole = () => {
 
       // Update the user's role in project lists
       queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.lists() });
+    },
+  });
+};
+
+// Hook to get "General" project for a user
+export const useGeneralProject = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: ['projects', 'general', userId || ''],
+    queryFn: () => getGeneralProject(userId!),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 10, // 10 minutes (rarely changes)
+  });
+};
+
+// Enhanced delete project mutation that supports task reassignment
+export const useDeleteProjectWithReassignment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      reassignToProjectId
+    }: {
+      projectId: string;
+      reassignToProjectId?: string;
+    }) => {
+      // Reassign tasks if specified
+      if (reassignToProjectId) {
+        await reassignProjectTasks(projectId, reassignToProjectId);
+      }
+
+      // Delete the project
+      await deleteProject(projectId);
+
+      return projectId;
+    },
+    onSuccess: (deletedProjectId) => {
+      // Remove from projects cache
+      queryClient.removeQueries({ queryKey: PROJECT_KEYS.detail(deletedProjectId) });
+      queryClient.removeQueries({ queryKey: PROJECT_KEYS.members(deletedProjectId) });
+
+      // Invalidate project lists to remove the deleted project
+      queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.lists() });
+
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 };

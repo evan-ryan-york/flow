@@ -1,7 +1,11 @@
 // Export application-specific components
 // Components will be added here as they are created
 
-// Placeholder - uncomment when custom components are added
-// export * from "./components/custom/TaskItem"
-// export * from "./components/custom/ProjectCard"
-// export * from "./components/custom/TimeBlockCard"
+// Project Manager Components
+export * from './components/custom/ProjectsPanel';
+export * from './components/custom/ProjectItem';
+export * from './components/custom/ProjectColorPicker';
+export * from './components/custom/AddProjectButton';
+export * from './components/custom/ProjectContextMenu';
+export * from './components/custom/DeleteProjectDialog';
+export * from './components/custom/RenameProjectDialog';
