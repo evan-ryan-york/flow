@@ -5,7 +5,7 @@ import {
   PopoverTrigger,
 } from '../ui/popover';
 import { Button } from '../ui/button';
-import { MoreHorizontal, Edit, Trash2, Palette } from 'lucide-react';
+import { MoreVert, EditPencil, Bin, Palette } from 'iconoir-react';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { RenameProjectDialog } from './RenameProjectDialog';
 import type { Project } from '@perfect-task-app/models';
@@ -25,7 +25,7 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="sm">
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreVert className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-48" align="end">
@@ -38,7 +38,7 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
                 setIsOpen(false);
               }}
             >
-              <Edit className="h-4 w-4 mr-2" />
+              <EditPencil className="h-4 w-4 mr-2" />
               Rename
             </Button>
             <Button
@@ -49,7 +49,7 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
                 setIsOpen(false);
               }}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Bin className="h-4 w-4 mr-2" />
               Delete
             </Button>
           </div>

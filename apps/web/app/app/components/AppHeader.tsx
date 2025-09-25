@@ -28,20 +28,11 @@ export function AppHeader({ user }: AppHeaderProps) {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              {user.user_metadata.avatar_url && (
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src={user.user_metadata.avatar_url}
-                  alt={user.user_metadata.full_name || user.email}
-                />
-              )}
-              <div className="text-sm">
-                <div className="font-medium text-gray-900">
-                  {user.user_metadata.full_name || user.email}
-                </div>
-                <div className="text-gray-500">{user.email}</div>
+            <div className="text-sm">
+              <div className="font-medium text-gray-900">
+                {user.user_metadata.full_name || user.email}
               </div>
+              <div className="text-gray-500">{user.email}</div>
             </div>
 
             <button
