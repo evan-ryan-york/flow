@@ -1,51 +1,126 @@
+@import url('https://fonts.cdnfonts.com/css/general-sans');
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
+    /* Core UI tokens - Light Mode */
+    --background: 40 80% 99%;          /* #fefefd - Main app background */
+    --foreground: 340 5% 9%;           /* #1a1718 - Default text color */
+    --card: 60 67% 96%;                /* #fbfbf2 - Card background */
+    --card-foreground: 340 5% 9%;      /* #1a1718 - Text inside cards */
+    --primary: 340 5% 9%;              /* #1a1718 - Primary buttons, active UI */
+    --primary-foreground: 40 80% 99%;  /* #fefefd - Text on primary elements */
+    --secondary: 80 5% 90%;            /* #e5e6e4 - Secondary buttons, UI */
+    --secondary-foreground: 340 5% 9%; /* #1a1718 - Text on secondary elements */
+    --muted: 0 2% 64%;                 /* #a6a2a2 - Disabled/placeholder text */
+    --muted-foreground: 0 1% 38%;      /* #626060 - Text color for muted */
+    --border: 60 4% 83%;               /* #d6d6d4 - Borders and dividers */
+    --ring: 0 1% 52%;                  /* #858080 - Focus rings */
+
+    /* Legacy tokens for compatibility */
+    --popover: 60 67% 96%;             /* Same as card */
+    --popover-foreground: 340 5% 9%;   /* Same as card-foreground */
+    --accent: 80 5% 90%;               /* Same as secondary */
+    --accent-foreground: 340 5% 9%;    /* Same as secondary-foreground */
+    --destructive: 0 84.2% 60.2%;      /* Keep existing destructive colors */
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --input: 60 4% 83%;                /* Same as border */
     --radius: 0.5rem;
+
+    /* Typography tokens */
+    --font-sans: "General Sans", system-ui, -apple-system, sans-serif;
+    --font-heading: "Manrope", system-ui, -apple-system, sans-serif;
+
+    /* Semantic & Status tokens */
+    --destructive: 0 84% 60%;          /* Delete actions, overdue tasks */
+    --warning: 45 93% 47%;             /* Tasks due soon, warnings */
+    --success: 142 71% 45%;            /* Completed tasks, confirmations */
+    --info: 217 91% 60%;               /* Informational messages, new items */
+
+    /* Calendar & Time-blocking tokens */
+    --focus-block: 168 76% 42%;        /* User-created "Work Time" block */
+    --gcal-event: 221 39% 49%;         /* Google Calendar events */
+
+    /* Data & Entity tokens - Main colors */
+    --rose: 347 91% 60%;               /* Project A, High Priority Tag */
+    --amber: 38 92% 50%;               /* Project B, "In Review" Status */
+    --mint: 145 63% 49%;               /* Project C, "Client Work" */
+    --sky: 199 89% 48%;                /* Project D, "Marketing" */
+    --violet: 262 82% 58%;             /* Project E, "Personal" */
+    --lime: 84 81% 44%;                /* Project F, "Design Tasks" */
+    --teal: 168 76% 42%;               /* Project G, "Engineering" */
+    --crimson: 336 81% 51%;            /* Project H, "Urgent" */
+
+    /* Data & Entity tokens - Subtle backgrounds */
+    --rose-bg: 347 100% 97%;           /* Rose subtle background */
+    --amber-bg: 45 100% 96%;           /* Amber subtle background */
+    --mint-bg: 145 75% 96%;            /* Mint subtle background */
+    --sky-bg: 204 100% 96%;            /* Sky subtle background */
+    --violet-bg: 260 100% 97%;         /* Violet subtle background */
+    --lime-bg: 90 100% 96%;            /* Lime subtle background */
+    --teal-bg: 173 80% 96%;            /* Teal subtle background */
+    --crimson-bg: 336 100% 97%;        /* Crimson subtle background */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Core UI tokens - Dark Mode */
+    --background: 340 5% 9%;           /* #1a1718 - Main app background */
+    --foreground: 60 8% 93%;           /* #f0f0ef - Default text color */
+    --card: 340 3% 15%;                /* #292728 - Card background */
+    --card-foreground: 60 8% 93%;      /* #f0f0ef - Text inside cards */
+    --primary: 60 8% 93%;              /* #f0f0ef - Primary buttons, active UI */
+    --primary-foreground: 340 5% 9%;   /* #1a1718 - Text on primary elements */
+    --secondary: 0 2% 25%;             /* #434040 - Secondary buttons, UI */
+    --secondary-foreground: 60 8% 93%; /* #f0f0ef - Text on secondary elements */
+    --muted: 0 2% 47%;                 /* #7b7878 - Disabled/placeholder text */
+    --muted-foreground: 0 1% 73%;      /* #babab9 - Text color for muted */
+    --border: 340 3% 22%;              /* #383536 - Borders and dividers */
+    --ring: 0 1% 82%;                  /* #d1d1d1 - Focus rings */
+
+    /* Legacy tokens for compatibility */
+    --popover: 340 3% 15%;             /* Same as card */
+    --popover-foreground: 60 8% 93%;   /* Same as card-foreground */
+    --accent: 0 2% 25%;                /* Same as secondary */
+    --accent-foreground: 60 8% 93%;    /* Same as secondary-foreground */
+    --destructive: 0 62.8% 30.6%;      /* Keep existing destructive colors */
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --input: 340 3% 22%;               /* Same as border */
+
+    /* Semantic & Status tokens - Dark Mode (same colors, they work well in dark) */
+    --warning: 45 93% 47%;             /* Tasks due soon, warnings */
+    --success: 142 71% 45%;            /* Completed tasks, confirmations */
+    --info: 217 91% 60%;               /* Informational messages, new items */
+
+    /* Calendar & Time-blocking tokens - Dark Mode */
+    --focus-block: 168 76% 42%;        /* User-created "Work Time" block */
+    --gcal-event: 221 39% 49%;         /* Google Calendar events */
+
+    /* Data & Entity tokens - Main colors (same in dark mode) */
+    --rose: 347 91% 60%;               /* Project A, High Priority Tag */
+    --amber: 38 92% 50%;               /* Project B, "In Review" Status */
+    --mint: 145 63% 49%;               /* Project C, "Client Work" */
+    --sky: 199 89% 48%;                /* Project D, "Marketing" */
+    --violet: 262 82% 58%;             /* Project E, "Personal" */
+    --lime: 84 81% 44%;                /* Project F, "Design Tasks" */
+    --teal: 168 76% 42%;               /* Project G, "Engineering" */
+    --crimson: 336 81% 51%;            /* Project H, "Urgent" */
+
+    /* Data & Entity tokens - Subtle backgrounds (darker for dark mode) */
+    --rose-bg: 347 50% 8%;             /* Rose subtle background - darker */
+    --amber-bg: 45 50% 8%;             /* Amber subtle background - darker */
+    --mint-bg: 145 35% 8%;             /* Mint subtle background - darker */
+    --sky-bg: 204 50% 8%;              /* Sky subtle background - darker */
+    --violet-bg: 260 50% 8%;           /* Violet subtle background - darker */
+    --lime-bg: 90 50% 8%;              /* Lime subtle background - darker */
+    --teal-bg: 173 40% 8%;             /* Teal subtle background - darker */
+    --crimson-bg: 336 50% 8%;          /* Crimson subtle background - darker */
   }
 }
 
