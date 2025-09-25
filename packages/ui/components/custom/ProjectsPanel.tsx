@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { ProjectItem } from './ProjectItem';
-import { AddProjectButton } from './AddProjectButton';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Check, Xmark, Plus } from 'iconoir-react';
 import type { ProjectColor } from './ProjectColorPicker';
 import { useProjectsForUser, useCreateProject, useUpdateProject } from '@perfect-task-app/data';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Project } from '@perfect-task-app/models';
 import type { ProjectWithRole } from '@perfect-task-app/data';
 
 interface ProjectsPanelProps {
@@ -32,20 +31,13 @@ export function ProjectsPanel({
   const [newProjectName, setNewProjectName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const handleProjectClick = (projectId: string, isCtrlClick: boolean) => {
-    if (isCtrlClick) {
-      // Multi-select mode
-      const newSelection = selectedProjectIds.includes(projectId)
-        ? selectedProjectIds.filter(id => id !== projectId)
-        : [...selectedProjectIds, projectId];
-      onProjectSelectionChange(newSelection);
-    } else {
-      // Single select mode
-      const newSelection = selectedProjectIds.includes(projectId) && selectedProjectIds.length === 1
-        ? [] // Deselect if it's the only selected project
-        : [projectId];
-      onProjectSelectionChange(newSelection);
-    }
+  const handleProjectClick = (projectId: string, _isCtrlClick: boolean) => {
+    // Both regular clicks and Ctrl/Cmd+clicks now toggle project selection
+    // This allows for multiple projects to be selected at once
+    const newSelection = selectedProjectIds.includes(projectId)
+      ? selectedProjectIds.filter(id => id !== projectId)
+      : [...selectedProjectIds, projectId];
+    onProjectSelectionChange(newSelection);
   };
 
   const handleCreateProject = async (projectName: string) => {
@@ -57,7 +49,7 @@ export function ProjectsPanel({
 
       // Auto-select the new project
       onProjectSelectionChange([newProject.id]);
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };
@@ -85,7 +77,7 @@ export function ProjectsPanel({
       setNewProjectName('');
       setIsCreatingProject(false);
       setCreateError(null);
-    } catch (err) {
+    } catch {
       setCreateError('Failed to create project');
     }
   };
@@ -149,52 +141,87 @@ export function ProjectsPanel({
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
         <h2 className="font-semibold text-lg text-gray-900">Projects</h2>
-        <button
+        <motion.button
           onClick={handleStartCreateProject}
           className="text-gray-500 hover:text-gray-700 p-1"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <Plus className="h-4 w-4" />
-        </button>
+          <motion.div
+            animate={{ rotate: isCreatingProject ? 45 : 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            <Plus className="h-4 w-4" />
+          </motion.div>
+        </motion.button>
       </div>
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto p-4">
         <div>
-          {/* Inline Create Project Form */}
-          {isCreatingProject && (
-            <div className="mb-4">
-              <div className="flex items-center space-x-2">
-                <Input
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Project name..."
-                  className="flex-1"
-                  autoFocus
-                  disabled={createProjectMutation.isPending}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSubmitCreateProject}
-                  disabled={createProjectMutation.isPending}
+          {/* Animated Inline Create Project Form */}
+          <AnimatePresence>
+            {isCreatingProject && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  duration: 0.2,
+                  ease: 'easeInOut',
+                  opacity: { duration: 0.15 }
+                }}
+                className="mb-4 overflow-hidden"
+              >
+                <motion.div
+                  initial={{ y: -10 }}
+                  animate={{ y: 0 }}
+                  exit={{ y: -10 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
                 >
-                  <Check className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleCancelCreateProject}
-                  disabled={createProjectMutation.isPending}
-                >
-                  <Xmark className="h-4 w-4" />
-                </Button>
-              </div>
-              {createError && (
-                <div className="text-red-500 text-xs mt-1">{createError}</div>
-              )}
-              <hr className="mt-4 border-gray-200" />
-            </div>
-          )}
+                  <div className="space-y-3">
+                    <Input
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Project name..."
+                      className="w-full border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                      disabled={createProjectMutation.isPending}
+                    />
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCancelCreateProject}
+                        disabled={createProjectMutation.isPending}
+                      >
+                        <Xmark className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSubmitCreateProject}
+                        disabled={createProjectMutation.isPending}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {createError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-red-500 text-xs mt-2"
+                    >
+                      {createError}
+                    </motion.div>
+                  )}
+                  <hr className="mt-4 border-gray-200" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Project Items */}
           {projects?.map((project: ProjectWithRole, index) => (

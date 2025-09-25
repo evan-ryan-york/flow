@@ -9,6 +9,7 @@ export interface CreateProjectData {
 
 export interface UpdateProjectData {
   name?: string;
+  color?: 'rose' | 'amber' | 'mint' | 'sky' | 'violet' | 'lime' | 'teal' | 'crimson';
 }
 
 export interface AddProjectMemberData {

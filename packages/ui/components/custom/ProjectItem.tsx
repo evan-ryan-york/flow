@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -35,36 +36,65 @@ export function ProjectItem({
   return (
     <div className={cn('group relative', className)}>
       <div className="flex items-center w-full">
-        {/* Color picker */}
-        {!project.is_general ? (
-          <ProjectColorPicker
-            currentColor={project.color || 'sky'}
-            onColorChange={handleColorChange}
+        {/* Selection indicator - solid dot for selected, hollow circle for unselected */}
+        <div className="relative mr-2 flex-shrink-0">
+          <motion.div
+            animate={{
+              scale: isSelected ? 1.1 : 1,
+            }}
+            transition={{ duration: 0.15, ease: 'easeInOut' }}
           >
-            <button
-              className="w-3 h-3 rounded-full mr-2 flex-shrink-0 hover:scale-110 transition-transform duration-200 border border-gray-300 hover:border-gray-400"
-              style={{ backgroundColor: getProjectColorHSL(project.color || 'sky') }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </ProjectColorPicker>
-        ) : (
-          <div
-            className="w-3 h-3 rounded-full mr-2 flex-shrink-0"
-            style={{ backgroundColor: getProjectColorHSL(project.color || 'sky') }}
-          />
-        )}
+            {isSelected ? (
+              // Solid dot for selected projects
+              <motion.div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: getProjectColorHSL(project.color || 'sky') }}
+                initial={false}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              />
+            ) : (
+              // Hollow circle for unselected projects
+              <motion.div
+                className="w-3 h-3 rounded-full border-2"
+                style={{ borderColor: getProjectColorHSL(project.color || 'sky') }}
+                initial={false}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              />
+            )}
+          </motion.div>
+
+          {/* Color picker overlay (only for non-general projects) */}
+          {!project.is_general && (
+            <ProjectColorPicker
+              currentColor={project.color || 'sky'}
+              onColorChange={handleColorChange}
+            >
+              <button
+                className="absolute inset-0 w-full h-full rounded-full opacity-0 hover:opacity-10 bg-gray-500 transition-opacity duration-200"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </ProjectColorPicker>
+          )}
+        </div>
 
         {/* Project button */}
-        <Button
-          variant="ghost"
-          className={cn(
-            'flex-1 justify-start h-auto p-2 font-normal',
-            isSelected && 'bg-blue-50 text-blue-700 border-blue-200'
-          )}
-          onClick={handleClick}
+        <motion.div
+          className="flex-1"
+          whileHover={{ x: 2 }}
+          transition={{ duration: 0.15, ease: 'easeInOut' }}
         >
+          <Button
+            variant="ghost"
+            className="flex-1 justify-start h-auto p-2 hover:bg-gray-50 w-full"
+            onClick={handleClick}
+          >
           {/* Project name */}
-          <span className="flex-1 text-left truncate">
+          <span className={cn(
+            "flex-1 text-left truncate",
+            isSelected ? "font-semibold text-gray-900" : "font-normal text-gray-700"
+          )}>
             {project.name}
           </span>
 
@@ -75,6 +105,7 @@ export function ProjectItem({
             </Badge>
           )}
         </Button>
+        </motion.div>
       </div>
 
       {/* Context menu (only for non-general projects) */}
