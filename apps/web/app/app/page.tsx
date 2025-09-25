@@ -13,7 +13,7 @@ export default async function AppPage() {
   }
 
   return (
-    <main className="h-[calc(100vh-4rem)] overflow-hidden">
+    <main className="h-screen overflow-hidden">
       <ThreeColumnLayout userId={user.id} />
     </main>
   );
