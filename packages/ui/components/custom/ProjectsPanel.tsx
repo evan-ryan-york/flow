@@ -5,7 +5,9 @@ import { AddProjectButton } from './AddProjectButton';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Check, Xmark, Plus } from 'iconoir-react';
-import { useProjectsForUser, useCreateProject } from '@perfect-task-app/data';
+import type { ProjectColor } from './ProjectColorPicker';
+import { useProjectsForUser, useCreateProject, useUpdateProject } from '@perfect-task-app/data';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Project } from '@perfect-task-app/models';
 import type { ProjectWithRole } from '@perfect-task-app/data';
 
@@ -24,6 +26,8 @@ export function ProjectsPanel({
 }: ProjectsPanelProps) {
   const { data: projects, isLoading, isError, error } = useProjectsForUser(userId);
   const createProjectMutation = useCreateProject();
+  const updateProjectMutation = useUpdateProject();
+  const queryClient = useQueryClient();
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
@@ -98,6 +102,24 @@ export function ProjectsPanel({
     } else if (event.key === 'Escape') {
       handleCancelCreateProject();
     }
+  };
+
+  const handleColorChange = (projectId: string, color: ProjectColor) => {
+    // Optimistic update - update local state immediately
+    const queryKey = ['projects', 'list', userId];
+
+    queryClient.setQueryData(queryKey, (oldData: ProjectWithRole[] | undefined) => {
+      if (!oldData) return oldData;
+      return oldData.map((project) =>
+        project.id === projectId ? { ...project, color } : project
+      );
+    });
+
+    // Then make the server call
+    updateProjectMutation.mutate({
+      projectId,
+      updates: { color }
+    });
   };
 
   if (isLoading) {
@@ -182,6 +204,7 @@ export function ProjectsPanel({
                   project={project}
                   isSelected={selectedProjectIds.includes(project.id)}
                   onClick={handleProjectClick}
+                  onColorChange={handleColorChange}
                   userId={userId}
                 />
               </div>

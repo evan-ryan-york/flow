@@ -4,6 +4,7 @@
 // Project Manager Components
 export * from './components/custom/ProjectsPanel';
 export * from './components/custom/ProjectItem';
+export * from './components/custom/ProjectColorPicker';
 export * from './components/custom/AddProjectButton';
 export * from './components/custom/ProjectContextMenu';
 export * from './components/custom/DeleteProjectDialog';
