@@ -65,7 +65,10 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
         *,
         project_users!inner(role)
       `)
-      .or(`owner_id.eq.${userId},project_users.user_id.eq.${userId}`);
+      .or(`owner_id.eq.${userId},project_users.user_id.eq.${userId}`)
+      .order('is_default', { ascending: false })
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: true });
 
     if (error) {
       throw new Error(`Failed to fetch projects for user: ${error.message}`);
@@ -169,6 +172,21 @@ export const updateProject = async (projectId: string, updates: UpdateProjectDat
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    // First check if this is a default project
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('is_default')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch project: ${fetchError.message}`);
+    }
+
+    if (project?.is_default) {
+      throw new Error('Cannot delete the default General project');
+    }
+
     const { error } = await supabase
       .from('projects')
       .delete()
@@ -287,6 +305,52 @@ export const updateMemberRole = async (
     return validatedProjectUser;
   } catch (error) {
     console.error('ProjectService.updateMemberRole error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reassign tasks from one project to another (for project deletion)
+ */
+export const reassignProjectTasks = async (fromProjectId: string, toProjectId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ project_id: toProjectId })
+      .eq('project_id', fromProjectId);
+
+    if (error) {
+      throw new Error(`Failed to reassign tasks: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('ProjectService.reassignProjectTasks error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the default "General" project for a user
+ */
+export const getDefaultProject = async (userId: string): Promise<Project | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', userId)
+      .eq('is_default', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No default project found
+      }
+      throw new Error(`Failed to fetch default project: ${error.message}`);
+    }
+
+    const validatedProject = ProjectSchema.parse(data);
+    return validatedProject;
+  } catch (error) {
+    console.error('ProjectService.getDefaultProject error:', error);
     throw error;
   }
 };

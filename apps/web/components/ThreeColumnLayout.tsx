@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ProjectsPanel } from './ProjectsPanel';
+import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 
