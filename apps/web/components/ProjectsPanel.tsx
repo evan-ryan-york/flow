@@ -38,8 +38,8 @@ export function ProjectsPanel({
     if (newProjectName.trim()) {
       try {
         await createProjectMutation.mutateAsync({
-          name: newProjectName,
           ownerId: userId,
+          project_name: newProjectName,
         });
         setNewProjectName('');
         setIsCreatingProject(false);
@@ -83,10 +83,10 @@ export function ProjectsPanel({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={project.name === 'General' ? 'font-medium' : ''}>
-                      {project.name}
+                    <span className={project.is_default ? 'font-medium' : ''}>
+                      {project.project_name}
                     </span>
-                    {project.name === 'General' && (
+                    {project.is_default && (
                       <span className="text-xs text-gray-500">Default</span>
                     )}
                   </div>

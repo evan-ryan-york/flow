@@ -20,12 +20,27 @@ export type Profile = z.infer<typeof ProfileSchema>;
 export const ProjectSchema = z.object({
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
-  name: z.string().min(1),
-  is_general: z.boolean(),
+  project_name: z.string().min(1).max(50),
+  is_default: z.boolean().default(false),
+  project_color: z.string().regex(/^#[0-9A-F]{6}$/i).default('#3B82F6'),
+  display_order: z.number().int().min(0).default(0),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
 export type Project = z.infer<typeof ProjectSchema>;
+
+export const CreateProjectSchema = z.object({
+  project_name: z.string().min(1).max(50).trim(),
+  project_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+});
+export type CreateProject = z.infer<typeof CreateProjectSchema>;
+
+export const UpdateProjectSchema = z.object({
+  project_name: z.string().min(1).max(50).trim().optional(),
+  project_color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  display_order: z.number().int().min(0).optional(),
+});
+export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
 
 
 // ---------------------------------

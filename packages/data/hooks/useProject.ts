@@ -58,8 +58,8 @@ export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ownerId, name }: { ownerId: string; name: string }) =>
-      createProject(ownerId, name),
+    mutationFn: (data: { ownerId: string; project_name: string; project_color?: string }) =>
+      createProject(data),
     onSuccess: (newProject, { ownerId }) => {
       // Add the new project to the user's project list cache
       queryClient.setQueryData<ProjectWithRole[]>(
