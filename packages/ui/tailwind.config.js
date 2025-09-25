@@ -46,6 +46,43 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        warning: "hsl(var(--warning))",
+        success: "hsl(var(--success))",
+        info: "hsl(var(--info))",
+        "focus-block": "hsl(var(--focus-block))",
+        "gcal-event": "hsl(var(--gcal-event))",
+        rose: {
+          DEFAULT: "hsl(var(--rose))",
+          bg: "hsl(var(--rose-bg))",
+        },
+        amber: {
+          DEFAULT: "hsl(var(--amber))",
+          bg: "hsl(var(--amber-bg))",
+        },
+        mint: {
+          DEFAULT: "hsl(var(--mint))",
+          bg: "hsl(var(--mint-bg))",
+        },
+        sky: {
+          DEFAULT: "hsl(var(--sky))",
+          bg: "hsl(var(--sky-bg))",
+        },
+        violet: {
+          DEFAULT: "hsl(var(--violet))",
+          bg: "hsl(var(--violet-bg))",
+        },
+        lime: {
+          DEFAULT: "hsl(var(--lime))",
+          bg: "hsl(var(--lime-bg))",
+        },
+        teal: {
+          DEFAULT: "hsl(var(--teal))",
+          bg: "hsl(var(--teal-bg))",
+        },
+        crimson: {
+          DEFAULT: "hsl(var(--crimson))",
+          bg: "hsl(var(--crimson-bg))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -54,6 +91,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
+        heading: ["var(--font-heading)", ...fontFamily.sans],
       },
       keyframes: {
         "accordion-down": {
