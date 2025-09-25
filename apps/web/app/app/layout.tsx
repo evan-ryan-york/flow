@@ -18,8 +18,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader user={user} />
+    <div className="min-h-screen bg-white">
       {children}
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Plus, Check, X } from 'lucide-react';
+import { Plus, Check, Xmark } from 'iconoir-react';
 
 interface AddProjectButtonProps {
   onCreateProject: (name: string) => Promise<void>;
@@ -76,7 +76,7 @@ export function AddProjectButton({ onCreateProject, isLoading }: AddProjectButto
             onClick={handleCancel}
             disabled={isLoading}
           >
-            <X className="h-4 w-4" />
+            <Xmark className="h-4 w-4" />
           </Button>
         </div>
         {error && (

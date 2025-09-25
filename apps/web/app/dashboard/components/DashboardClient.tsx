@@ -22,45 +22,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Perfect Task App</h1>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                {user.user_metadata?.avatar_url && (
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={user.user_metadata.avatar_url}
-                    alt={user.user_metadata?.full_name || user.email || 'User'}
-                  />
-                )}
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">
-                    {user.user_metadata?.full_name || user.email}
-                  </div>
-                  <div className="text-gray-500">{user.email}</div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md hover:bg-gray-100"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex overflow-hidden">
+    <div className="min-h-screen bg-white">
+      <main className="flex h-screen overflow-hidden">
         {/* Column 1: Projects Panel */}
-        <div className="w-64 border-r border-gray-200 bg-white">
+        <div className="w-64 border-r border-gray-200">
           <ProjectsPanel
             userId={user.id}
             selectedProjectIds={selectedProjectIds}
@@ -84,7 +49,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
         </div>
 
         {/* Column 3: Calendar Panel (placeholder) */}
-        <div className="w-80 border-l border-gray-200 bg-white p-6">
+        <div className="w-80 border-l border-gray-200 p-6">
           <div className="h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
             <div className="text-center">
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Calendar</h2>

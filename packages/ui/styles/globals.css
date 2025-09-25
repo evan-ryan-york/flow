@@ -11,9 +11,9 @@
 @layer base {
   :root {
     /* Core UI tokens - Light Mode */
-    --background: 40 80% 99%;          /* #fefefd - Main app background */
+    --background: 0 0% 100%;           /* #ffffff - Main app background */
     --foreground: 340 5% 9%;           /* #1a1718 - Default text color */
-    --card: 60 67% 96%;                /* #fbfbf2 - Card background */
+    --card: 0 0% 100%;                 /* #ffffff - Card background */
     --card-foreground: 340 5% 9%;      /* #1a1718 - Text inside cards */
     --primary: 340 5% 9%;              /* #1a1718 - Primary buttons, active UI */
     --primary-foreground: 40 80% 99%;  /* #fefefd - Text on primary elements */
