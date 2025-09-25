@@ -5,13 +5,11 @@ import { z } from 'zod';
 // ---------------------------------
 export const ProfileSchema = z.object({
   id: z.string().uuid(),
-  first_name: z.string().nullable(),
-  last_name: z.string().nullable(),
-  full_name: z.string().nullable(),
-  email: z.string().email(),
-  avatar_url: z.string().url().nullable(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  first_name: z.string().nullable().optional(),
+  last_name: z.string().nullable().optional(),
+  avatar_url: z.string().url().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 

@@ -1,4 +1,6 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
+
+const supabase = getSupabaseClient();
 import { TaskSchema, type Task } from '@perfect-task-app/models';
 
 export interface CreateTaskData {
@@ -110,6 +112,47 @@ export const deleteTask = async (taskId: string): Promise<void> => {
     }
   } catch (error) {
     console.error('TaskService.deleteTask error:', error);
+    throw error;
+  }
+};
+
+export const getTasksForUser = async (userId: string): Promise<Task[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        projects!inner(
+          *,
+          project_users!inner(user_id)
+        )
+      `)
+      .eq('projects.project_users.user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch tasks for user: ${error.message}`);
+    }
+
+    // Extract tasks and validate with Zod
+    const tasks = data?.map((item: any) => ({
+      id: item.id,
+      project_id: item.project_id,
+      created_by: item.created_by,
+      assigned_to: item.assigned_to,
+      name: item.name,
+      description: item.description,
+      due_date: item.due_date,
+      status: item.status,
+      is_completed: item.is_completed,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    })) || [];
+
+    const validatedTasks = TaskSchema.array().parse(tasks);
+    return validatedTasks;
+  } catch (error) {
+    console.error('TaskService.getTasksForUser error:', error);
     throw error;
   }
 };

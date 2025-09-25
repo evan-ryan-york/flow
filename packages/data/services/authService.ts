@@ -1,5 +1,7 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import type { User } from '@supabase/supabase-js';
+
+const supabase = getSupabaseClient();
 
 export interface SignUpCredentials {
   email: string;
@@ -71,6 +73,13 @@ export const signOut = async (): Promise<void> => {
 export const getSession = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
+
+    console.log('AuthService.getSession debug:', {
+      hasSession: !!data.session,
+      hasUser: !!data.session?.user,
+      userId: data.session?.user?.id,
+      error: error?.message
+    });
 
     if (error) {
       throw new Error(`Get session failed: ${error.message}`);

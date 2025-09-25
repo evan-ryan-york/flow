@@ -6,8 +6,17 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:web": "cd apps/web && pnpm run dev",
+    "dev:mobile": "cd apps/mobile && pnpm run dev",
+    "dev:desktop": "cd apps/desktop && pnpm run dev",
     "build": "pnpm run typecheck && pnpm run lint && echo '✅ All TypeScript and linting checks passed'",
     "build:turbo": "turbo run build",
+    "build:web": "cd apps/web && pnpm run build",
+    "build:web:export": "cd apps/web && NEXT_OUTPUT=export pnpm run build",
+    "build:mobile": "cd apps/mobile && pnpm run build",
+    "build:desktop": "cd apps/desktop && pnpm run build",
+    "mobile:ios": "cd apps/mobile && pnpm run ios",
+    "mobile:android": "cd apps/mobile && pnpm run android",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
@@ -24,8 +33,10 @@
     "eslint": "^9.36.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-native": "^5.0.0",
     "turbo": "^2.5.6",
     "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "react": "19.1.0"
   }
 }
