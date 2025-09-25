@@ -114,6 +114,17 @@ export function ProjectsPanel({
     });
   };
 
+  const handleSelectAll = () => {
+    if (projects) {
+      const allProjectIds = projects.map(project => project.id);
+      onProjectSelectionChange(allProjectIds);
+    }
+  };
+
+  const handleSelectNone = () => {
+    onProjectSelectionChange([]);
+  };
+
   if (isLoading) {
     return (
       <div className={cn('p-4', className)}>
@@ -238,6 +249,28 @@ export function ProjectsPanel({
               {index < projects.length - 1 && <hr className="border-gray-200" />}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Bottom Actions */}
+      <div className="p-4 border-t">
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            className="flex-1"
+          >
+            All
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectNone}
+            className="flex-1"
+          >
+            None
+          </Button>
         </div>
       </div>
     </div>

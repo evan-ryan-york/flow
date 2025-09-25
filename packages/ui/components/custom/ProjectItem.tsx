@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { Lock } from 'iconoir-react';
 import { ProjectContextMenu } from './ProjectContextMenu';
 import { ProjectColorPicker, getProjectColorHSL, type ProjectColor } from './ProjectColorPicker';
 import type { Project } from '@perfect-task-app/models';
@@ -92,25 +92,22 @@ export function ProjectItem({
           >
           {/* Project name */}
           <span className={cn(
-            "flex-1 text-left truncate",
+            "flex-1 text-left truncate flex items-center",
             isSelected ? "font-semibold text-gray-900" : "font-normal text-gray-700"
           )}>
             {project.name}
+            {/* Lock icon for General project */}
+            {project.is_general && (
+              <Lock className="h-3 w-3 ml-1 text-gray-500" />
+            )}
           </span>
-
-          {/* General badge */}
-          {project.is_general && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              General
-            </Badge>
-          )}
         </Button>
         </motion.div>
       </div>
 
       {/* Context menu (only for non-general projects) */}
       {!project.is_general && (
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-1/2 -translate-y-1/2 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <ProjectContextMenu project={project} userId={userId} />
         </div>
       )}
