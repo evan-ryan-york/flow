@@ -4,11 +4,14 @@ import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from
 const supabase = getSupabaseClient();
 
 export interface CreateProjectData {
-  name: string;
+  project_name: string;
+  project_color?: string;
 }
 
 export interface UpdateProjectData {
-  name?: string;
+  project_name?: string;
+  project_color?: string;
+  display_order?: number;
 }
 
 export interface AddProjectMemberData {
@@ -21,14 +24,16 @@ export interface ProjectWithRole extends Project {
   userRole?: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
-export const createProject = async (ownerId: string, name: string): Promise<Project> => {
+export const createProject = async (data: CreateProjectData & { ownerId: string }): Promise<Project> => {
   try {
-    const { data, error } = await supabase
+    const { data: newProject, error } = await supabase
       .from('projects')
       .insert({
-        owner_id: ownerId,
-        name,
-        is_general: false,
+        owner_id: data.ownerId,
+        project_name: data.project_name,
+        project_color: data.project_color || '#3B82F6',
+        is_default: false,
+        display_order: 999, // New projects go at the end
       })
       .select('*')
       .single();
@@ -37,12 +42,12 @@ export const createProject = async (ownerId: string, name: string): Promise<Proj
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    if (!data) {
+    if (!newProject) {
       throw new Error('Failed to create project: No data returned');
     }
 
     // Validate the data against our Zod schema
-    const validatedProject = ProjectSchema.parse(data);
+    const validatedProject = ProjectSchema.parse(newProject);
 
     return validatedProject;
   } catch (error) {
@@ -76,8 +81,10 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
       const project = ProjectSchema.parse({
         id: item.id,
         owner_id: item.owner_id,
-        name: item.name,
-        is_general: item.is_general,
+        project_name: item.project_name,
+        is_default: item.is_default,
+        project_color: item.project_color,
+        display_order: item.display_order,
         created_at: item.created_at,
         updated_at: item.updated_at,
       });
