@@ -43,7 +43,7 @@ export function ProjectsPanel({
     try {
       const newProject = await createProjectMutation.mutateAsync({
         ownerId: userId,
-        project_name: projectName,
+        name: projectName,
       });
 
       // Auto-select the new project

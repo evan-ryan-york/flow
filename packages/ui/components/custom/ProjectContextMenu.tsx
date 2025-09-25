@@ -8,7 +8,6 @@ import { Button } from '../ui/button';
 import { MoreHorizontal, Edit, Trash2, Palette } from 'lucide-react';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { RenameProjectDialog } from './RenameProjectDialog';
-import { ColorPickerDialog } from './ColorPickerDialog';
 import type { Project } from '@perfect-task-app/models';
 
 interface ProjectContextMenuProps {
@@ -19,7 +18,6 @@ interface ProjectContextMenuProps {
 export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showColorDialog, setShowColorDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -42,17 +40,6 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
             >
               <Edit className="h-4 w-4 mr-2" />
               Rename
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setShowColorDialog(true);
-                setIsOpen(false);
-              }}
-            >
-              <Palette className="h-4 w-4 mr-2" />
-              Change Color
             </Button>
             <Button
               variant="ghost"
@@ -81,13 +68,6 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
         userId={userId}
         open={showRenameDialog}
         onOpenChange={setShowRenameDialog}
-      />
-
-      <ColorPickerDialog
-        project={project}
-        userId={userId}
-        open={showColorDialog}
-        onOpenChange={setShowColorDialog}
       />
     </>
   );

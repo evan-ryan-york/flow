@@ -8,4 +8,3 @@ export * from './components/custom/AddProjectButton';
 export * from './components/custom/ProjectContextMenu';
 export * from './components/custom/DeleteProjectDialog';
 export * from './components/custom/RenameProjectDialog';
-export * from './components/custom/ColorPickerDialog';

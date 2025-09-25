@@ -10,7 +10,7 @@ import {
   removeProjectMember,
   updateMemberRole,
   reassignProjectTasks,
-  getDefaultProject,
+  getGeneralProject,
   type UpdateProjectData,
   type ProjectWithRole,
 } from '../services/projectService';
@@ -60,7 +60,7 @@ export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { ownerId: string; project_name: string; project_color?: string }) =>
+    mutationFn: (data: { ownerId: string; name: string }) =>
       createProject(data),
     onSuccess: (newProject, { ownerId }) => {
       // Add the new project to the user's project list cache
@@ -200,11 +200,11 @@ export const useUpdateMemberRole = () => {
   });
 };
 
-// Hook to get default "General" project for a user
-export const useDefaultProject = (userId: string | undefined) => {
+// Hook to get "General" project for a user
+export const useGeneralProject = (userId: string | undefined) => {
   return useQuery({
-    queryKey: ['projects', 'default', userId || ''],
-    queryFn: () => getDefaultProject(userId!),
+    queryKey: ['projects', 'general', userId || ''],
+    queryFn: () => getGeneralProject(userId!),
     enabled: !!userId,
     staleTime: 1000 * 60 * 10, // 10 minutes (rarely changes)
   });
