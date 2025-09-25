@@ -9,6 +9,7 @@ export interface CreateProjectData {
 
 export interface UpdateProjectData {
   name?: string;
+  color?: 'rose' | 'amber' | 'mint' | 'sky' | 'violet' | 'lime' | 'teal' | 'crimson';
 }
 
 export interface AddProjectMemberData {
@@ -21,13 +22,13 @@ export interface ProjectWithRole extends Project {
   userRole?: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
-export const createProject = async (ownerId: string, name: string): Promise<Project> => {
+export const createProject = async (data: CreateProjectData & { ownerId: string }): Promise<Project> => {
   try {
-    const { data, error } = await supabase
+    const { data: newProject, error } = await supabase
       .from('projects')
       .insert({
-        owner_id: ownerId,
-        name,
+        owner_id: data.ownerId,
+        name: data.name,
         is_general: false,
       })
       .select('*')
@@ -37,12 +38,12 @@ export const createProject = async (ownerId: string, name: string): Promise<Proj
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    if (!data) {
+    if (!newProject) {
       throw new Error('Failed to create project: No data returned');
     }
 
     // Validate the data against our Zod schema
-    const validatedProject = ProjectSchema.parse(data);
+    const validatedProject = ProjectSchema.parse(newProject);
 
     return validatedProject;
   } catch (error) {
@@ -53,34 +54,54 @@ export const createProject = async (ownerId: string, name: string): Promise<Proj
 
 export const getProjectsForUser = async (userId: string): Promise<ProjectWithRole[]> => {
   try {
-    // This is the most complex query - joins projects and project_users
-    const { data, error } = await supabase
+    // Get projects where user is owner OR member
+    // We need to do this in two separate queries and merge the results
+
+    // First, get projects where user is the owner
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', userId);
+
+    if (ownedError) {
+      throw new Error(`Failed to fetch owned projects: ${ownedError.message}`);
+    }
+
+
+    // Second, get projects where user is a member
+    const { data: memberProjects, error: memberError } = await supabase
       .from('projects')
       .select(`
         *,
         project_users!inner(role)
       `)
-      .or(`owner_id.eq.${userId},project_users.user_id.eq.${userId}`);
+      .eq('project_users.user_id', userId)
+      .neq('owner_id', userId); // Exclude owned projects to avoid duplicates
 
-    if (error) {
-      throw new Error(`Failed to fetch projects for user: ${error.message}`);
+    if (memberError) {
+      throw new Error(`Failed to fetch member projects: ${memberError.message}`);
     }
 
-    if (!data) {
-      return [];
-    }
+    // Combine and deduplicate results
+    const allProjects = [
+      ...(ownedProjects || []).map(project => ({ ...project, project_users: [] })),
+      ...(memberProjects || [])
+    ];
+
+    // Sort the combined results
+    const sortedProjects = allProjects.sort((a, b) => {
+      // General projects first
+      if (a.is_general && !b.is_general) return -1;
+      if (!a.is_general && b.is_general) return 1;
+
+      // Then by created_at
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
 
     // Transform the data to include user role and validate
-    const projectsWithRole: ProjectWithRole[] = data.map((item: any) => {
+    const projectsWithRole: ProjectWithRole[] = sortedProjects.map((item: any) => {
       // Validate the base project data
-      const project = ProjectSchema.parse({
-        id: item.id,
-        owner_id: item.owner_id,
-        name: item.name,
-        is_general: item.is_general,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-      });
+      const project = ProjectSchema.parse(item);
 
       // Determine user role
       let userRole: 'owner' | 'admin' | 'member' | 'viewer';
@@ -162,6 +183,21 @@ export const updateProject = async (projectId: string, updates: UpdateProjectDat
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    // First check if this is a general project
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('is_general')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch project: ${fetchError.message}`);
+    }
+
+    if (project?.is_general) {
+      throw new Error('Cannot delete the General project');
+    }
+
     const { error } = await supabase
       .from('projects')
       .delete()
@@ -280,6 +316,52 @@ export const updateMemberRole = async (
     return validatedProjectUser;
   } catch (error) {
     console.error('ProjectService.updateMemberRole error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reassign tasks from one project to another (for project deletion)
+ */
+export const reassignProjectTasks = async (fromProjectId: string, toProjectId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ project_id: toProjectId })
+      .eq('project_id', fromProjectId);
+
+    if (error) {
+      throw new Error(`Failed to reassign tasks: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('ProjectService.reassignProjectTasks error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get the "General" project for a user
+ */
+export const getGeneralProject = async (userId: string): Promise<Project | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', userId)
+      .eq('is_general', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No general project found
+      }
+      throw new Error(`Failed to fetch general project: ${error.message}`);
+    }
+
+    const validatedProject = ProjectSchema.parse(data);
+    return validatedProject;
+  } catch (error) {
+    console.error('ProjectService.getDefaultProject error:', error);
     throw error;
   }
 };
