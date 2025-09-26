@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
+import { useGeneralProject } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;
@@ -12,6 +13,20 @@ interface ThreeColumnLayoutProps {
 export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  console.log('🏛️ ThreeColumnLayout render - selectedProjectIds:', selectedProjectIds);
+
+  // Auto-select General project on initial load only
+  const { data: generalProject } = useGeneralProject(userId);
+
+  useEffect(() => {
+    if (generalProject && !hasInitialized) {
+      console.log('🎯 Auto-selecting General project on initial load:', generalProject.id);
+      setSelectedProjectIds([generalProject.id]);
+      setHasInitialized(true);
+    }
+  }, [generalProject, hasInitialized]);
 
   return (
     <div className="flex h-screen bg-white">

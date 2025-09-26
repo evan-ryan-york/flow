@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getTasksForProject,
   getTasksForUser,
+  getTasksForProjects,
   createTask,
   updateTask,
   deleteTask,
@@ -14,6 +15,7 @@ import {
 const TASK_KEYS = {
   all: ['tasks'] as const,
   project: (projectId: string) => ['tasks', 'project', projectId] as const,
+  projects: (userId: string, projectIds: string[]) => ['tasks', 'projects', userId, ...projectIds.sort()] as const,
   user: (userId: string) => ['tasks', 'user', userId] as const,
   task: (taskId: string) => ['tasks', 'task', taskId] as const,
 };
@@ -32,6 +34,15 @@ export const useUserTasks = (userId: string) => {
     queryKey: TASK_KEYS.user(userId),
     queryFn: () => getTasksForUser(userId),
     enabled: !!userId,
+    staleTime: 1000 * 30, // 30 seconds
+  });
+};
+
+export const useProjectsTasks = (userId: string, projectIds: string[]) => {
+  return useQuery({
+    queryKey: TASK_KEYS.projects(userId, projectIds),
+    queryFn: () => getTasksForProjects(userId, projectIds),
+    enabled: !!userId && projectIds.length > 0,
     staleTime: 1000 * 30, // 30 seconds
   });
 };
@@ -61,7 +72,12 @@ export const useCreateTask = () => {
         queryKey: ['tasks', 'user']
       });
 
-      // Add the new task to the cache
+      // Invalidate all project combination queries
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', 'projects']
+      });
+
+      // Add the new task to the individual cache
       queryClient.setQueryData(TASK_KEYS.task(newTask.id), newTask);
     },
   });
@@ -82,9 +98,14 @@ export const useUpdateTask = () => {
         queryKey: TASK_KEYS.project(updatedTask.project_id)
       });
 
-      // Invalidate user tasks queries
+      // Invalidate all user tasks queries
       queryClient.invalidateQueries({
         queryKey: ['tasks', 'user']
+      });
+
+      // Invalidate all project combination queries
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', 'projects']
       });
     },
   });

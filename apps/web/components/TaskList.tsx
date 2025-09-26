@@ -58,16 +58,27 @@ export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps
   return (
     <div className="p-4 space-y-2 overflow-y-auto">
       {displayedTasks.map((task) => (
-        <DraggableTaskItem key={task.taskId} task={task} />
+        <DraggableTaskItem key={task.taskId || task.id} task={task} />
       ))}
     </div>
   );
 }
 
 function DraggableTaskItem({ task }: { task: any }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: task.taskId,
+  const taskId = task.taskId || task.id;
+  console.log('🎯 DraggableTaskItem render:', {
+    taskId,
+    taskName: task.taskName || task.name,
+    hasTaskId: !!task.taskId,
+    hasId: !!task.id,
+    status: task.status
   });
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: taskId,
+  });
+
+  console.log('🖱️ Draggable state:', { taskId, isDragging, transform });
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
