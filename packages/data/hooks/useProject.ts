@@ -11,6 +11,7 @@ import {
   updateMemberRole,
   reassignProjectTasks,
   getGeneralProject,
+  searchProjects,
   type UpdateProjectData,
   type ProjectWithRole,
 } from '../services/projectService';
@@ -23,6 +24,7 @@ const PROJECT_KEYS = {
   details: () => [...PROJECT_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...PROJECT_KEYS.details(), id] as const,
   members: (projectId: string) => [...PROJECT_KEYS.detail(projectId), 'members'] as const,
+  search: (userId: string, query: string) => [...PROJECT_KEYS.all, 'search', userId, query] as const,
 };
 
 // Hook to get all projects for a user (owner + member)
@@ -243,5 +245,16 @@ export const useDeleteProjectWithReassignment = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
+  });
+};
+
+// Hook for project search with debouncing
+export const useProjectSearch = (userId: string | undefined, query: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: PROJECT_KEYS.search(userId || '', query),
+    queryFn: () => searchProjects(userId!, query),
+    enabled: !!userId && enabled && query.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    // Debouncing is handled at the component level to avoid excessive query key changes
   });
 };

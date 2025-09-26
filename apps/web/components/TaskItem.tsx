@@ -2,12 +2,12 @@
 
 interface TaskItemProps {
   task: {
-    taskId: string;
-    taskName: string;
-    description?: string;
+    id: string;
+    name: string;
+    description?: string | null;
     status: string;
-    dueDate?: string | null;
-    projectId: string;
+    due_date?: string | null;
+    project_id: string;
   };
   isDragging?: boolean;
 }
@@ -26,11 +26,11 @@ const statusColors: Record<string, string> = {
 };
 
 export function TaskItem({ task, isDragging = false }: TaskItemProps) {
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'Done';
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
 
   const handleStatusChange = (newStatus: string) => {
     // TODO: Integrate with real task update service
-    console.log('Updating task status:', task.taskId, newStatus);
+    console.log('Updating task status:', task.id, newStatus);
   };
 
   return (
@@ -40,7 +40,7 @@ export function TaskItem({ task, isDragging = false }: TaskItemProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 truncate">{task.taskName}</h3>
+          <h3 className="font-medium text-gray-900 truncate">{task.name}</h3>
           {task.description && (
             <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
           )}
@@ -62,17 +62,17 @@ export function TaskItem({ task, isDragging = false }: TaskItemProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 1v4m8-4v4" />
             </svg>
-            {projectNames[task.projectId]}
+            {projectNames[task.project_id]}
           </span>
 
-          {task.dueDate && (
+          {task.due_date && (
             <span className={`inline-flex items-center ${
               isOverdue ? 'text-red-600 font-medium' : ''
             }`}>
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {new Date(task.dueDate).toLocaleDateString()}
+              {new Date(task.due_date).toLocaleDateString()}
               {isOverdue && ' (Overdue)'}
             </span>
           )}

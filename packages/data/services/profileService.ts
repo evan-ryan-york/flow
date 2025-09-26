@@ -8,6 +8,7 @@ export interface ProfileUpdates {
   last_name?: string;
   full_name?: string;
   avatar_url?: string;
+  last_used_project_id?: string;
 }
 
 export const getProfile = async (userId: string): Promise<Profile> => {
@@ -99,6 +100,78 @@ export const getCurrentProfile = async (): Promise<Profile> => {
     return validatedProfile;
   } catch (error) {
     console.error('ProfileService.getCurrentProfile error:', error);
+    throw error;
+  }
+};
+
+export const updateLastUsedProject = async (projectId: string, userId?: string): Promise<void> => {
+  try {
+    let currentUserId = userId;
+
+    // If no user ID provided, try to get from auth
+    if (!currentUserId) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(`Failed to get current user: ${userError.message}`);
+      }
+
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+
+      currentUserId = user.id;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        last_used_project_id: projectId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', currentUserId);
+
+    if (error) {
+      throw new Error(`Failed to update last used project: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('ProfileService.updateLastUsedProject error:', error);
+    throw error;
+  }
+};
+
+export const getLastUsedProject = async (userId?: string): Promise<string | null> => {
+  try {
+    let currentUserId = userId;
+
+    // If no user ID provided, try to get from auth
+    if (!currentUserId) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(`Failed to get current user: ${userError.message}`);
+      }
+
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+
+      currentUserId = user.id;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('last_used_project_id')
+      .eq('id', currentUserId)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to get last used project: ${error.message}`);
+    }
+
+    return data?.last_used_project_id || null;
+  } catch (error) {
+    console.error('ProfileService.getLastUsedProject error:', error);
     throw error;
   }
 };

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
-import { useUserTasks } from '@perfect-task-app/data';
+import { useProjectsTasks } from '@perfect-task-app/data';
 import { TaskQuickAdd } from './TaskQuickAdd';
 import { TaskList } from './TaskList';
 import { SavedViews } from './SavedViews';
@@ -18,17 +18,11 @@ interface TaskHubProps {
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<any>(null);
 
-  // Use real data hooks
-  const { data: allTasks = [], isLoading } = useUserTasks(userId);
-
-  // Filter tasks based on selected projects
-  const filteredTasks = useMemo(() => {
-    if (selectedProjectIds.length === 0) return allTasks;
-    return allTasks.filter((task: any) => selectedProjectIds.includes(task.project_id));
-  }, [allTasks, selectedProjectIds]);
+  // Use smart query that filters at the database level
+  const { data: filteredTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = allTasks.find((t: any) => t.id === event.active.id);
+    const task = filteredTasks.find((t: any) => t.id === event.active.id);
     setDraggedTask(task);
   };
 

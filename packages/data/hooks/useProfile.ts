@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProfile, updateProfile, getCurrentProfile } from '../services/profileService';
+import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject } from '../services/profileService';
 import { useSession } from './useAuth';
 
 // Query key factory
@@ -7,6 +7,7 @@ const PROFILE_KEYS = {
   all: ['profiles'] as const,
   profile: (userId: string) => [...PROFILE_KEYS.all, userId] as const,
   current: ['profiles', 'current'] as const,
+  lastUsedProject: ['profiles', 'lastUsedProject'] as const,
 };
 
 export const useProfile = (userId: string | undefined) => {
@@ -47,6 +48,32 @@ export const useUpdateProfile = () => {
 
       // Invalidate the ['profile', userId] query as specified in build-spec
       queryClient.invalidateQueries({ queryKey: ['profile', updatedProfile.id] });
+    },
+  });
+};
+
+export const useLastUsedProject = () => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: PROFILE_KEYS.lastUsedProject,
+    queryFn: () => getLastUsedProject(), // Wrap the function call
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!session?.user, // Only run when we have a session
+  });
+};
+
+export const useUpdateLastUsedProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (projectId: string) => updateLastUsedProject(projectId),
+    onSuccess: () => {
+      // Invalidate last used project cache
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.lastUsedProject });
+
+      // Also invalidate current profile cache since it contains last_used_project_id
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.current });
     },
   });
 };

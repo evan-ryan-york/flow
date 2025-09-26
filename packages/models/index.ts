@@ -8,6 +8,7 @@ export const ProfileSchema = z.object({
   first_name: z.string().nullable().optional(),
   last_name: z.string().nullable().optional(),
   avatar_url: z.string().url().nullable().optional(),
+  last_used_project_id: z.string().uuid().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -63,10 +64,10 @@ export const TaskSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable(),
   due_date: z.string().nullable(),
-  status: z.string(), // Added back for Kanban/workflow
-  is_completed: z.boolean(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  status: z.string().default('To Do'),
+  is_completed: z.boolean().default(false),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type Task = z.infer<typeof TaskSchema>;
 
