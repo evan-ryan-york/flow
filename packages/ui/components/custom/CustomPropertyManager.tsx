@@ -1,0 +1,341 @@
+import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Plus, EditPencil, Bin } from 'iconoir-react';
+import {
+  useProjectDefinitions,
+  useCreateDefinition,
+  useUpdateDefinition,
+  useDeleteDefinition
+} from '@perfect-task-app/data';
+import type { CustomPropertyDefinition } from '@perfect-task-app/models';
+
+interface CustomPropertyManagerProps {
+  projectId: string;
+  projectName: string;
+  userId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+type PropertyType = 'text' | 'select' | 'date' | 'number';
+
+interface PropertyFormData {
+  name: string;
+  type: PropertyType;
+  options: string[];
+}
+
+export function CustomPropertyManager({
+  projectId,
+  projectName,
+  userId,
+  open,
+  onOpenChange
+}: CustomPropertyManagerProps) {
+  const { data: properties = [], isLoading } = useProjectDefinitions(projectId);
+  const createPropertyMutation = useCreateDefinition();
+  const updatePropertyMutation = useUpdateDefinition();
+  const deletePropertyMutation = useDeleteDefinition();
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<CustomPropertyDefinition | null>(null);
+  const [formData, setFormData] = useState<PropertyFormData>({
+    name: '',
+    type: 'text',
+    options: []
+  });
+  const [optionInput, setOptionInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'text',
+      options: []
+    });
+    setOptionInput('');
+    setError(null);
+    setIsCreating(false);
+    setEditingProperty(null);
+  };
+
+  const handleStartCreate = () => {
+    resetForm();
+    setIsCreating(true);
+  };
+
+  const handleStartEdit = (property: CustomPropertyDefinition) => {
+    setFormData({
+      name: property.name,
+      type: property.type as PropertyType,
+      options: Array.isArray(property.options) ? property.options : []
+    });
+    setEditingProperty(property);
+    setIsCreating(false);
+  };
+
+  const handleAddOption = () => {
+    if (optionInput.trim() && !formData.options.includes(optionInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        options: [...prev.options, optionInput.trim()]
+      }));
+      setOptionInput('');
+    }
+  };
+
+  const handleRemoveOption = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name.trim()) return;
+
+    setError(null);
+
+    // Check for duplicate names
+    const trimmedName = formData.name.trim();
+    const existingProperty = properties.find(
+      p => p.name.toLowerCase() === trimmedName.toLowerCase() &&
+      (!editingProperty || p.id !== editingProperty.id)
+    );
+
+    if (existingProperty) {
+      setError('A custom property with this name already exists for this project.');
+      return;
+    }
+
+    try {
+      if (editingProperty) {
+        // Update existing property
+        await updatePropertyMutation.mutateAsync({
+          definitionId: editingProperty.id,
+          updates: {
+            name: trimmedName,
+            type: formData.type,
+            options: formData.type === 'select' ? formData.options : null
+          }
+        });
+      } else {
+        // Create new property
+        await createPropertyMutation.mutateAsync({
+          project_id: projectId,
+          created_by: userId,
+          name: trimmedName,
+          type: formData.type,
+          options: formData.type === 'select' ? formData.options : null,
+          display_order: properties.length
+        });
+      }
+      resetForm();
+    } catch (error) {
+      console.error('Failed to save property:', error);
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        setError('A custom property with this name already exists for this project.');
+      } else {
+        setError('Failed to save custom property. Please try again.');
+      }
+    }
+  };
+
+  const handleDelete = async (propertyId: string) => {
+    if (window.confirm('Are you sure you want to delete this custom property? This will remove all values for this property from existing tasks.')) {
+      try {
+        await deletePropertyMutation.mutateAsync(propertyId);
+      } catch (error) {
+        console.error('Failed to delete property:', error);
+      }
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Custom Properties - {projectName}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Existing Properties */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-900">Current Properties</h3>
+            {isLoading ? (
+              <div className="text-sm text-gray-500">Loading...</div>
+            ) : properties.length === 0 ? (
+              <div className="text-sm text-gray-500 p-4 border rounded-lg">
+                No custom properties yet. Create one below!
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {properties.map((property) => (
+                  <div
+                    key={property.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{property.name}</span>
+                        <span className="text-xs px-2 py-1 bg-gray-200 rounded">
+                          {property.type}
+                        </span>
+                      </div>
+                      {property.type === 'select' && property.options && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          Options: {Array.isArray(property.options) ? property.options.join(', ') : ''}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleStartEdit(property)}
+                      >
+                        <EditPencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(property.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Bin className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Create/Edit Form */}
+          {(isCreating || editingProperty) && (
+            <div className="space-y-4 p-4 border rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900">
+                {editingProperty ? 'Edit Property' : 'Create New Property'}
+              </h3>
+
+              {error && (
+                <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="property-name">Property Name</Label>
+                  <Input
+                    id="property-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Priority, Environment"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="property-type">Property Type</Label>
+                  <select
+                    id="property-type"
+                    value={formData.type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as PropertyType }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                    <option value="select">Select (Dropdown)</option>
+                  </select>
+                </div>
+
+                {formData.type === 'select' && (
+                  <div>
+                    <Label>Options</Label>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          value={optionInput}
+                          onChange={(e) => setOptionInput(e.target.value)}
+                          placeholder="Add option..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddOption();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddOption}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {formData.options.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.options.map((option, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm"
+                            >
+                              {option}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOption(index)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!formData.name.trim() || (formData.type === 'select' && formData.options.length === 0)}
+                >
+                  {editingProperty ? 'Update' : 'Create'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Add New Button */}
+          {!isCreating && !editingProperty && (
+            <Button
+              variant="outline"
+              onClick={handleStartCreate}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Custom Property
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

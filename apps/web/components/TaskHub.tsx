@@ -1,12 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
-import { useProjectsTasks } from '@perfect-task-app/data';
+import React, { useState, useMemo } from 'react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import {
+  useProjectsTasks,
+  useOptimisticTaskSort,
+  useToggleProjectSortMode,
+  useRealtimeTaskSync,
+  useProjectDefinitions
+} from '@perfect-task-app/data';
 import { TaskQuickAdd } from './TaskQuickAdd';
 import { TaskList } from './TaskList';
 import { SavedViews } from './SavedViews';
 import { TaskItem } from './TaskItem';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
 interface TaskHubProps {
   userId: string;
@@ -16,30 +33,167 @@ interface TaskHubProps {
 }
 
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
-  const [draggedTask, setDraggedTask] = useState<any>(null);
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [hasManualOrder, setHasManualOrder] = useState(false);
 
-  // Use smart query that filters at the database level
-  const { data: filteredTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
+  // Fallback to original hook until database migration is applied
+  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
+
+  // Optimistic reordering hooks
+  const { optimisticReorder, moveTask, isMoving, error: reorderError } = useOptimisticTaskSort();
+
+  // Real-time synchronization
+  const { isConnected } = useRealtimeTaskSync(userId, selectedProjectIds);
+
+  // Get custom property definitions for all selected projects
+  // We need to call hooks for a fixed maximum number of projects to follow Rules of Hooks
+  const project1Definitions = useProjectDefinitions(selectedProjectIds[0] || '');
+  const project2Definitions = useProjectDefinitions(selectedProjectIds[1] || '');
+  const project3Definitions = useProjectDefinitions(selectedProjectIds[2] || '');
+  const project4Definitions = useProjectDefinitions(selectedProjectIds[3] || '');
+  const project5Definitions = useProjectDefinitions(selectedProjectIds[4] || '');
+
+  const allCustomProperties = useMemo(() => {
+    const definitionMap = new Map<string, CustomPropertyDefinition>();
+
+    // Collect definitions from all active project queries
+    const queries = [
+      project1Definitions,
+      project2Definitions,
+      project3Definitions,
+      project4Definitions,
+      project5Definitions
+    ].slice(0, selectedProjectIds.length);
+
+    queries.forEach(query => {
+      if (query.data) {
+        query.data.forEach(definition => {
+          // Use definition ID as key to prevent duplicates
+          definitionMap.set(definition.id, definition);
+        });
+      }
+    });
+
+    // Convert map back to array and sort by display order within each project
+    return Array.from(definitionMap.values()).sort((a, b) => {
+      // First sort by project_id, then by display_order
+      if (a.project_id !== b.project_id) {
+        return a.project_id.localeCompare(b.project_id);
+      }
+      return a.display_order - b.display_order;
+    });
+  }, [
+    project1Definitions.data,
+    project2Definitions.data,
+    project3Definitions.data,
+    project4Definitions.data,
+    project5Definitions.data,
+    selectedProjectIds.length
+  ]);
+
+  // Set up sensors for better drag handling
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px of movement required to start drag
+      },
+    })
+  );
+
+  // Sort server tasks initially, memoized to prevent infinite loops
+  const sortedServerTasks = useMemo(() => {
+    return [...serverTasks].sort((a, b) => {
+      // If both tasks have sort_order, use it (for migrated tasks)
+      if (a.sort_order !== undefined && a.sort_order !== null &&
+          b.sort_order !== undefined && b.sort_order !== null) {
+        return a.sort_order - b.sort_order;
+      }
+
+      // Fallback to original sorting logic for non-migrated tasks
+      if (a.due_date && b.due_date) {
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      }
+      if (a.due_date && !b.due_date) return -1;
+      if (!a.due_date && b.due_date) return 1;
+
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [serverTasks]);
+
+  // Local task order state - only used when user has manually reordered
+  const [localTasks, setLocalTasks] = useState<Task[]>([]);
+
+  // Use server tasks unless user has manually reordered
+  const displayTasks = hasManualOrder ? localTasks : sortedServerTasks;
+
+  // Reset manual order when project changes
+  React.useEffect(() => {
+    setHasManualOrder(false);
+    setLocalTasks([]);
+  }, [selectedProjectIds.join(',')]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = filteredTasks.find((t: any) => t.id === event.active.id);
-    setDraggedTask(task);
+    const task = displayTasks.find((t: Task) => t.id === event.active.id);
+    if (task) {
+      setDraggedTask(task);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setDraggedTask(null);
 
-    if (over && active.id !== over.id) {
-      // Handle task reordering or moving to calendar
-      console.log('Task moved:', active.id, 'to:', over.id);
-      // TODO: Implement task scheduling with time blocks
+    if (!over || active.id === over.id) {
+      return;
     }
 
-    setDraggedTask(null);
+    const currentTasks = displayTasks;
+    const activeIndex = currentTasks.findIndex(task => task.id === active.id);
+    const overIndex = currentTasks.findIndex(task => task.id === over.id);
+
+    if (activeIndex === -1 || overIndex === -1) {
+      return;
+    }
+
+    // Apply the reorder to local state
+    const reorderedTasks = arrayMove(currentTasks, activeIndex, overIndex);
+    setLocalTasks(reorderedTasks);
+    setHasManualOrder(true);
+
+    const movedTask = currentTasks[activeIndex];
+    console.log('🔄 Task reorder moved:', movedTask.name, `from index ${activeIndex} to ${overIndex}`);
+
+    // TODO: Re-enable after migration is applied
+    // const beforeTaskId = overIndex > 0 ? reorderedTasks[overIndex - 1]?.id : undefined;
+    // const afterTaskId = overIndex < reorderedTasks.length - 1 ? reorderedTasks[overIndex + 1]?.id : undefined;
+    // moveTask(movedTask.id, beforeTaskId, afterTaskId);
   };
 
+  // Handle project sort mode toggle
+  const sortModeToggle = useToggleProjectSortMode();
+
+  const handleToggleSortMode = (projectId: string, enabled: boolean) => {
+    sortModeToggle.mutate({ projectId, enabled });
+  };
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center text-red-500">
+          <p className="text-lg font-semibold">Failed to load tasks</p>
+          <p className="text-sm mt-1">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="h-full flex flex-col">
         {/* Quick Add Bar */}
         <div className="p-4 border-b border-gray-200 bg-white">
@@ -49,12 +203,40 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           />
         </div>
 
+        {/* Sort Mode Controls - Disabled until migration is applied */}
+        {false && selectedProjectIds.length === 1 && (
+          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Task Ordering</span>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    onChange={(e) => handleToggleSortMode(selectedProjectIds[0], e.target.checked)}
+                    disabled={sortModeToggle.isPending}
+                  />
+                  Manual Sort
+                </label>
+                {reorderError && (
+                  <span className="text-xs text-red-500">
+                    Reorder failed
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Task List */}
         <div className="flex-1 overflow-hidden">
           <TaskList
-            tasks={filteredTasks}
+            tasks={displayTasks}
             selectedProjectIds={selectedProjectIds}
+            customPropertyDefinitions={allCustomProperties}
+            userId={userId}
             isLoading={isLoading}
+            isDraggingActive={!!draggedTask}
           />
         </div>
 
@@ -71,8 +253,13 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       {/* Drag Overlay */}
       <DragOverlay>
         {draggedTask ? (
-          <div className="dnd-dragging">
-            <TaskItem task={draggedTask} isDragging={true} />
+          <div className="bg-white border-2 border-blue-500 shadow-xl rounded-lg opacity-95 transform rotate-2">
+            <TaskItem
+              task={draggedTask}
+              customPropertyDefinitions={allCustomProperties}
+              userId={userId}
+              isDragging={true}
+            />
           </div>
         ) : null}
       </DragOverlay>

@@ -1,28 +1,19 @@
 'use client';
 
-import { useUpdateTask } from '@perfect-task-app/data';
+import { useState } from 'react';
+import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
 interface TaskItemProps {
-  task: {
-    id: string;
-    name: string;
-    description?: string | null;
-    status: string;
-    due_date?: string | null;
-    project_id: string;
-    assigned_to?: string;
-  };
+  task: Task;
+  customPropertyDefinitions?: CustomPropertyDefinition[];
+  userId: string;
   isDragging?: boolean;
   dragAttributes?: any;
   dragListeners?: any;
 }
 
-const projectNames: Record<string, string> = {
-  '1': 'General',
-  '2': 'Work Projects',
-  '3': 'Personal',
-  '4': 'Side Hustle',
-};
+// Removed unused projectNames constant
 
 // Mock user names for now
 const userNames: Record<string, string> = {
@@ -31,10 +22,34 @@ const userNames: Record<string, string> = {
   'user-3': 'Jane Smith',
 };
 
-export function TaskItem({ task, isDragging = false, dragAttributes, dragListeners }: TaskItemProps) {
+export function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners }: TaskItemProps) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
   const isDone = task.status === 'Done';
   const updateTaskMutation = useUpdateTask();
+  const { data: propertyValues = [] } = useTaskPropertyValues(task.id);
+  const setPropertyValueMutation = useSetPropertyValue();
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+
+  // Helper function to get property value for a given definition
+  const getPropertyValue = (definitionId: string) => {
+    const propertyValue = propertyValues.find(pv => pv.definition_id === definitionId);
+    return propertyValue?.value || '';
+  };
+
+  // Handle custom property value updates
+  const handlePropertyValueChange = async (definitionId: string, value: string) => {
+    try {
+      await setPropertyValueMutation.mutateAsync({
+        taskId: task.id,
+        definitionId,
+        value: value.trim(),
+        userId,
+      });
+    } catch (error) {
+      console.error('Failed to update custom property value:', error);
+      // TODO: Show error message to user
+    }
+  };
 
   const handleStatusToggle = () => {
     const newStatus = isDone ? 'To Do' : 'Done';
@@ -136,6 +151,83 @@ export function TaskItem({ task, isDragging = false, dragAttributes, dragListene
             <span className="text-sm text-gray-400">—</span>
           )}
         </div>
+
+        {/* Custom Property Columns */}
+        {customPropertyDefinitions.map((property) => {
+          const value = getPropertyValue(property.id);
+          const isEditing = editingPropertyId === property.id;
+
+          return (
+            <div key={property.id} className="flex-shrink-0 w-32 text-right">
+              {isEditing ? (
+                <div className="px-1">
+                  {property.type === 'select' ? (
+                    <select
+                      value={value}
+                      onChange={async (e) => {
+                        await handlePropertyValueChange(property.id, e.target.value);
+                        setEditingPropertyId(null);
+                      }}
+                      onBlur={() => setEditingPropertyId(null)}
+                      className="w-full text-xs border border-gray-300 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    >
+                      <option value="">Select...</option>
+                      {property.options && Array.isArray(property.options) &&
+                        property.options.map((option: string, index: number) => (
+                          <option key={index} value={option}>
+                            {option}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  ) : (
+                    <input
+                      type={property.type === 'date' ? 'date' : property.type === 'number' ? 'number' : 'text'}
+                      value={value}
+                      onChange={async (e) => {
+                        await handlePropertyValueChange(property.id, e.target.value);
+                        setEditingPropertyId(null);
+                      }}
+                      onBlur={() => setEditingPropertyId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setEditingPropertyId(null);
+                        }
+                        if (e.key === 'Escape') {
+                          setEditingPropertyId(null);
+                        }
+                      }}
+                      className="w-full text-xs border border-gray-300 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingPropertyId(property.id)}
+                  className="w-full text-right hover:bg-gray-100 px-1 py-0.5 rounded transition-colors"
+                  disabled={isDragging}
+                >
+                  {value ? (
+                    <span className="text-sm text-gray-600 truncate block">
+                      {property.type === 'date' && value ? (
+                        new Date(value).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      ) : (
+                        value
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">—</span>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

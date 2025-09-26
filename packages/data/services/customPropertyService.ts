@@ -10,6 +10,7 @@ import {
 
 export interface CreateDefinitionData {
   project_id: string;
+  created_by: string;
   name: string;
   type: 'text' | 'select' | 'date' | 'number';
   options?: any;
@@ -27,6 +28,7 @@ export interface SetPropertyValueData {
   task_id: string;
   definition_id: string;
   value: string;
+  user_id: string;
 }
 
 // Custom Property Definitions Functions
@@ -54,17 +56,10 @@ export const getDefinitionsForProject = async (projectId: string): Promise<Custo
 
 export const createDefinition = async (definitionData: CreateDefinitionData): Promise<CustomPropertyDefinition> => {
   try {
-    const { data: user } = await supabase.auth.getUser();
-
-    if (!user.user) {
-      throw new Error('User must be authenticated to create property definitions');
-    }
-
     const { data, error } = await supabase
       .from('custom_property_definitions')
       .insert({
         ...definitionData,
-        created_by: user.user.id,
         display_order: definitionData.display_order || 0,
       })
       .select()
@@ -146,23 +141,17 @@ export const getValuesForTask = async (taskId: string): Promise<CustomPropertyVa
   }
 };
 
-export const setPropertyValue = async (taskId: string, definitionId: string, value: string): Promise<CustomPropertyValue> => {
+export const setPropertyValue = async (data: SetPropertyValueData): Promise<CustomPropertyValue> => {
   try {
-    const { data: user } = await supabase.auth.getUser();
-
-    if (!user.user) {
-      throw new Error('User must be authenticated to set property values');
-    }
-
     // This performs an "upsert" - insert if doesn't exist, update if it does
-    const { data, error } = await supabase
+    const { data: result, error } = await supabase
       .from('custom_property_values')
       .upsert({
-        task_id: taskId,
-        definition_id: definitionId,
-        value: value,
-        created_by: user.user.id,
-        updated_by: user.user.id,
+        task_id: data.task_id,
+        definition_id: data.definition_id,
+        value: data.value,
+        created_by: data.user_id,
+        updated_by: data.user_id,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'task_id,definition_id',
@@ -175,7 +164,7 @@ export const setPropertyValue = async (taskId: string, definitionId: string, val
     }
 
     // Zod validation
-    const validatedValue = CustomPropertyValueSchema.parse(data);
+    const validatedValue = CustomPropertyValueSchema.parse(result);
     return validatedValue;
   } catch (error) {
     console.error('CustomPropertyService.setPropertyValue error:', error);
