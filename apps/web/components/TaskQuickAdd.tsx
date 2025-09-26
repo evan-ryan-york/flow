@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Project } from '@perfect-task-app/models';
 import {
   useCreateTask,
@@ -10,7 +10,7 @@ import {
   useProjectDefinitions,
   useSetPropertyValue
 } from '@perfect-task-app/data';
-import { ProjectAutocomplete, ProjectChip } from '@perfect-task-app/ui/components/custom';
+import { ProjectChip } from '@perfect-task-app/ui/components/custom';
 import { Input } from '@perfect-task-app/ui/components/ui/input';
 import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { parseTaskInput, cleanTaskName } from '@perfect-task-app/ui/lib/textParser';
@@ -25,21 +25,31 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isManualProjectSelection, setIsManualProjectSelection] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [projectQuery, setProjectQuery] = useState('');
   const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
+  const [selectedProjectIndex, setSelectedProjectIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Hooks
-  const { data: projects = [] } = useProjectsForUser(userId);
+  const { data: projectsData = [] } = useProjectsForUser(userId);
+
+  // Stabilize projects array to prevent unnecessary re-renders
+  const projects = useMemo(() => projectsData, [projectsData]);
   const { data: lastUsedProjectId } = useLastUsedProject();
   const { data: generalProject } = useGeneralProject(userId);
   const { data: customProperties = [] } = useProjectDefinitions(selectedProject?.id || '');
   const createTaskMutation = useCreateTask();
   const setPropertyValueMutation = useSetPropertyValue();
 
-  // Set default project based on sticky behavior (with stable dependencies)
+  // Set default project based on sticky behavior - only when not manually overridden
   useEffect(() => {
+    // Don't override manual project selections
+    if (isManualProjectSelection) {
+      return;
+    }
+
     if (lastUsedProjectId && projects && projects.length > 0) {
       const lastUsedProject = projects.find(p => p.id === lastUsedProjectId);
       if (lastUsedProject && (!selectedProject || selectedProject.id !== lastUsedProject.id)) {
@@ -48,35 +58,107 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     } else if (generalProject && (!selectedProject || selectedProject.id !== generalProject.id)) {
       setSelectedProject(generalProject);
     }
-  }, [lastUsedProjectId, projects?.length, generalProject?.id, selectedProject?.id]);
+  }, [lastUsedProjectId, projects?.length, generalProject?.id, isManualProjectSelection]);
 
   // Clear custom property values when project changes
   useEffect(() => {
     setCustomPropertyValues({});
   }, [selectedProject?.id]);
 
+  // Filter projects based on query using useMemo to prevent infinite re-renders
+  const filteredProjects = useMemo(() => {
+    console.log('🎯 Filtering projects - Query:', projectQuery, 'ShowAutocomplete:', showAutocomplete, 'Projects count:', projects.length);
+
+    if (showAutocomplete) {
+      // If no query yet (just typed "/in"), show all projects
+      if (!projectQuery || projectQuery.trim() === '') {
+        console.log('📊 Showing all projects (no query yet):', projects.map(p => p.name));
+        return projects.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      // Filter projects based on query
+      const query = projectQuery.toLowerCase().trim();
+      const filtered = projects.filter(project =>
+        project.name.toLowerCase().includes(query)
+      ).sort((a, b) => {
+        // Prioritize projects that start with the query
+        const aStartsWith = a.name.toLowerCase().startsWith(query);
+        const bStartsWith = b.name.toLowerCase().startsWith(query);
+
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        // Then sort by name length (shorter names first for better matches)
+        return a.name.length - b.name.length;
+      });
+
+      console.log('📊 Filtered projects:', filtered.map(p => p.name));
+      return filtered;
+    }
+
+    console.log('🚫 No filtering - returning empty array');
+    return [];
+  }, [projectQuery, showAutocomplete, projects]);
+
+  // Reset selected index when filtered projects change
+  useEffect(() => {
+    setSelectedProjectIndex(0);
+  }, [filteredProjects.length]);
+
   const handleInputChange = (value: string) => {
-    setTaskName(value);
+    console.log('🔥 handleInputChange called with:', value);
 
-    const parsed = parseTaskInput(value);
-
-    if (parsed.hasProjectCommand && parsed.projectQuery !== undefined) {
-      // Show autocomplete dropdown
-      setShowAutocomplete(true);
-      setProjectQuery(parsed.projectQuery);
+    // Auto-add space after /in if user just typed "/in" without space
+    let processedValue = value;
+    if (value.endsWith('/in') && !value.endsWith('/in ')) {
+      processedValue = value + ' ';
+      console.log('🚀 Auto-added space after /in:', processedValue);
+      setTaskName(processedValue);
     } else {
-      // Hide autocomplete
+      setTaskName(value);
+    }
+
+    // Simple /in detection for debugging
+    const hasInCommand = processedValue.includes('/in '); // Note: now looking for "/in " with space
+    console.log('🔍 Contains /in ?', hasInCommand);
+
+    if (hasInCommand) {
+      console.log('✅ /in command detected!');
+      const parts = processedValue.split('/in '); // Split on "/in " with space
+      const query = parts[1] || ''; // Don't trim here - let user see their exact typing
+      console.log('📝 Project query:', `"${query}"`);
+
+      setShowAutocomplete(true);
+      setProjectQuery(query);
+    } else {
+      console.log('❌ No /in command');
       setShowAutocomplete(false);
       setProjectQuery('');
     }
+
+    // Original parsing logic (commented out for debugging)
+    // const parsed = parseTaskInput(value);
+    // if (parsed.hasProjectCommand && parsed.projectQuery !== undefined) {
+    //   setShowAutocomplete(true);
+    //   setProjectQuery(parsed.projectQuery);
+    // } else {
+    //   setShowAutocomplete(false);
+    //   setProjectQuery('');
+    // }
   };
 
   const handleProjectSelect = (project: Project) => {
+    console.log('🎯 Project selected:', project.name);
     setSelectedProject(project);
+    setIsManualProjectSelection(true); // Mark as manual selection
     setShowAutocomplete(false);
 
-    // Update input to show clean task name
-    const cleanName = cleanTaskName(taskName);
+    // Clean up the task name - remove "/in [query]" part
+    let cleanName = taskName;
+    if (taskName.includes('/in ')) {
+      cleanName = taskName.split('/in ')[0].trim();
+      console.log('🧹 Cleaned task name:', cleanName);
+    }
     setTaskName(cleanName);
     setProjectQuery('');
 
@@ -96,7 +178,13 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     e.preventDefault();
     console.log('🚀 TaskQuickAdd.handleSubmit started');
 
-    const cleanName = cleanTaskName(taskName);
+    // Clean task name by removing /in command if present
+    let cleanName = taskName;
+    if (taskName.includes('/in ')) {
+      cleanName = taskName.split('/in ')[0].trim();
+    }
+
+    console.log('🧹 Submit with clean name:', cleanName);
 
     if (!cleanName.trim()) {
       return;
@@ -138,6 +226,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
       setShowAdvanced(false);
       setShowAutocomplete(false);
       setProjectQuery('');
+      setIsManualProjectSelection(false); // Reset manual flag to allow sticky behavior
       // Note: selectedProject is intentionally kept for sticky behavior
       // The backend will update lastUsedProjectId automatically
     } catch (error) {
@@ -148,10 +237,31 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Handle keyboard shortcuts for autocomplete
-    if (showAutocomplete) {
-      if (e.key === 'Escape') {
-        setShowAutocomplete(false);
-        setProjectQuery('');
+    if (showAutocomplete && filteredProjects.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedProjectIndex((prev) => (prev + 1) % filteredProjects.length);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedProjectIndex((prev) => (prev - 1 + filteredProjects.length) % filteredProjects.length);
+          break;
+        case 'Tab':
+        case 'Enter':
+          e.preventDefault();
+          if (filteredProjects[selectedProjectIndex]) {
+            handleProjectSelect(filteredProjects[selectedProjectIndex]);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setShowAutocomplete(false);
+          setProjectQuery('');
+          break;
+        default:
+          // Allow typing to continue
+          break;
       }
     } else if (e.key === 'Enter') {
       // Explicitly handle Enter key when autocomplete is not open
@@ -184,6 +294,8 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                   <ProjectChip
                     project={selectedProject}
                     onRemove={handleProjectRemove}
+                    onProjectSelect={handleProjectSelect}
+                    projects={projects}
                     className="text-xs"
                   />
                 </div>
@@ -217,14 +329,54 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
             </Button>
           </div>
 
-          {/* Project Autocomplete */}
-          <ProjectAutocomplete
-            query={projectQuery}
-            onSelect={handleProjectSelect}
-            userId={userId}
-            isOpen={showAutocomplete}
-            onOpenChange={setShowAutocomplete}
-          />
+          {/* Custom Project Autocomplete */}
+          {showAutocomplete && filteredProjects.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-auto">
+              <div className="p-2">
+                <div className="space-y-1">
+                  {filteredProjects.map((project, index) => (
+                    <div
+                      key={project.id}
+                      onClick={() => handleProjectSelect(project)}
+                      className={`cursor-pointer px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
+                        index === selectedProjectIndex ? 'bg-blue-50 border border-blue-200' : ''
+                      }`}
+                      data-selected={index === selectedProjectIndex}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            project.color === 'rose' ? 'bg-rose-500' :
+                            project.color === 'amber' ? 'bg-amber-500' :
+                            project.color === 'mint' ? 'bg-emerald-500' :
+                            project.color === 'sky' ? 'bg-sky-500' :
+                            project.color === 'violet' ? 'bg-violet-500' :
+                            project.color === 'lime' ? 'bg-lime-500' :
+                            project.color === 'teal' ? 'bg-teal-500' :
+                            project.color === 'crimson' ? 'bg-red-600' :
+                            'bg-gray-500'
+                          }`}
+                        />
+                        <span className="text-sm font-medium">{project.name}</span>
+                        {index === selectedProjectIndex && (
+                          <span className="ml-auto text-xs text-blue-600">Press Tab</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state for /in command with no matches */}
+          {showAutocomplete && projectQuery && filteredProjects.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+              <div className="p-3 text-sm text-gray-500 text-center">
+                No projects found matching "{projectQuery}"
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Advanced Options */}
@@ -240,6 +392,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                   onChange={(e) => {
                     const project = projects.find(p => p.id === e.target.value);
                     setSelectedProject(project || null);
+                    setIsManualProjectSelection(true); // Mark as manual selection
                     setCustomPropertyValues({});
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
