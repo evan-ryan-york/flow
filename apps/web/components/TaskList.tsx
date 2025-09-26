@@ -21,20 +21,14 @@ export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps
     );
   }
   const displayedTasks = tasks.sort((a, b) => {
-    // Sort by status (In Progress first), then by due date, then by created date
-    const statusPriority = { 'In Progress': 0, 'To Do': 1, 'Done': 2 };
-    const aStatus = statusPriority[a.status as keyof typeof statusPriority] ?? 1;
-    const bStatus = statusPriority[b.status as keyof typeof statusPriority] ?? 1;
-
-    if (aStatus !== bStatus) return aStatus - bStatus;
-
-    if (a.dueDate && b.dueDate) {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    // Sort by due date first, then by created date (no status-based reordering)
+    if (a.due_date && b.due_date) {
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     }
-    if (a.dueDate && !b.dueDate) return -1;
-    if (!a.dueDate && b.dueDate) return 1;
+    if (a.due_date && !b.due_date) return -1;
+    if (!a.due_date && b.due_date) return 1;
 
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   if (tasks.length === 0) {
@@ -56,10 +50,25 @@ export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps
   }
 
   return (
-    <div className="p-4 space-y-2 overflow-y-auto">
-      {displayedTasks.map((task) => (
-        <DraggableTaskItem key={task.taskId || task.id} task={task} />
-      ))}
+    <div className="flex flex-col h-full">
+      {/* Table Headers */}
+      <div className="flex items-center px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+        {/* Space for drag handle and completion circle */}
+        <div className="flex-shrink-0 w-16"></div>
+        {/* Name Column */}
+        <div className="flex-1 min-w-0">Name</div>
+        {/* Assigned To Column */}
+        <div className="flex-shrink-0 w-24 text-right">Assigned</div>
+        {/* Due Date Column */}
+        <div className="flex-shrink-0 w-28 text-right">Due Date</div>
+      </div>
+
+      {/* Task Rows */}
+      <div className="flex-1 overflow-y-auto bg-white">
+        {displayedTasks.map((task) => (
+          <DraggableTaskItem key={task.taskId || task.id} task={task} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -88,11 +97,14 @@ function DraggableTaskItem({ task }: { task: any }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`cursor-grab ${isDragging ? 'opacity-50' : ''}`}
+      className={isDragging ? 'opacity-50' : ''}
     >
-      <TaskItem task={task} isDragging={isDragging} />
+      <TaskItem
+        task={task}
+        isDragging={isDragging}
+        dragAttributes={attributes}
+        dragListeners={listeners}
+      />
     </div>
   );
 }
