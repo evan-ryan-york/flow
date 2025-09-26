@@ -6,7 +6,9 @@ import {
   useCreateTask,
   useProjectsForUser,
   useLastUsedProject,
-  useGeneralProject
+  useGeneralProject,
+  useProjectDefinitions,
+  useSetPropertyValue
 } from '@perfect-task-app/data';
 import { ProjectAutocomplete, ProjectChip } from '@perfect-task-app/ui/components/custom';
 import { Input } from '@perfect-task-app/ui/components/ui/input';
@@ -25,25 +27,33 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [projectQuery, setProjectQuery] = useState('');
+  const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Hooks
   const { data: projects = [] } = useProjectsForUser(userId);
   const { data: lastUsedProjectId } = useLastUsedProject();
   const { data: generalProject } = useGeneralProject(userId);
+  const { data: customProperties = [] } = useProjectDefinitions(selectedProject?.id || '');
   const createTaskMutation = useCreateTask();
+  const setPropertyValueMutation = useSetPropertyValue();
 
-  // Set default project based on sticky behavior
+  // Set default project based on sticky behavior (with stable dependencies)
   useEffect(() => {
-    if (lastUsedProjectId && projects.length > 0) {
+    if (lastUsedProjectId && projects && projects.length > 0) {
       const lastUsedProject = projects.find(p => p.id === lastUsedProjectId);
-      if (lastUsedProject) {
+      if (lastUsedProject && (!selectedProject || selectedProject.id !== lastUsedProject.id)) {
         setSelectedProject(lastUsedProject);
       }
-    } else if (generalProject) {
+    } else if (generalProject && (!selectedProject || selectedProject.id !== generalProject.id)) {
       setSelectedProject(generalProject);
     }
-  }, [lastUsedProjectId, projects, generalProject]);
+  }, [lastUsedProjectId, projects?.length, generalProject?.id, selectedProject?.id]);
+
+  // Clear custom property values when project changes
+  useEffect(() => {
+    setCustomPropertyValues({});
+  }, [selectedProject?.id]);
 
   const handleInputChange = (value: string) => {
     setTaskName(value);
@@ -69,6 +79,9 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     const cleanName = cleanTaskName(taskName);
     setTaskName(cleanName);
     setProjectQuery('');
+
+    // Clear custom property values when project changes
+    setCustomPropertyValues({});
 
     // Focus back to input
     inputRef.current?.focus();
@@ -101,11 +114,27 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     };
 
     try {
-      await createTaskMutation.mutateAsync(taskData);
+      const newTask = await createTaskMutation.mutateAsync(taskData);
+
+      // Save custom property values if any are set
+      const customPropertyEntries = Object.entries(customPropertyValues).filter(([_, value]) => value.trim());
+      if (customPropertyEntries.length > 0) {
+        await Promise.all(
+          customPropertyEntries.map(([definitionId, value]) =>
+            setPropertyValueMutation.mutateAsync({
+              taskId: newTask.id,
+              definitionId,
+              value: value.trim(),
+              userId,
+            })
+          )
+        );
+      }
 
       // Reset form but keep sticky project behavior
       setTaskName('');
       setDueDate('');
+      setCustomPropertyValues({});
       setShowAdvanced(false);
       setShowAutocomplete(false);
       setProjectQuery('');
@@ -211,6 +240,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                   onChange={(e) => {
                     const project = projects.find(p => p.id === e.target.value);
                     setSelectedProject(project || null);
+                    setCustomPropertyValues({});
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -235,6 +265,78 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                 />
               </div>
             </div>
+
+            {/* Custom Properties */}
+            {customProperties.length > 0 && (
+              <div className="space-y-4">
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Custom Properties</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customProperties.map((property) => (
+                      <div key={property.id}>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {property.name}
+                        </label>
+                        {property.type === 'text' && (
+                          <Input
+                            type="text"
+                            value={customPropertyValues[property.id] || ''}
+                            onChange={(e) => setCustomPropertyValues(prev => ({
+                              ...prev,
+                              [property.id]: e.target.value
+                            }))}
+                            className="text-sm"
+                            placeholder={`Enter ${property.name.toLowerCase()}`}
+                          />
+                        )}
+                        {property.type === 'number' && (
+                          <Input
+                            type="number"
+                            value={customPropertyValues[property.id] || ''}
+                            onChange={(e) => setCustomPropertyValues(prev => ({
+                              ...prev,
+                              [property.id]: e.target.value
+                            }))}
+                            className="text-sm"
+                            placeholder={`Enter ${property.name.toLowerCase()}`}
+                          />
+                        )}
+                        {property.type === 'date' && (
+                          <Input
+                            type="date"
+                            value={customPropertyValues[property.id] || ''}
+                            onChange={(e) => setCustomPropertyValues(prev => ({
+                              ...prev,
+                              [property.id]: e.target.value
+                            }))}
+                            className="text-sm"
+                          />
+                        )}
+                        {property.type === 'select' && (
+                          <select
+                            value={customPropertyValues[property.id] || ''}
+                            onChange={(e) => setCustomPropertyValues(prev => ({
+                              ...prev,
+                              [property.id]: e.target.value
+                            }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Select {property.name.toLowerCase()}...</option>
+                            {property.options && Array.isArray(property.options) &&
+                              property.options.map((option: string, index: number) => (
+                                <option key={index} value={option}>
+                                  {option}
+                                </option>
+                              ))
+                            }
+                          </select>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </form>

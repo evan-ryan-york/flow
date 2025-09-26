@@ -6,3 +6,4 @@
 
 export * from "./ProjectAutocomplete";
 export * from "./ProjectChip";
+export * from "./CustomPropertyManager";

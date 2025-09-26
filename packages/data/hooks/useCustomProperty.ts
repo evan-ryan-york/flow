@@ -87,8 +87,13 @@ export const useSetPropertyValue = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ taskId, definitionId, value }: { taskId: string; definitionId: string; value: string }) =>
-      setPropertyValue(taskId, definitionId, value),
+    mutationFn: (data: { taskId: string; definitionId: string; value: string; userId: string }) =>
+      setPropertyValue({
+        task_id: data.taskId,
+        definition_id: data.definitionId,
+        value: data.value,
+        user_id: data.userId
+      }),
     onSuccess: (updatedValue) => {
       // Invalidate task property values query to refetch
       queryClient.invalidateQueries({

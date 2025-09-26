@@ -1,15 +1,24 @@
 'use client';
 
-import { useDraggable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { TaskItem } from './TaskItem';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
 interface TaskListProps {
-  tasks: any[];
+  tasks: Task[];
   selectedProjectIds: string[];
+  customPropertyDefinitions?: CustomPropertyDefinition[];
+  userId: string;
   isLoading?: boolean;
+  isDraggingActive?: boolean;
 }
 
-export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps) {
+export function TaskList({ tasks, selectedProjectIds, customPropertyDefinitions = [], userId, isLoading, isDraggingActive }: TaskListProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -20,16 +29,9 @@ export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps
       </div>
     );
   }
-  const displayedTasks = tasks.sort((a, b) => {
-    // Sort by due date first, then by created date (no status-based reordering)
-    if (a.due_date && b.due_date) {
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    }
-    if (a.due_date && !b.due_date) return -1;
-    if (!a.due_date && b.due_date) return 1;
 
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  // Use tasks in the order they're passed from TaskHub (preserves drag order)
+  const displayedTasks = [...tasks];
 
   if (tasks.length === 0) {
     return (
@@ -54,53 +56,67 @@ export function TaskList({ tasks, selectedProjectIds, isLoading }: TaskListProps
       {/* Table Headers */}
       <div className="flex items-center px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
         {/* Space for drag handle and completion circle */}
-        <div className="flex-shrink-0 w-16"></div>
+        <div className="flex-shrink-0 w-16">
+          {isDraggingActive && (
+            <span className="text-blue-500">↕</span>
+          )}
+        </div>
         {/* Name Column */}
         <div className="flex-1 min-w-0">Name</div>
         {/* Assigned To Column */}
         <div className="flex-shrink-0 w-24 text-right">Assigned</div>
         {/* Due Date Column */}
         <div className="flex-shrink-0 w-28 text-right">Due Date</div>
+        {/* Custom Property Columns */}
+        {customPropertyDefinitions.map((property) => (
+          <div key={property.id} className="flex-shrink-0 w-32 text-right">
+            {property.name}
+          </div>
+        ))}
       </div>
 
       {/* Task Rows */}
       <div className="flex-1 overflow-y-auto bg-white">
-        {displayedTasks.map((task) => (
-          <DraggableTaskItem key={task.taskId || task.id} task={task} />
-        ))}
+        <SortableContext
+          items={displayedTasks.map(task => task.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {displayedTasks.map((task) => (
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={customPropertyDefinitions} userId={userId} />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );
 }
 
-function DraggableTaskItem({ task }: { task: any }) {
-  const taskId = task.taskId || task.id;
-  console.log('🎯 DraggableTaskItem render:', {
-    taskId,
-    taskName: task.taskName || task.name,
-    hasTaskId: !!task.taskId,
-    hasId: !!task.id,
-    status: task.status
-  });
+function SortableTaskItem({ task, customPropertyDefinitions, userId }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: taskId,
-  });
-
-  console.log('🖱️ Draggable state:', { taskId, isDragging, transform });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : transition, // Disable transition while dragging for smoother feel
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={isDragging ? 'opacity-50' : ''}
+      className={`${isDragging ? 'opacity-40 z-50' : ''} ${
+        transform ? 'shadow-lg' : ''
+      }`}
     >
       <TaskItem
         task={task}
+        customPropertyDefinitions={customPropertyDefinitions}
+        userId={userId}
         isDragging={isDragging}
         dragAttributes={attributes}
         dragListeners={listeners}
