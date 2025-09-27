@@ -10,7 +10,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { TaskItem } from './TaskItem';
 import { TaskGroup } from './TaskGroup';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { TaskGroup as TaskGroupType } from '@perfect-task-app/ui/lib/taskGrouping';
+import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 
 interface TaskListProps {
   tasks: Task[];
@@ -22,6 +22,39 @@ interface TaskListProps {
   // Grouped display support
   groupedTasks?: TaskGroupType[];
   showGroupHeaders?: boolean;
+  groupBy?: GroupByOption | null;
+}
+
+// Reusable table headers component
+function TableHeaders({
+  customPropertyDefinitions,
+  isDraggingActive
+}: {
+  customPropertyDefinitions: CustomPropertyDefinition[];
+  isDraggingActive?: boolean;
+}) {
+  return (
+    <div className="flex items-center px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+      {/* Space for drag handle and completion circle */}
+      <div className="flex-shrink-0 w-16">
+        {isDraggingActive && (
+          <span className="text-blue-500">↕</span>
+        )}
+      </div>
+      {/* Name Column */}
+      <div className="flex-1 min-w-0">Name</div>
+      {/* Assigned To Column */}
+      <div className="flex-shrink-0 w-24 text-right">Assigned</div>
+      {/* Due Date Column */}
+      <div className="flex-shrink-0 w-28 text-right">Due Date</div>
+      {/* Custom Property Columns */}
+      {customPropertyDefinitions.map((property) => (
+        <div key={property.id} className="flex-shrink-0 w-32 text-right">
+          {property.name}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function TaskList({
@@ -32,7 +65,8 @@ export function TaskList({
   isLoading,
   isDraggingActive,
   groupedTasks,
-  showGroupHeaders = false
+  showGroupHeaders = false,
+  groupBy
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -85,9 +119,15 @@ export function TaskList({
   }
 
   if (shouldShowGrouped) {
-    // Render grouped tasks
+    // Render grouped tasks with table headers
     return (
       <div className="flex flex-col h-full">
+        <TableHeaders
+          customPropertyDefinitions={customPropertyDefinitions}
+          isDraggingActive={isDraggingActive}
+        />
+
+        {/* Grouped Tasks */}
         <div className="flex-1 overflow-y-auto bg-gray-50">
           {groupedTasks!.map((group) => (
             <TaskGroup
@@ -98,6 +138,7 @@ export function TaskList({
               isCollapsed={collapsedGroups.has(group.key)}
               onToggleCollapse={handleToggleCollapse}
               isDraggingActive={isDraggingActive}
+              groupBy={groupBy}
             />
           ))}
         </div>
@@ -108,27 +149,10 @@ export function TaskList({
   // Render flat task list (original layout)
   return (
     <div className="flex flex-col h-full">
-      {/* Table Headers */}
-      <div className="flex items-center px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        {/* Space for drag handle and completion circle */}
-        <div className="flex-shrink-0 w-16">
-          {isDraggingActive && (
-            <span className="text-blue-500">↕</span>
-          )}
-        </div>
-        {/* Name Column */}
-        <div className="flex-1 min-w-0">Name</div>
-        {/* Assigned To Column */}
-        <div className="flex-shrink-0 w-24 text-right">Assigned</div>
-        {/* Due Date Column */}
-        <div className="flex-shrink-0 w-28 text-right">Due Date</div>
-        {/* Custom Property Columns */}
-        {customPropertyDefinitions.map((property) => (
-          <div key={property.id} className="flex-shrink-0 w-32 text-right">
-            {property.name}
-          </div>
-        ))}
-      </div>
+      <TableHeaders
+        customPropertyDefinitions={customPropertyDefinitions}
+        isDraggingActive={isDraggingActive}
+      />
 
       {/* Task Rows */}
       <div className="flex-1 overflow-y-auto bg-white">

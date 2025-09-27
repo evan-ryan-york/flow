@@ -17,8 +17,12 @@ import {
   useOptimisticTaskSort,
   useToggleProjectSortMode,
   useRealtimeTaskSync,
-  useProjectDefinitions
+  useProjectDefinitions,
+  useProjectsForUser,
+  useAllProfiles,
+  useUpdateTask
 } from '@perfect-task-app/data';
+import { useQueryClient } from '@tanstack/react-query';
 import { TaskQuickAdd } from './TaskQuickAdd';
 import { TaskList } from './TaskList';
 import { SavedViews } from './SavedViews';
@@ -54,8 +58,16 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Fallback to original hook until database migration is applied
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
 
+  // Fetch projects and profiles data for grouping
+  const { data: allProjects = [] } = useProjectsForUser(userId);
+  const { data: allProfiles = [] } = useAllProfiles();
+
   // Optimistic reordering hooks
   const { optimisticReorder, moveTask, isMoving, error: reorderError } = useOptimisticTaskSort();
+
+  // Task update hook for cross-group drops
+  const updateTaskMutation = useUpdateTask();
+  const queryClient = useQueryClient();
 
   // Real-time synchronization
   const { isConnected } = useRealtimeTaskSync(userId, selectedProjectIds);
@@ -173,8 +185,8 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       }];
     }
 
-    return groupTasks(filteredTasks, groupBy, [], []); // We'll need projects and profiles data later
-  }, [filteredTasks, groupBy]);
+    return groupTasks(filteredTasks, groupBy, allProjects, allProfiles);
+  }, [filteredTasks, groupBy, allProjects, allProfiles]);
 
   // Final display tasks for TaskList component
   const displayTasks = filteredTasks;
@@ -207,6 +219,66 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       return;
     }
 
+    const draggedTask = displayTasks.find(task => task.id === active.id);
+    if (!draggedTask) {
+      return;
+    }
+
+    // Check if dropping on a group header (cross-group drop)
+    // Only do cross-group drop if we're NOT dropping on another task
+    const droppedOnTask = displayTasks.find(task => task.id === over.id);
+    if (over.data?.current?.type === 'group' && !droppedOnTask) {
+      const groupKey = over.data.current.groupKey;
+      const groupLabel = over.data.current.groupLabel;
+
+      console.log('🔄 Cross-group drop:', draggedTask.name, 'to group:', groupLabel);
+
+      // Reset manual order mode so TanStack Query updates are visible
+      setHasManualOrder(false);
+      setLocalTasks([]);
+
+      // Determine what property to update based on current grouping
+      let updates: any = {};
+
+      switch (groupBy) {
+        case 'project':
+          updates.project_id = groupKey;
+          break;
+        case 'status':
+          updates.status = groupKey;
+          break;
+        case 'assignee':
+          updates.assigned_to = groupKey === 'unassigned' ? null : groupKey;
+          break;
+        case 'dueDate':
+          // Due date grouping is more complex - we can't directly assign a date from group key
+          // For now, we'll skip due date group drops
+          console.warn('Due date group drops not yet supported');
+          return;
+        default:
+          return;
+      }
+
+      // Update the task - TanStack Query will handle optimistic updates
+      updateTaskMutation.mutate(
+        {
+          taskId: draggedTask.id,
+          updates
+        },
+        {
+          onSuccess: () => {
+            console.log('✅ Task moved successfully to group:', groupLabel);
+          },
+          onError: (error) => {
+            console.error('❌ Failed to move task:', error);
+          }
+        }
+      );
+
+      return;
+    }
+
+    // Regular task reordering within the same list/group
     const currentTasks = displayTasks;
     const activeIndex = currentTasks.findIndex(task => task.id === active.id);
     const overIndex = currentTasks.findIndex(task => task.id === over.id);
@@ -220,8 +292,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     setLocalTasks(reorderedTasks);
     setHasManualOrder(true);
 
-    const movedTask = currentTasks[activeIndex];
-    console.log('🔄 Task reorder moved:', movedTask.name, `from index ${activeIndex} to ${overIndex}`);
+    console.log('🔄 Task reorder moved:', draggedTask.name, `from index ${activeIndex} to ${overIndex}`);
 
     // TODO: Re-enable after migration is applied
     // const beforeTaskId = overIndex > 0 ? reorderedTasks[overIndex - 1]?.id : undefined;
@@ -274,8 +345,8 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           tasks={baseTasks}
           selectedProjectIds={selectedProjectIds}
           userId={userId}
-          profiles={[]} // TODO: Add profiles data
-          projects={[]} // TODO: Add projects data
+          profiles={allProfiles}
+          projects={allProjects}
           customPropertyCount={allCustomProperties.length}
           totalTasks={baseTasks.length}
           filteredTasks={filteredTasks.length}
@@ -317,6 +388,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             isDraggingActive={!!draggedTask}
             groupedTasks={groupedTasks}
             showGroupHeaders={groupBy !== null && groupBy !== 'none'}
+            groupBy={groupBy}
           />
         </div>
 

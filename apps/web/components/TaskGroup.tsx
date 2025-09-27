@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { NavArrowDown, NavArrowRight } from 'iconoir-react';
 import { TaskItem } from './TaskItem';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { TaskGroup as TaskGroupType } from '@perfect-task-app/ui/lib/taskGrouping';
+import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 
 interface TaskGroupProps {
   group: TaskGroupType;
@@ -14,6 +15,7 @@ interface TaskGroupProps {
   isCollapsed?: boolean;
   onToggleCollapse?: (groupKey: string) => void;
   isDraggingActive?: boolean;
+  groupBy?: GroupByOption | null;
 }
 
 export function TaskGroup({
@@ -22,7 +24,8 @@ export function TaskGroup({
   userId,
   isCollapsed = false,
   onToggleCollapse,
-  isDraggingActive = false
+  isDraggingActive = false,
+  groupBy
 }: TaskGroupProps) {
   const handleToggle = () => {
     onToggleCollapse?.(group.key);
@@ -30,11 +33,37 @@ export function TaskGroup({
 
   const completionPercentage = group.count > 0 ? (group.completedCount / group.count) * 100 : 0;
 
+  // Make the group header a droppable area for cross-group drops
+  const { setNodeRef, isOver } = useDroppable({
+    id: `group-${group.key}`,
+    data: {
+      type: 'group',
+      groupKey: group.key,
+      groupLabel: group.label,
+      groupBy: groupBy
+    }
+  });
+
   return (
-    <div className="mb-6">
+    <div
+      ref={setNodeRef}
+      className={`mb-6 rounded-lg transition-all duration-200 ${
+        isOver
+          ? 'bg-blue-50 border-2 border-blue-300 shadow-lg'
+          : isDraggingActive && groupBy && groupBy !== 'dueDate'
+          ? 'bg-blue-50/30 border-2 border-blue-200 hover:border-blue-300'
+          : 'border-2 border-transparent'
+      }`}
+    >
       {/* Group Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+        className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 cursor-pointer transition-colors ${
+          isOver
+            ? 'bg-blue-100'
+            : isDraggingActive && groupBy && groupBy !== 'dueDate'
+            ? 'bg-blue-50 hover:bg-blue-100'
+            : 'bg-gray-50 hover:bg-gray-100'
+        }`}
         onClick={handleToggle}
       >
         <div className="flex items-center gap-3">
@@ -54,7 +83,19 @@ export function TaskGroup({
           </button>
 
           {/* Group Title */}
-          <h3 className="font-medium text-gray-900">{group.label}</h3>
+          <h3 className="font-medium text-gray-900">
+            {group.label}
+            {isDraggingActive && groupBy && groupBy !== 'dueDate' && !isOver && (
+              <span className="ml-2 text-xs text-blue-500 font-normal opacity-75">
+                Drop anywhere in this section
+              </span>
+            )}
+            {isOver && (
+              <span className="ml-2 text-xs text-blue-700 font-medium">
+                Release to move here
+              </span>
+            )}
+          </h3>
 
           {/* Task Count Badge */}
           <div className="flex items-center gap-2">
@@ -89,7 +130,9 @@ export function TaskGroup({
 
       {/* Group Tasks */}
       {!isCollapsed && group.tasks.length > 0 && (
-        <div className="bg-white">
+        <div className={`transition-colors ${
+          isOver ? 'bg-blue-50/50' : 'bg-white'
+        }`}>
           <SortableContext
             items={group.tasks.map(task => task.id)}
             strategy={verticalListSortingStrategy}
@@ -108,7 +151,9 @@ export function TaskGroup({
 
       {/* Empty State */}
       {!isCollapsed && group.tasks.length === 0 && (
-        <div className="bg-white px-4 py-8 text-center text-gray-500">
+        <div className={`px-4 py-8 text-center text-gray-500 transition-colors ${
+          isOver ? 'bg-blue-50/50' : 'bg-white'
+        }`}>
           <p className="text-sm">No tasks in this group</p>
         </div>
       )}
