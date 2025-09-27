@@ -7,7 +7,6 @@ import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 import { TaskSearchInput } from './filters/TaskSearchInput';
 import { ColumnFilterDropdown } from './filters/ColumnFilterDropdown';
 import { GroupByDropdown } from './filters/GroupByDropdown';
-import { CustomPropertiesButton } from './filters/CustomPropertiesButton';
 import { ActiveFiltersBar } from './filters/ActiveFiltersBar';
 
 interface TaskFiltersBarProps {
@@ -29,7 +28,6 @@ interface TaskFiltersBarProps {
   userId: string;
   profiles?: any[];
   projects?: any[];
-  customPropertyCount?: number;
 
   // Task counts for feedback
   totalTasks: number;
@@ -48,7 +46,6 @@ export function TaskFiltersBar({
   userId,
   profiles = [],
   projects = [],
-  customPropertyCount = 0,
   totalTasks,
   filteredTasks
 }: TaskFiltersBarProps) {
@@ -152,12 +149,6 @@ export function TaskFiltersBar({
               onChange={onGroupByChange}
               tasks={tasks}
               selectedProjectIds={selectedProjectIds}
-            />
-
-            <CustomPropertiesButton
-              selectedProjectIds={selectedProjectIds}
-              userId={userId}
-              customPropertyCount={customPropertyCount}
             />
           </div>
         </div>

@@ -347,7 +347,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           userId={userId}
           profiles={allProfiles}
           projects={allProjects}
-          customPropertyCount={allCustomProperties.length}
           totalTasks={baseTasks.length}
           filteredTasks={filteredTasks.length}
         />
