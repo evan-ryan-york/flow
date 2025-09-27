@@ -10,26 +10,30 @@ This document details the core task management functionality within Perfect Task
 - **`/in` Command**: Complete project autocomplete and selection system
 - **Expanded Properties Mode**: Project selection and due date picker
 - **Sticky Project Behavior**: Last-used project tracking and persistence
-- **Basic Task List View**: Tasks displayed in sortable table format
+- **Task List View**: Tasks displayed in sortable table format with grouping support
 - **Task Property Editing**: Inline editing of task properties and custom fields
 - **Drag-and-Drop Reordering**: Manual task sorting within projects
 - **Real-time Sync**: Live updates via Supabase subscriptions
+- **Search and Filtering**: ✅ **COMPLETED** - Comprehensive search and filtering system
+- **Task Grouping**: ✅ **COMPLETED** - Group-by functionality (Project, Due Date, Status, Assignee)
+- **Advanced Filter Controls**: ✅ **COMPLETED** - Multi-select column filters with visual feedback
+- **Active Filter Management**: ✅ **COMPLETED** - Clear display and individual filter removal
+- **Custom Properties Integration**: ✅ **COMPLETED** - Quick access to custom property management
 
 ### ❌ Missing/Incomplete Features
 - **Task Layout Options**: Only List view implemented (Kanban/Board view missing)
 - **Assignee Management**: Hard-coded mock users, no real user selection UI
-- **Task Grouping**: No group-by functionality (Project, Due Date, Status, etc.)
-- **Search and Filtering**: No task search or advanced filtering capabilities
 - **Task Descriptions**: No markdown editor/viewer for detailed task notes
 - **Mobile Implementation**: Web-only, no mobile app task management screens
 - **Comprehensive Testing**: Limited test coverage across all layers
 
 ## Task Hub Architecture (Column 2)
 
-The Task Hub is the central column of the three-column layout and consists of three horizontal sections:
+The Task Hub is the central column of the three-column layout and consists of four horizontal sections:
 1. **Top Row: Quick-Add Bar** - Task creation interface
-2. **Middle Row: Task View** - Primary task display and interaction area
-3. **Bottom Row: Saved Views** - Personalization layer (covered separately)
+2. **Second Row: Search/Filters Bar** ✅ **NEW** - Search, filtering, and grouping controls
+3. **Middle Row: Task View** - Primary task display and interaction area
+4. **Bottom Row: Saved Views** - Personalization layer (covered separately)
 
 ## Quick-Add Bar (Top Row)
 
@@ -92,15 +96,85 @@ Users can specify project assignment directly within the task name using the `/i
 - **Contextual Defaults**: Intelligent property suggestions based on history
 - **No Interruption**: Doesn't break user's current focus
 
+## Search/Filters Bar (Second Row) ✅ **NEW**
+
+### Core Functionality
+The Search/Filters Bar provides comprehensive task filtering, searching, and organization capabilities positioned between the Quick-Add Bar and Task View.
+
+#### Layout Structure
+- **Left Side**: Task search input with live results
+- **Right Side**: Filter controls (column filters, grouping, custom properties)
+- **Active Filters**: Expandable bar showing applied filters with individual clear options
+
+#### Search Functionality ✅ **Implemented**
+- **Debounced Search**: 300ms debounce prevents excessive filtering
+- **Search Scope**: Searches across task names and descriptions
+- **Live Feedback**: Shows "X of Y tasks" count during search
+- **Quick Clear**: ESC key or X button to clear search instantly
+- **Empty State**: Clear messaging when no search results found
+
+#### Column Filtering ✅ **Implemented**
+- **Multi-Select Interface**: Checkbox-based selection for multiple values
+- **Filter Categories**:
+  - **Status**: Filter by To-Do, In Progress, Done, and custom statuses
+  - **Assignee**: Filter by assigned users or unassigned tasks
+  - **Due Date**: Overdue, Today, This Week, Next Week, No Date
+  - **Project**: When multiple projects selected (auto-hidden for single project)
+- **Visual Feedback**: Filter count badges and active filter indicators
+- **Task Counts**: Shows number of matching tasks for each filter option
+
+#### Task Grouping ✅ **Implemented**
+- **Grouping Options**:
+  - **By Project**: When multiple projects are selected
+  - **By Status**: Groups by To-Do, In Progress, Done
+  - **By Due Date**: Today, Tomorrow, This Week, Later, No Date, Overdue
+  - **By Assignee**: Groups by assigned users and unassigned tasks
+- **Collapsible Groups**: Expand/collapse functionality with state persistence
+- **Group Statistics**: Shows task count and completion percentage per group
+- **Smart Availability**: Only shows grouping options that create meaningful groups
+
+#### Custom Properties Integration ✅ **Implemented**
+- **Quick Access**: Button appears when single project is selected
+- **Property Count**: Badge shows number of custom properties available
+- **Seamless Integration**: Reuses existing CustomPropertyManager component
+
+#### Active Filters Management ✅ **Implemented**
+- **Visual Chips**: Each active filter displayed as removable chip
+- **Individual Removal**: X button on each filter chip for targeted clearing
+- **Clear All**: Single button to remove all active filters and search
+- **Task Count Feedback**: Always visible filtered vs total task counts
+- **Auto-Collapse**: Hides when no filters are active
+
+### User Experience Goals
+- **Instant Feedback**: Search and filter results appear within 300ms
+- **Progressive Disclosure**: Advanced options revealed when needed
+- **Visual Clarity**: Clear indication of what filters are active
+- **Easy Recovery**: Simple ways to clear filters and return to full view
+- **Performance**: Handles large task lists (1000+) without lag
+
+### Technical Implementation
+- **State Management**: Centralized filter state with proper isolation
+- **Performance**: Memoized calculations and debounced operations
+- **Type Safety**: Full TypeScript support with compile-time validation
+- **Accessibility**: Keyboard navigation and screen reader support
+
 ## Task View (Middle Row)
 
 ### Core Display Functionality
 The Task View serves as the primary interface for viewing and interacting with tasks.
 
-#### Dynamic Filtering
+#### Dynamic Filtering ✅ **Enhanced**
 - **Project-Based**: Automatically updates based on Column 1 project selections
 - **Default View**: Shows "All Tasks" assigned to current user
 - **Multi-Project**: Can display combined tasks from multiple selected projects
+- **Search Integration**: Combines project selection with search/filter bar controls
+- **Grouped Display**: Tasks can be organized into collapsible groups based on user selection
+
+#### Task Display Modes ✅ **Implemented**
+- **Flat List View**: Traditional table format with sortable columns
+- **Grouped View**: Tasks organized into collapsible sections with progress indicators
+- **Adaptive Headers**: Table headers shown in flat view, hidden in grouped view
+- **Seamless Switching**: Instant toggle between flat and grouped displays
 
 #### Task List Properties ✅ **Implemented**
 Each task displays:
@@ -111,16 +185,19 @@ Each task displays:
 - **Assignee**: Currently shows hard-coded mock user names
 - **Custom Properties**: Project-specific fields with inline editing
 
-#### Interactive Capabilities
+#### Interactive Capabilities ✅ **Enhanced**
 - **Draggable Tasks**: Each task can be dragged to Calendar (Column 3)
 - **In-line Editing**: Click-to-edit task properties
 - **Status Toggle**: Quick completion marking
 - **Task Expansion**: Click to view full details
+- **Group Management**: Expand/collapse task groups with state persistence
+- **Filter Integration**: Seamless interaction with search/filter controls
 
 ### Responsive Behavior ✅ **Implemented**
 - **Real-time Updates**: Automatically reflects changes from other users
 - **Filter Synchronization**: Instantly updates when Column 1 selections change
 - **Smooth Transitions**: Animated task additions/removals
+- **Performance Optimization**: Efficient rendering for large filtered task lists
 
 ## Missing Feature Requirements
 
@@ -133,29 +210,6 @@ Each task displays:
 - Customizable column definitions per project
 - Consistent task properties display across both layouts
 
-### Task Grouping & Organization ❌
-**Status**: No grouping functionality implemented
-**Requirements**:
-- **Group By Options**:
-  - Project (when multiple projects selected)
-  - Due Date (Today, Tomorrow, This Week, Later, No Date)
-  - Status (To-Do, In Progress, Done)
-  - Assignee (when multiple people assigned)
-- **Collapsible Groups**: Expand/collapse group sections
-- **Group Headers**: Show count and summary information
-- **Sorting Within Groups**: Maintain sort order within each group
-
-### Search & Filtering ❌
-**Status**: No search or filtering capabilities
-**Requirements**:
-- **Global Task Search**: Search across task names and descriptions
-- **Advanced Filters**:
-  - Due date range filtering (overdue, today, this week, etc.)
-  - Status filtering (completed, pending, in progress)
-  - Assignee filtering
-  - Custom property filtering
-- **Search Performance**: Debounced search with loading states
-- **Filter Persistence**: Remember applied filters across sessions
 
 ### Task Descriptions ❌
 **Status**: Database field exists, no UI implementation
