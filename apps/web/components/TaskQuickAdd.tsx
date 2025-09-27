@@ -82,12 +82,9 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
 
   // Filter projects based on query using useMemo to prevent infinite re-renders
   const filteredProjects = useMemo(() => {
-    console.log('🎯 Filtering projects - Query:', projectQuery, 'ShowAutocomplete:', showAutocomplete, 'Projects count:', projects.length);
-
     if (showAutocomplete) {
       // If no query yet (just typed "/in"), show all projects
       if (!projectQuery || projectQuery.trim() === '') {
-        console.log('📊 Showing all projects (no query yet):', projects.map(p => p.name));
         return projects.sort((a, b) => a.name.localeCompare(b.name));
       }
 
@@ -107,11 +104,9 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
         return a.name.length - b.name.length;
       });
 
-      console.log('📊 Filtered projects:', filtered.map(p => p.name));
       return filtered;
     }
 
-    console.log('🚫 No filtering - returning empty array');
     return [];
   }, [projectQuery, showAutocomplete, projects]);
 
@@ -121,49 +116,31 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   }, [filteredProjects.length]);
 
   const handleInputChange = (value: string) => {
-    console.log('🔥 handleInputChange called with:', value);
-
     // Auto-add space after /in if user just typed "/in" without space
     let processedValue = value;
     if (value.endsWith('/in') && !value.endsWith('/in ')) {
       processedValue = value + ' ';
-      console.log('🚀 Auto-added space after /in:', processedValue);
       setTaskName(processedValue);
     } else {
       setTaskName(value);
     }
 
-    // Simple /in detection for debugging
+    // Simple /in detection
     const hasInCommand = processedValue.includes('/in '); // Note: now looking for "/in " with space
-    console.log('🔍 Contains /in ?', hasInCommand);
 
     if (hasInCommand) {
-      console.log('✅ /in command detected!');
       const parts = processedValue.split('/in '); // Split on "/in " with space
       const query = parts[1] || ''; // Don't trim here - let user see their exact typing
-      console.log('📝 Project query:', `"${query}"`);
 
       setShowAutocomplete(true);
       setProjectQuery(query);
     } else {
-      console.log('❌ No /in command');
       setShowAutocomplete(false);
       setProjectQuery('');
     }
-
-    // Original parsing logic (commented out for debugging)
-    // const parsed = parseTaskInput(value);
-    // if (parsed.hasProjectCommand && parsed.projectQuery !== undefined) {
-    //   setShowAutocomplete(true);
-    //   setProjectQuery(parsed.projectQuery);
-    // } else {
-    //   setShowAutocomplete(false);
-    //   setProjectQuery('');
-    // }
   };
 
   const handleProjectSelect = (project: Project) => {
-    console.log('🎯 Project selected:', project.name);
     setSelectedProject(project);
     setIsManualProjectSelection(true); // Mark as manual selection
     setShowAutocomplete(false);
@@ -172,7 +149,6 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     let cleanName = taskName;
     if (taskName.includes('/in ')) {
       cleanName = taskName.split('/in ')[0].trim();
-      console.log('🧹 Cleaned task name:', cleanName);
     }
     setTaskName(cleanName);
     setProjectQuery('');
@@ -191,15 +167,12 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 TaskQuickAdd.handleSubmit started');
 
     // Clean task name by removing /in command if present
     let cleanName = taskName;
     if (taskName.includes('/in ')) {
       cleanName = taskName.split('/in ')[0].trim();
     }
-
-    console.log('🧹 Submit with clean name:', cleanName);
 
     if (!cleanName.trim()) {
       return;

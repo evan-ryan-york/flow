@@ -23,7 +23,17 @@ import { TaskQuickAdd } from './TaskQuickAdd';
 import { TaskList } from './TaskList';
 import { SavedViews } from './SavedViews';
 import { TaskItem } from './TaskItem';
+import { TaskFiltersBar } from './TaskFiltersBar';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import {
+  FilterState,
+  createEmptyFilterState,
+  filterTasks
+} from '@perfect-task-app/ui/lib/taskFiltering';
+import {
+  GroupByOption,
+  groupTasks
+} from '@perfect-task-app/ui/lib/taskGrouping';
 
 interface TaskHubProps {
   userId: string;
@@ -35,6 +45,11 @@ interface TaskHubProps {
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [hasManualOrder, setHasManualOrder] = useState(false);
+
+  // Filter and grouping state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilters, setSelectedFilters] = useState<FilterState>(createEmptyFilterState());
+  const [groupBy, setGroupBy] = useState<GroupByOption | null>(null);
 
   // Fallback to original hook until database migration is applied
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
@@ -124,12 +139,57 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
   // Use server tasks unless user has manually reordered
-  const displayTasks = hasManualOrder ? localTasks : sortedServerTasks;
+  const baseTasks = hasManualOrder ? localTasks : sortedServerTasks;
+
+  // Apply filtering to tasks
+  const filteredTasks = useMemo(() => {
+    let filtered = [...baseTasks];
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const searchTerm = searchQuery.toLowerCase();
+      filtered = filtered.filter(task =>
+        task.name.toLowerCase().includes(searchTerm) ||
+        (task.description && task.description.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    // Apply other filters
+    filtered = filterTasks(filtered, selectedFilters);
+
+    return filtered;
+  }, [baseTasks, searchQuery, selectedFilters]);
+
+  // Apply grouping to filtered tasks
+  const groupedTasks = useMemo(() => {
+    if (!groupBy || groupBy === 'none') {
+      return [{
+        key: 'all',
+        label: 'All Tasks',
+        tasks: filteredTasks,
+        count: filteredTasks.length,
+        completedCount: filteredTasks.filter(t => t.status === 'Done').length,
+        sortOrder: 0
+      }];
+    }
+
+    return groupTasks(filteredTasks, groupBy, [], []); // We'll need projects and profiles data later
+  }, [filteredTasks, groupBy]);
+
+  // Final display tasks for TaskList component
+  const displayTasks = filteredTasks;
 
   // Reset manual order when project changes
   React.useEffect(() => {
     setHasManualOrder(false);
     setLocalTasks([]);
+  }, [selectedProjectIds.join(',')]);
+
+  // Reset filters when projects change
+  React.useEffect(() => {
+    setSearchQuery('');
+    setSelectedFilters(createEmptyFilterState());
+    setGroupBy(null);
   }, [selectedProjectIds.join(',')]);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -203,6 +263,24 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           />
         </div>
 
+        {/* Search/Filters Bar */}
+        <TaskFiltersBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedFilters={selectedFilters}
+          onFiltersChange={setSelectedFilters}
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          tasks={baseTasks}
+          selectedProjectIds={selectedProjectIds}
+          userId={userId}
+          profiles={[]} // TODO: Add profiles data
+          projects={[]} // TODO: Add projects data
+          customPropertyCount={allCustomProperties.length}
+          totalTasks={baseTasks.length}
+          filteredTasks={filteredTasks.length}
+        />
+
         {/* Sort Mode Controls - Disabled until migration is applied */}
         {false && selectedProjectIds.length === 1 && (
           <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
@@ -237,6 +315,8 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             userId={userId}
             isLoading={isLoading}
             isDraggingActive={!!draggedTask}
+            groupedTasks={groupedTasks}
+            showGroupHeaders={groupBy !== null && groupBy !== 'none'}
           />
         </div>
 

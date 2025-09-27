@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -7,7 +8,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TaskItem } from './TaskItem';
+import { TaskGroup } from './TaskGroup';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { TaskGroup as TaskGroupType } from '@perfect-task-app/ui/lib/taskGrouping';
 
 interface TaskListProps {
   tasks: Task[];
@@ -16,9 +19,36 @@ interface TaskListProps {
   userId: string;
   isLoading?: boolean;
   isDraggingActive?: boolean;
+  // Grouped display support
+  groupedTasks?: TaskGroupType[];
+  showGroupHeaders?: boolean;
 }
 
-export function TaskList({ tasks, selectedProjectIds, customPropertyDefinitions = [], userId, isLoading, isDraggingActive }: TaskListProps) {
+export function TaskList({
+  tasks,
+  selectedProjectIds,
+  customPropertyDefinitions = [],
+  userId,
+  isLoading,
+  isDraggingActive,
+  groupedTasks,
+  showGroupHeaders = false
+}: TaskListProps) {
+  // State for managing collapsed groups
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const handleToggleCollapse = (groupKey: string) => {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -29,6 +59,9 @@ export function TaskList({ tasks, selectedProjectIds, customPropertyDefinitions 
       </div>
     );
   }
+
+  // Determine if we should show grouped or flat display
+  const shouldShowGrouped = showGroupHeaders && groupedTasks && groupedTasks.length > 1;
 
   // Use tasks in the order they're passed from TaskHub (preserves drag order)
   const displayedTasks = [...tasks];
@@ -51,6 +84,28 @@ export function TaskList({ tasks, selectedProjectIds, customPropertyDefinitions 
     );
   }
 
+  if (shouldShowGrouped) {
+    // Render grouped tasks
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          {groupedTasks!.map((group) => (
+            <TaskGroup
+              key={group.key}
+              group={group}
+              customPropertyDefinitions={customPropertyDefinitions}
+              userId={userId}
+              isCollapsed={collapsedGroups.has(group.key)}
+              onToggleCollapse={handleToggleCollapse}
+              isDraggingActive={isDraggingActive}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Render flat task list (original layout)
   return (
     <div className="flex flex-col h-full">
       {/* Table Headers */}
