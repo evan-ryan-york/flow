@@ -11,11 +11,8 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import {
   useProjectsTasks,
-  useOptimisticTaskSort,
-  useToggleProjectSortMode,
   useRealtimeTaskSync,
   useProjectDefinitions,
   useProjectsForUser,
@@ -48,7 +45,6 @@ interface TaskHubProps {
 
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  const [hasManualOrder, setHasManualOrder] = useState(false);
 
   // Filter and grouping state
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,8 +86,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     return mapping;
   }, [allProfiles, userId]);
 
-  // Optimistic reordering hooks
-  const { optimisticReorder, moveTask, isMoving, error: reorderError } = useOptimisticTaskSort();
 
   // Task update hook for cross-group drops
   const updateTaskMutation = useUpdateTask();
@@ -155,31 +149,23 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     })
   );
 
-  // Sort server tasks initially, memoized to prevent infinite loops
+  // Sort server tasks by due date and created date
   const sortedServerTasks = useMemo(() => {
     return [...serverTasks].sort((a, b) => {
-      // If both tasks have sort_order, use it (for migrated tasks)
-      if (a.sort_order !== undefined && a.sort_order !== null &&
-          b.sort_order !== undefined && b.sort_order !== null) {
-        return a.sort_order - b.sort_order;
-      }
-
-      // Fallback to original sorting logic for non-migrated tasks
+      // Sort by due date first (tasks with due dates come first)
       if (a.due_date && b.due_date) {
         return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
       }
       if (a.due_date && !b.due_date) return -1;
       if (!a.due_date && b.due_date) return 1;
 
+      // Then sort by created date (newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [serverTasks]);
 
-  // Local task order state - only used when user has manually reordered
-  const [localTasks, setLocalTasks] = useState<Task[]>([]);
-
-  // Use server tasks unless user has manually reordered
-  const baseTasks = hasManualOrder ? localTasks : sortedServerTasks;
+  // Use sorted server tasks as the base
+  const baseTasks = sortedServerTasks;
 
   // Apply filtering to tasks
   const filteredTasks = useMemo(() => {
@@ -209,7 +195,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         tasks: filteredTasks,
         count: filteredTasks.length,
         completedCount: filteredTasks.filter(t => t.status === 'Done').length,
-        sortOrder: 0
       }];
     }
 
@@ -221,7 +206,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // Reset manual order when project changes
   React.useEffect(() => {
-    setHasManualOrder(false);
     setLocalTasks([]);
   }, [selectedProjectIds.join(',')]);
 
@@ -262,8 +246,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       console.log('🔄 Cross-group drop:', draggedTask.name, 'to group:', groupLabel);
 
       // Reset manual order mode so TanStack Query updates are visible
-      setHasManualOrder(false);
-      setLocalTasks([]);
+        setLocalTasks([]);
 
       // Determine what property to update based on current grouping
       let updates: any = {};
@@ -306,34 +289,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       return;
     }
 
-    // Regular task reordering within the same list/group
-    const currentTasks = displayTasks;
-    const activeIndex = currentTasks.findIndex(task => task.id === active.id);
-    const overIndex = currentTasks.findIndex(task => task.id === over.id);
-
-    if (activeIndex === -1 || overIndex === -1) {
-      return;
-    }
-
-    // Apply the reorder to local state
-    const reorderedTasks = arrayMove(currentTasks, activeIndex, overIndex);
-    setLocalTasks(reorderedTasks);
-    setHasManualOrder(true);
-
-    console.log('🔄 Task reorder moved:', draggedTask.name, `from index ${activeIndex} to ${overIndex}`);
-
-    // TODO: Re-enable after migration is applied
-    // const beforeTaskId = overIndex > 0 ? reorderedTasks[overIndex - 1]?.id : undefined;
-    // const afterTaskId = overIndex < reorderedTasks.length - 1 ? reorderedTasks[overIndex + 1]?.id : undefined;
-    // moveTask(movedTask.id, beforeTaskId, afterTaskId);
+    // Task reordering within the same list - currently no persistence
+    console.log('🔄 Task reorder (visual only):', draggedTask.name, 'moved within list');
   };
 
-  // Handle project sort mode toggle
-  const sortModeToggle = useToggleProjectSortMode();
-
-  const handleToggleSortMode = (projectId: string, enabled: boolean) => {
-    sortModeToggle.mutate({ projectId, enabled });
-  };
 
   if (error) {
     return (
@@ -379,30 +338,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           filteredTasks={filteredTasks.length}
         />
 
-        {/* Sort Mode Controls - Disabled until migration is applied */}
-        {false && selectedProjectIds.length === 1 && (
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Task Ordering</span>
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="rounded"
-                    onChange={(e) => handleToggleSortMode(selectedProjectIds[0], e.target.checked)}
-                    disabled={sortModeToggle.isPending}
-                  />
-                  Manual Sort
-                </label>
-                {reorderError && (
-                  <span className="text-xs text-red-500">
-                    Reorder failed
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Task List */}
         <div className="flex-1 overflow-hidden">
