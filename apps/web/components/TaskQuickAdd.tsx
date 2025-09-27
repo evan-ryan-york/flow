@@ -8,11 +8,15 @@ import {
   useLastUsedProject,
   useGeneralProject,
   useProjectDefinitions,
-  useSetPropertyValue
+  useSetPropertyValue,
+  useAllProfiles
 } from '@perfect-task-app/data';
 import { ProjectChip } from '@perfect-task-app/ui/components/custom';
 import { Input } from '@perfect-task-app/ui/components/ui/input';
 import { Button } from '@perfect-task-app/ui/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
+import { Calendar as CalendarIcon, User } from 'iconoir-react';
+import { format } from 'date-fns';
 import { parseTaskInput, cleanTaskName } from '@perfect-task-app/ui/lib/textParser';
 
 interface TaskQuickAddProps {
@@ -23,7 +27,10 @@ interface TaskQuickAddProps {
 export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   const [taskName, setTaskName] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState<string>('');
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [assignedUser, setAssignedUser] = useState<string | null>(null);
+  const [showUserPicker, setShowUserPicker] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isManualProjectSelection, setIsManualProjectSelection] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -40,6 +47,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   const { data: lastUsedProjectId } = useLastUsedProject();
   const { data: generalProject } = useGeneralProject(userId);
   const { data: customProperties = [] } = useProjectDefinitions(selectedProject?.id || '');
+  const { data: allProfiles = [] } = useAllProfiles();
   const createTaskMutation = useCreateTask();
   const setPropertyValueMutation = useSetPropertyValue();
 
@@ -59,6 +67,13 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
       setSelectedProject(generalProject);
     }
   }, [lastUsedProjectId, projects?.length, generalProject?.id, isManualProjectSelection]);
+
+  // Set default assignee to current user
+  useEffect(() => {
+    if (!assignedUser) {
+      setAssignedUser(userId);
+    }
+  }, [userId, assignedUser]);
 
   // Clear custom property values when project changes
   useEffect(() => {
@@ -196,7 +211,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     const taskData = {
       name: cleanName,
       project_id: projectId,
-      assigned_to: userId,
+      assigned_to: assignedUser || userId,
       created_by: userId,
       due_date: dueDate || undefined,
     };
@@ -222,6 +237,8 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
       // Reset form but keep sticky project behavior
       setTaskName('');
       setDueDate('');
+      setShowDueDatePicker(false);
+      setAssignedUser(userId); // Reset to current user
       setCustomPropertyValues({});
       setShowAdvanced(false);
       setShowAutocomplete(false);
@@ -382,41 +399,131 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
         {/* Advanced Options */}
         {showAdvanced && (
           <div className="mt-3 p-4 bg-gray-50 rounded-lg space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Project
-                </label>
-                <select
-                  value={selectedProject?.id || ''}
-                  onChange={(e) => {
-                    const project = projects.find(p => p.id === e.target.value);
-                    setSelectedProject(project || null);
-                    setIsManualProjectSelection(true); // Mark as manual selection
-                    setCustomPropertyValues({});
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a project...</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Chips Row */}
+            <div className="flex gap-2">
+              {/* Due Date Chip */}
+              <Popover open={showDueDatePicker} onOpenChange={setShowDueDatePicker}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                      dueDate
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                    <span>{dueDate ? format(new Date(dueDate), 'MMM d') : 'Due'}</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3" align="start">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900">Due Date</label>
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => {
+                        setDueDate(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      {dueDate && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDueDate('');
+                            setShowDueDatePicker(false);
+                          }}
+                          className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowDueDatePicker(false)}
+                        className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date
-                </label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
+              {/* Assigned To Chip */}
+              <Popover open={showUserPicker} onOpenChange={setShowUserPicker}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                      assignedUser && assignedUser !== userId
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    <span>
+                      {assignedUser === userId || !assignedUser
+                        ? 'Assigned: You'
+                        : `Assigned: ${allProfiles.find(p => p.id === assignedUser)?.first_name || 'Unknown'}`
+                      }
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3" align="start">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-gray-700">Assign to</label>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {/* Current User (Default) */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssignedUser(userId);
+                          setShowUserPicker(false);
+                        }}
+                        className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 flex items-center gap-2 ${
+                          assignedUser === userId ? 'bg-blue-50 border border-blue-200' : ''
+                        }`}
+                      >
+                        <User className="w-4 h-4" />
+                        <span>You (default)</span>
+                        {assignedUser === userId && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                      </button>
+
+                      {/* Other Users */}
+                      {allProfiles
+                        .filter(profile => profile.id !== userId)
+                        .map((profile) => (
+                          <button
+                            key={profile.id}
+                            type="button"
+                            onClick={() => {
+                              setAssignedUser(profile.id);
+                              setShowUserPicker(false);
+                            }}
+                            className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 flex items-center gap-2 ${
+                              assignedUser === profile.id ? 'bg-blue-50 border border-blue-200' : ''
+                            }`}
+                          >
+                            <User className="w-4 h-4" />
+                            <span>{profile.first_name || profile.last_name || 'Unknown User'}</span>
+                            {assignedUser === profile.id && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                          </button>
+                        ))
+                      }
+
+                      {allProfiles.length === 0 && (
+                        <div className="text-xs text-gray-500 p-2">
+                          No other users found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Custom Properties */}

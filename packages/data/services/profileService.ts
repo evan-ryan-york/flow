@@ -175,3 +175,26 @@ export const getLastUsedProject = async (userId?: string): Promise<string | null
     throw error;
   }
 };
+
+export const getAllProfiles = async (): Promise<Profile[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('first_name', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch profiles: ${error.message}`);
+    }
+
+    // Filter out profiles without names and validate against Zod schema
+    const validatedProfiles = data
+      .filter(profile => profile.first_name || profile.last_name)
+      .map(profile => ProfileSchema.parse(profile));
+
+    return validatedProfiles;
+  } catch (error) {
+    console.error('ProfileService.getAllProfiles error:', error);
+    throw error;
+  }
+};

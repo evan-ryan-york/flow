@@ -9,6 +9,7 @@ export * from "./components/ui/checkbox"
 export * from "./components/ui/select"
 export * from "./components/ui/dialog"
 export * from "./components/ui/popover"
+export * from "./components/ui/calendar"
 
 // Re-export utilities
 export * from "./lib/utils"
