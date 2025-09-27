@@ -28,16 +28,10 @@ export const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUr
   },
 }) : null;
 
-// Add auth state change listener for debugging (only in browser)
+// Add auth state change listener (only in browser)
 if (typeof window !== 'undefined' && supabase) {
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state change:', {
-      event,
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email
-    });
+  supabase.auth.onAuthStateChange((_event, _session) => {
+    // Auth state change tracking without logging
   });
 }
 
