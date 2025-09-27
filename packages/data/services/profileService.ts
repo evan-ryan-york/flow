@@ -1,7 +1,8 @@
+import { z } from 'zod';
 import { getSupabaseClient } from '../supabase';
+import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 
 const supabase = getSupabaseClient();
-import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 
 export interface ProfileUpdates {
   first_name?: string;
@@ -9,6 +10,7 @@ export interface ProfileUpdates {
   full_name?: string;
   avatar_url?: string;
   last_used_project_id?: string;
+  visible_project_ids?: string[];
 }
 
 export const getProfile = async (userId: string): Promise<Profile> => {
@@ -195,6 +197,71 @@ export const getAllProfiles = async (): Promise<Profile[]> => {
     return validatedProfiles;
   } catch (error) {
     console.error('ProfileService.getAllProfiles error:', error);
+    throw error;
+  }
+};
+
+export const getVisibleProjectIds = async (userId: string): Promise<string[]> => {
+  try {
+    // 1. Supabase API call
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('visible_project_ids')
+      .eq('id', userId)
+      .single();
+
+    // 2. Error handling
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return []; // No profile found - return empty array (show all projects)
+      }
+      throw new Error(`Failed to get visible project IDs: ${error.message}`);
+    }
+
+    // 3. Zod validation (validate the specific field)
+    const validatedIds = z.array(z.string().uuid()).optional().parse(data?.visible_project_ids);
+
+    // 4. Return type-safe data
+    return validatedIds || [];
+  } catch (error) {
+    // 5. Comprehensive error logging
+    console.error('ProfileService.getVisibleProjectIds error:', error);
+    throw error;
+  }
+};
+
+export const updateVisibleProjectIds = async (projectIds: string[], userId?: string): Promise<void> => {
+  try {
+    let currentUserId = userId;
+
+    // If no user ID provided, try to get from auth
+    if (!currentUserId) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(`Failed to get current user: ${userError.message}`);
+      }
+
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+
+      currentUserId = user.id;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        visible_project_ids: projectIds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', currentUserId);
+
+    if (error) {
+      throw new Error(`Failed to update visible project IDs: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('ProfileService.updateVisibleProjectIds error:', error);
     throw error;
   }
 };

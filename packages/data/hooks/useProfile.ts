@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles } from '../services/profileService';
+import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles, getVisibleProjectIds, updateVisibleProjectIds } from '../services/profileService';
 import { useSession } from './useAuth';
 
 // Query key factory
@@ -9,6 +9,7 @@ const PROFILE_KEYS = {
   profile: (userId: string) => [...PROFILE_KEYS.all, userId] as const,
   current: ['profiles', 'current'] as const,
   lastUsedProject: ['profiles', 'lastUsedProject'] as const,
+  visibleProjects: (userId: string) => ['profiles', 'visibleProjects', userId] as const,
 };
 
 export const useProfile = (userId: string | undefined) => {
@@ -84,5 +85,29 @@ export const useAllProfiles = () => {
     queryKey: PROFILE_KEYS.list,
     queryFn: getAllProfiles,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+export const useVisibleProjectIds = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: PROFILE_KEYS.visibleProjects(userId || ''),
+    queryFn: () => getVisibleProjectIds(userId!),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+export const useUpdateVisibleProjectIds = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectIds, userId }: { projectIds: string[]; userId: string }) => updateVisibleProjectIds(projectIds, userId),
+    onSuccess: (_, { userId }) => {
+      // Invalidate visible projects cache for this specific user
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.visibleProjects(userId) });
+
+      // Also invalidate profile cache since it contains visible_project_ids
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.profile(userId) });
+    },
   });
 };

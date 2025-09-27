@@ -9,6 +9,7 @@ export const ProfileSchema = z.object({
   last_name: z.string().nullable().optional(),
   avatar_url: z.string().url().nullable().optional(),
   last_used_project_id: z.string().uuid().nullable().optional(),
+  visible_project_ids: z.array(z.string().uuid()).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
