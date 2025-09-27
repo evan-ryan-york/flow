@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -23,6 +23,7 @@ interface TaskListProps {
   groupedTasks?: TaskGroupType[];
   showGroupHeaders?: boolean;
   groupBy?: GroupByOption | null;
+  userMapping?: Record<string, string>;
 }
 
 // Reusable table headers component
@@ -57,7 +58,7 @@ function TableHeaders({
   );
 }
 
-export function TaskList({
+const TaskList = memo(function TaskList({
   tasks,
   selectedProjectIds,
   customPropertyDefinitions = [],
@@ -66,7 +67,8 @@ export function TaskList({
   isDraggingActive,
   groupedTasks,
   showGroupHeaders = false,
-  groupBy
+  groupBy,
+  userMapping = {}
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -139,6 +141,7 @@ export function TaskList({
               onToggleCollapse={handleToggleCollapse}
               isDraggingActive={isDraggingActive}
               groupBy={groupBy}
+              userMapping={userMapping}
             />
           ))}
         </div>
@@ -161,15 +164,17 @@ export function TaskList({
           strategy={verticalListSortingStrategy}
         >
           {displayedTasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={customPropertyDefinitions} userId={userId} />
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={customPropertyDefinitions} userId={userId} userMapping={userMapping} />
           ))}
         </SortableContext>
       </div>
     </div>
   );
-}
+});
 
-function SortableTaskItem({ task, customPropertyDefinitions, userId }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string }) {
+export { TaskList };
+
+function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string> }) {
   const {
     attributes,
     listeners,
@@ -199,6 +204,7 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId }: { task: T
         isDragging={isDragging}
         dragAttributes={attributes}
         dragListeners={listeners}
+        userMapping={userMapping}
       />
     </div>
   );

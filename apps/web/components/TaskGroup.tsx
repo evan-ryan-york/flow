@@ -16,6 +16,7 @@ interface TaskGroupProps {
   onToggleCollapse?: (groupKey: string) => void;
   isDraggingActive?: boolean;
   groupBy?: GroupByOption | null;
+  userMapping?: Record<string, string>;
 }
 
 export function TaskGroup({
@@ -25,7 +26,8 @@ export function TaskGroup({
   isCollapsed = false,
   onToggleCollapse,
   isDraggingActive = false,
-  groupBy
+  groupBy,
+  userMapping = {}
 }: TaskGroupProps) {
   const handleToggle = () => {
     onToggleCollapse?.(group.key);
@@ -143,6 +145,7 @@ export function TaskGroup({
                 task={task}
                 customPropertyDefinitions={customPropertyDefinitions}
                 userId={userId}
+                userMapping={userMapping}
               />
             ))}
           </SortableContext>
@@ -165,11 +168,13 @@ export function TaskGroup({
 function SortableTaskItem({
   task,
   customPropertyDefinitions,
-  userId
+  userId,
+  userMapping
 }: {
   task: Task;
   customPropertyDefinitions: CustomPropertyDefinition[];
-  userId: string
+  userId: string;
+  userMapping?: Record<string, string>;
 }) {
   const {
     attributes,
@@ -200,6 +205,7 @@ function SortableTaskItem({
         isDragging={isDragging}
         dragAttributes={attributes}
         dragListeners={listeners}
+        userMapping={userMapping}
       />
     </div>
   );

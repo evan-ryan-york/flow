@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
@@ -11,18 +11,12 @@ interface TaskItemProps {
   isDragging?: boolean;
   dragAttributes?: any;
   dragListeners?: any;
+  userMapping?: Record<string, string>;
 }
 
 // Removed unused projectNames constant
 
-// Mock user names for now
-const userNames: Record<string, string> = {
-  'user-1': 'You',
-  'user-2': 'John Doe',
-  'user-3': 'Jane Smith',
-};
-
-export function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {} }: TaskItemProps) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
   const isDone = task.status === 'Done';
   const updateTaskMutation = useUpdateTask();
@@ -125,14 +119,25 @@ export function TaskItem({ task, customPropertyDefinitions = [], userId, isDragg
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
-            {task.name}
+            {(() => {
+              console.log('🔍 TASK NAME DEBUG:', {
+                taskId: task.id,
+                taskName: task.name,
+                taskNameType: typeof task.name,
+                taskNameLength: task.name?.length,
+                isDone,
+                textColor: isDone ? 'text-gray-500 line-through' : 'text-gray-900',
+                fullTask: task
+              });
+              return task.name;
+            })()}
           </span>
         </div>
 
         {/* Assigned To Column - Fixed width */}
         <div className="flex-shrink-0 w-24 text-right">
           <span className="text-sm text-gray-600 truncate block">
-            {task.assigned_to ? (userNames[task.assigned_to] || 'Unknown User') : 'Unassigned'}
+            {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
           </span>
         </div>
 
@@ -231,4 +236,6 @@ export function TaskItem({ task, customPropertyDefinitions = [], userId, isDragg
       </div>
     </div>
   );
-}
+});
+
+export { TaskItem };

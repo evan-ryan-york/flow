@@ -58,9 +58,37 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Fallback to original hook until database migration is applied
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
 
+  // DEBUG: Check if TaskHub is rendering properly
+  console.log('🔍 TaskHub RENDER:', {
+    selectedProjectIds,
+    userId,
+    serverTasks: serverTasks.length,
+    isLoading,
+    error: error?.message,
+    hasProjects: selectedProjectIds.length > 0
+  });
+
+
+
+
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
   const { data: allProfiles = [] } = useAllProfiles();
+
+
+  // Create user mapping for task assignee display
+  const userMapping = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    allProfiles.forEach(profile => {
+      // Use first_name if available, otherwise show "Unknown User"
+      if (profile.id === userId) {
+        mapping[profile.id] = 'You';
+      } else {
+        mapping[profile.id] = profile.first_name || profile.last_name || 'Unknown User';
+      }
+    });
+    return mapping;
+  }, [allProfiles, userId]);
 
   // Optimistic reordering hooks
   const { optimisticReorder, moveTask, isMoving, error: reorderError } = useOptimisticTaskSort();
@@ -388,6 +416,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             groupedTasks={groupedTasks}
             showGroupHeaders={groupBy !== null && groupBy !== 'none'}
             groupBy={groupBy}
+            userMapping={userMapping}
           />
         </div>
 
