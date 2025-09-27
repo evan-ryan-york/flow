@@ -323,7 +323,7 @@ Tasks can have additional project-specific properties:
 ### Current Implementation
 The task management system uses the following database structure:
 
-- **`tasks` table**: Complete with all required fields including `sort_order` for manual reordering
+- **`tasks` table**: Complete with all required fields for task management
 - **`projects` table**: Project information with color coding and custom properties
 - **`profiles` table**: User profiles with `last_used_project_id` ✅ **implemented**
 - **`custom_property_definitions` table**: Project-specific custom field definitions

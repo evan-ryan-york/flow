@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles, getVisibleProjectIds, updateVisibleProjectIds } from '../services/profileService';
+import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles, getVisibleProjectIds, updateVisibleProjectIds, type ProfileUpdates } from '../services/profileService';
 import { useSession } from './useAuth';
 
 // Query key factory
@@ -37,7 +37,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (updates: { firstName: string }) => updateProfile(updates),
+    mutationFn: (updates: ProfileUpdates) => updateProfile(updates),
     onSuccess: (updatedProfile) => {
       // Update the specific profile in cache as specified in build-spec
       queryClient.setQueryData(

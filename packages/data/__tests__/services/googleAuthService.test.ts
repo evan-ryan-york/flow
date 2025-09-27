@@ -36,7 +36,6 @@ describe('Google Authentication Service', () => {
         id: 'test-user-id',
         email: 'test@example.com',
         user_metadata: {
-          full_name: 'Test User',
           avatar_url: 'https://example.com/avatar.jpg',
         },
       };
@@ -90,8 +89,6 @@ describe('Profile Service for Google Auth Onboarding', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         first_name: null,
         last_name: null,
-        full_name: null, // This should trigger onboarding
-        email: 'test@example.com',
         avatar_url: 'https://example.com/avatar.jpg',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z',
@@ -133,13 +130,14 @@ describe('Profile Service for Google Auth Onboarding', () => {
     });
   });
 
-  describe('updateProfile with full_name', () => {
-    it('should update profile with full_name for onboarding completion', async () => {
+  describe('updateProfile', () => {
+    it('should update profile for onboarding completion', async () => {
       const mockUpdatedProfile = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         first_name: null,
         last_name: null,
-        full_name: 'John Doe', // Updated during onboarding
+        first_name: 'John',
+        last_name: 'Doe',
         email: 'test@example.com',
         avatar_url: 'https://example.com/avatar.jpg',
         created_at: '2023-01-01T00:00:00.000Z',
@@ -171,11 +169,11 @@ describe('Profile Service for Google Auth Onboarding', () => {
         update: mockUpdate,
       });
 
-      const result = await updateProfile({ fullName: 'John Doe' });
+      const result = await updateProfile({ first_name: 'John' });
 
       expect(supabase.from).toHaveBeenCalledWith('profiles');
       expect(mockUpdate).toHaveBeenCalledWith({
-        full_name: 'John Doe',
+        first_name: 'John',
         updated_at: expect.any(String),
       });
       expect(result).toEqual(mockUpdatedProfile);
@@ -208,7 +206,7 @@ describe('Profile Service for Google Auth Onboarding', () => {
       });
 
       await expect(
-        updateProfile({ fullName: 'John Doe' })
+        updateProfile({ first_name: 'John' })
       ).rejects.toThrow('Failed to update profile: Update failed');
     });
   });

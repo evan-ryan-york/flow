@@ -5,11 +5,10 @@ import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 const supabase = getSupabaseClient();
 
 export interface ProfileUpdates {
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  avatar_url?: string;
-  last_used_project_id?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+  last_used_project_id?: string | null;
   visible_project_ids?: string[];
 }
 
@@ -39,12 +38,12 @@ export const getProfile = async (userId: string): Promise<Profile> => {
   }
 };
 
-export const updateProfile = async (updates: { firstName: string }): Promise<Profile> => {
+export const updateProfile = async (updates: ProfileUpdates): Promise<Profile> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .update({
-        first_name: updates.firstName,
+        ...updates,
         updated_at: new Date().toISOString(),
       })
       .eq('id', (await supabase.auth.getUser()).data.user?.id)

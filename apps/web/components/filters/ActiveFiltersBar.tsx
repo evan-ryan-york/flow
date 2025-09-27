@@ -45,7 +45,7 @@ export function ActiveFiltersBar({
   const getProfileName = (assigneeId: string) => {
     if (assigneeId === 'unassigned') return 'Unassigned';
     const profile = profiles.find(p => p.id === assigneeId);
-    return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email : 'Unknown User';
+    return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User' : 'Unknown User';
   };
 
   const getProjectName = (projectId: string) => {

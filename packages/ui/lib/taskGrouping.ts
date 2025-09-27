@@ -195,7 +195,7 @@ export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskG
       if (assigneeId !== 'unassigned') {
         const profile = profiles.find(p => p.id === assigneeId);
         if (profile) {
-          label = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Unknown User';
+          label = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User';
           sortOrder = label.charCodeAt(0);
         } else {
           label = 'Unknown User';

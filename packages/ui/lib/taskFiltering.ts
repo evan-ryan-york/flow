@@ -185,7 +185,7 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
   const assigneeOptions: FilterOption[] = Object.entries(assigneeCounts).map(([assigneeId, count]) => {
     const profile = profiles.find(p => p.id === assigneeId);
     const label = assigneeId === 'unassigned' ? 'Unassigned' :
-                  profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email :
+                  profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User' :
                   'Unknown User';
 
     return {

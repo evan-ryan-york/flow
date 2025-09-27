@@ -88,8 +88,6 @@ describe('Profile Hooks for Onboarding', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         first_name: null,
         last_name: null,
-        full_name: null, // This indicates onboarding is needed
-        email: 'test@example.com',
         avatar_url: 'https://example.com/avatar.jpg',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z',
@@ -105,17 +103,15 @@ describe('Profile Hooks for Onboarding', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockProfile);
-      expect(result.current.data?.full_name).toBeNull(); // Should trigger onboarding
+      expect(result.current.data?.first_name).toBeNull(); // Should trigger onboarding
       expect(mockProfileService.getCurrentProfile).toHaveBeenCalled();
     });
 
     it('should fetch existing user profile without onboarding', async () => {
       const mockProfile = {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        first_name: null,
-        last_name: null,
-        full_name: 'John Doe', // User has completed onboarding
-        email: 'test@example.com',
+        first_name: 'John',
+        last_name: 'Doe',
         avatar_url: 'https://example.com/avatar.jpg',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z',
@@ -129,7 +125,7 @@ describe('Profile Hooks for Onboarding', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockProfile);
-      expect(result.current.data?.full_name).toBe('John Doe'); // No onboarding needed
+      expect(result.current.data?.first_name).toBe('John'); // No onboarding needed
     });
 
     it('should handle profile fetch errors', async () => {
@@ -146,13 +142,11 @@ describe('Profile Hooks for Onboarding', () => {
   });
 
   describe('useUpdateProfile', () => {
-    it('should update profile with full_name during onboarding', async () => {
+    it('should update profile during onboarding', async () => {
       const mockUpdatedProfile = {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        first_name: null,
-        last_name: null,
-        full_name: 'John Doe',
-        email: 'test@example.com',
+        first_name: 'John',
+        last_name: 'Doe',
         avatar_url: 'https://example.com/avatar.jpg',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T01:00:00.000Z',
@@ -164,14 +158,14 @@ describe('Profile Hooks for Onboarding', () => {
       const { result } = renderHook(() => useUpdateProfile(), { wrapper });
 
       result.current.mutate({
-        fullName: 'John Doe',
+        first_name: 'John',
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockUpdatedProfile);
       expect(mockProfileService.updateProfile).toHaveBeenCalledWith({
-        fullName: 'John Doe',
+        first_name: 'John',
       });
     });
 
@@ -183,7 +177,7 @@ describe('Profile Hooks for Onboarding', () => {
       const { result } = renderHook(() => useUpdateProfile(), { wrapper });
 
       result.current.mutate({
-        fullName: 'John Doe',
+        first_name: 'John',
       });
 
       await waitFor(() => expect(result.current.isError).toBe(true));

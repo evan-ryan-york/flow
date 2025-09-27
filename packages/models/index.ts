@@ -25,7 +25,6 @@ export const ProjectSchema = z.object({
   name: z.string().min(1).max(50),
   color: z.enum(['rose', 'amber', 'mint', 'sky', 'violet', 'lime', 'teal', 'crimson']).default('sky'),
   is_general: z.boolean().default(false),
-  manual_sort_enabled: z.boolean().default(false).optional(), // Whether to use manual task reordering
   created_at: z.string(), // More flexible datetime validation
   updated_at: z.string(), // More flexible datetime validation
 });
@@ -68,7 +67,6 @@ export const TaskSchema = z.object({
   due_date: z.string().nullable(),
   status: z.string().default('To Do'),
   is_completed: z.boolean().default(false),
-  sort_order: z.number().nullable().optional(), // For manual task reordering, NULL/undefined means auto-sort
   created_at: z.string(),
   updated_at: z.string(),
 });
