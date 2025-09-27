@@ -99,6 +99,11 @@ export const useSetPropertyValue = () => {
       queryClient.invalidateQueries({
         queryKey: CUSTOM_PROPERTY_KEYS.taskValues(updatedValue.task_id)
       });
+
+      // Also invalidate tasks queries to ensure UI updates for newly created tasks
+      queryClient.invalidateQueries({
+        queryKey: ['tasks']
+      });
     },
   });
 };

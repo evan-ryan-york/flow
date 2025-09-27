@@ -15,8 +15,9 @@ import { ProjectChip } from '@perfect-task-app/ui/components/custom';
 import { Input } from '@perfect-task-app/ui/components/ui/input';
 import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
-import { Calendar as CalendarIcon, User } from 'iconoir-react';
+import { Calendar as CalendarIcon, User, Plus } from 'iconoir-react';
 import { format } from 'date-fns';
+import { CustomPropertyManager } from '@perfect-task-app/ui/components/custom/CustomPropertyManager';
 import { parseTaskInput, cleanTaskName } from '@perfect-task-app/ui/lib/textParser';
 
 interface TaskQuickAddProps {
@@ -37,6 +38,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
   const [projectQuery, setProjectQuery] = useState('');
   const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0);
+  const [showCustomPropertyManager, setShowCustomPropertyManager] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Hooks
@@ -195,6 +197,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
       // Save custom property values if any are set
       const customPropertyEntries = Object.entries(customPropertyValues).filter(([_, value]) => value.trim());
       if (customPropertyEntries.length > 0) {
+        console.log('Setting custom properties for new task:', newTask.id, customPropertyEntries);
         await Promise.all(
           customPropertyEntries.map(([definitionId, value]) =>
             setPropertyValueMutation.mutateAsync({
@@ -205,6 +208,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
             })
           )
         );
+        console.log('Custom properties set successfully');
       }
 
       // Reset form but keep sticky project behavior
@@ -373,7 +377,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
         {showAdvanced && (
           <div className="mt-3 p-4 bg-gray-50 rounded-lg space-y-4">
             {/* Chips Row */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {/* Due Date Chip */}
               <Popover open={showDueDatePicker} onOpenChange={setShowDueDatePicker}>
                 <PopoverTrigger asChild>
@@ -497,23 +501,37 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-            </div>
 
-            {/* Custom Properties */}
-            {customProperties.length > 0 && (
-              <div className="space-y-4">
-                <div className="border-t border-gray-200 pt-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Custom Properties</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {customProperties.map((property) => (
-                      <div key={property.id}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {property.name}
-                        </label>
+              {/* Custom Property Chips */}
+              {customProperties.map((property) => {
+                const value = customPropertyValues[property.id] || '';
+                const hasValue = value.trim() !== '';
+
+                return (
+                  <Popover key={property.id}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                          hasValue
+                            ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{property.name}: {hasValue ? (
+                          property.type === 'date' && value ?
+                            format(new Date(value), 'MMM d') :
+                            (value.length > 10 ? `${value.substring(0, 10)}...` : value)
+                        ) : 'None'}</span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3" align="start">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-900">{property.name}</label>
                         {property.type === 'text' && (
                           <Input
                             type="text"
-                            value={customPropertyValues[property.id] || ''}
+                            value={value}
                             onChange={(e) => setCustomPropertyValues(prev => ({
                               ...prev,
                               [property.id]: e.target.value
@@ -525,7 +543,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                         {property.type === 'number' && (
                           <Input
                             type="number"
-                            value={customPropertyValues[property.id] || ''}
+                            value={value}
                             onChange={(e) => setCustomPropertyValues(prev => ({
                               ...prev,
                               [property.id]: e.target.value
@@ -537,7 +555,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                         {property.type === 'date' && (
                           <Input
                             type="date"
-                            value={customPropertyValues[property.id] || ''}
+                            value={value}
                             onChange={(e) => setCustomPropertyValues(prev => ({
                               ...prev,
                               [property.id]: e.target.value
@@ -547,7 +565,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                         )}
                         {property.type === 'select' && (
                           <select
-                            value={customPropertyValues[property.id] || ''}
+                            value={value}
                             onChange={(e) => setCustomPropertyValues(prev => ({
                               ...prev,
                               [property.id]: e.target.value
@@ -564,15 +582,57 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                             }
                           </select>
                         )}
+                        <div className="flex gap-2">
+                          {hasValue && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomPropertyValues(prev => ({
+                                  ...prev,
+                                  [property.id]: ''
+                                }));
+                              }}
+                              className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })}
+
+              {/* Add Property Button - Far Right */}
+              <div className="ml-auto">
+                {selectedProject && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomPropertyManager(true)}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    title="Add custom property"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Property</span>
+                  </button>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </form>
+
+      {/* Custom Property Manager Dialog */}
+      {selectedProject && (
+        <CustomPropertyManager
+          projectId={selectedProject.id}
+          projectName={selectedProject.name}
+          userId={userId}
+          open={showCustomPropertyManager}
+          onOpenChange={setShowCustomPropertyManager}
+        />
+      )}
     </div>
   );
 }

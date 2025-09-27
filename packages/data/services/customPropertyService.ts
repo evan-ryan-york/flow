@@ -143,7 +143,9 @@ export const getValuesForTask = async (taskId: string): Promise<CustomPropertyVa
 
 export const setPropertyValue = async (data: SetPropertyValueData): Promise<CustomPropertyValue> => {
   try {
+    console.log('Setting property value:', data);
     // This performs an "upsert" - insert if doesn't exist, update if it does
+    const timestamp = new Date().toISOString();
     const { data: result, error } = await supabase
       .from('custom_property_values')
       .upsert({
@@ -152,7 +154,8 @@ export const setPropertyValue = async (data: SetPropertyValueData): Promise<Cust
         value: data.value,
         created_by: data.user_id,
         updated_by: data.user_id,
-        updated_at: new Date().toISOString(),
+        created_at: timestamp,
+        updated_at: timestamp,
       }, {
         onConflict: 'task_id,definition_id',
       })
@@ -160,8 +163,11 @@ export const setPropertyValue = async (data: SetPropertyValueData): Promise<Cust
       .single();
 
     if (error) {
+      console.error('Database error setting property value:', error);
       throw new Error(`Failed to set property value: ${error.message}`);
     }
+
+    console.log('Property value set successfully:', result);
 
     // Zod validation
     const validatedValue = CustomPropertyValueSchema.parse(result);

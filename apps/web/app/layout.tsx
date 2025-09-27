@@ -3,7 +3,7 @@ import { Providers } from '../lib/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Perfect Task App',
+  title: 'Current',
   description: 'Ultimate task and project management with calendar integration',
 };
 
