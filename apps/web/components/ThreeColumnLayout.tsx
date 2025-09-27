@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
-import { useGeneralProject } from '@perfect-task-app/data';
+import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;
@@ -15,18 +15,28 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  console.log('🏛️ ThreeColumnLayout render - selectedProjectIds:', selectedProjectIds);
-
-  // Auto-select General project on initial load only
+  // Load user's saved project visibility preferences
   const { data: generalProject } = useGeneralProject(userId);
+  const { data: visibleProjectIds, isLoading: isLoadingVisibleProjects } = useVisibleProjectIds(userId);
+  const updateVisibleProjectsMutation = useUpdateVisibleProjectIds();
 
+  // Initialize with saved visible projects or default to General project
   useEffect(() => {
-    if (generalProject && !hasInitialized) {
-      console.log('🎯 Auto-selecting General project on initial load:', generalProject.id);
-      setSelectedProjectIds([generalProject.id]);
+    if (!hasInitialized && !isLoadingVisibleProjects) {
+      if (visibleProjectIds && visibleProjectIds.length > 0) {
+        setSelectedProjectIds(visibleProjectIds);
+      } else if (generalProject) {
+        setSelectedProjectIds([generalProject.id]);
+      }
       setHasInitialized(true);
     }
-  }, [generalProject, hasInitialized]);
+  }, [generalProject, visibleProjectIds, isLoadingVisibleProjects, hasInitialized]);
+
+  // Save project selection changes to the database
+  const handleProjectSelectionChange = (newProjectIds: string[]) => {
+    setSelectedProjectIds(newProjectIds);
+    updateVisibleProjectsMutation.mutate({ projectIds: newProjectIds, userId });
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -35,7 +45,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         <ProjectsPanel
           userId={userId}
           selectedProjectIds={selectedProjectIds}
-          onProjectSelectionChange={setSelectedProjectIds}
+          onProjectSelectionChange={handleProjectSelectionChange}
         />
       </div>
 

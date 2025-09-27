@@ -53,14 +53,13 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => (
+        Chevron: ({ orientation, ...props }) => (
           <svg className="h-4 w-4" {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15,18 9,12 15,6" />
-          </svg>
-        ),
-        IconRight: ({ ...props }) => (
-          <svg className="h-4 w-4" {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9,6 15,12 9,18" />
+            {orientation === "left" ? (
+              <polyline points="15,18 9,12 15,6" />
+            ) : (
+              <polyline points="9,6 15,12 9,18" />
+            )}
           </svg>
         ),
       }}
