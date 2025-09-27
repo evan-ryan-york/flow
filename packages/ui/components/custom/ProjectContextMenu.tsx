@@ -5,10 +5,9 @@ import {
   PopoverTrigger,
 } from '../ui/popover';
 import { Button } from '../ui/button';
-import { MoreVert, EditPencil, Bin, Palette, Settings } from 'iconoir-react';
+import { MoreVert, EditPencil, Bin } from 'iconoir-react';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { RenameProjectDialog } from './RenameProjectDialog';
-import { CustomPropertyManager } from './CustomPropertyManager';
 import type { Project } from '@perfect-task-app/models';
 
 interface ProjectContextMenuProps {
@@ -19,7 +18,6 @@ interface ProjectContextMenuProps {
 export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showCustomPropertiesDialog, setShowCustomPropertiesDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -42,17 +40,6 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
             >
               <EditPencil className="h-4 w-4 mr-2" />
               Rename
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setShowCustomPropertiesDialog(true);
-                setIsOpen(false);
-              }}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Custom Properties
             </Button>
             <Button
               variant="ghost"
@@ -83,13 +70,6 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
         onOpenChange={setShowRenameDialog}
       />
 
-      <CustomPropertyManager
-        projectId={project.id}
-        projectName={project.name}
-        userId={userId}
-        open={showCustomPropertiesDialog}
-        onOpenChange={setShowCustomPropertiesDialog}
-      />
     </>
   );
 }

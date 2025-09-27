@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject } from '../services/profileService';
+import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles } from '../services/profileService';
 import { useSession } from './useAuth';
 
 // Query key factory
 const PROFILE_KEYS = {
   all: ['profiles'] as const,
+  list: ['profiles', 'list'] as const,
   profile: (userId: string) => [...PROFILE_KEYS.all, userId] as const,
   current: ['profiles', 'current'] as const,
   lastUsedProject: ['profiles', 'lastUsedProject'] as const,
@@ -75,5 +76,13 @@ export const useUpdateLastUsedProject = () => {
       // Also invalidate current profile cache since it contains last_used_project_id
       queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.current });
     },
+  });
+};
+
+export const useAllProfiles = () => {
+  return useQuery({
+    queryKey: PROFILE_KEYS.list,
+    queryFn: getAllProfiles,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

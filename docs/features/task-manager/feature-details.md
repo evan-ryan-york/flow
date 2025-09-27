@@ -3,6 +3,27 @@
 ## Overview
 This document details the core task management functionality within Perfect Task App's Column 2 (Task Hub), specifically focusing on task creation and task viewing capabilities.
 
+## Implementation Status
+
+### ✅ Currently Implemented
+- **Quick-Add Bar**: Fully functional with instant task creation
+- **`/in` Command**: Complete project autocomplete and selection system
+- **Expanded Properties Mode**: Project selection and due date picker
+- **Sticky Project Behavior**: Last-used project tracking and persistence
+- **Basic Task List View**: Tasks displayed in sortable table format
+- **Task Property Editing**: Inline editing of task properties and custom fields
+- **Drag-and-Drop Reordering**: Manual task sorting within projects
+- **Real-time Sync**: Live updates via Supabase subscriptions
+
+### ❌ Missing/Incomplete Features
+- **Task Layout Options**: Only List view implemented (Kanban/Board view missing)
+- **Assignee Management**: Hard-coded mock users, no real user selection UI
+- **Task Grouping**: No group-by functionality (Project, Due Date, Status, etc.)
+- **Search and Filtering**: No task search or advanced filtering capabilities
+- **Task Descriptions**: No markdown editor/viewer for detailed task notes
+- **Mobile Implementation**: Web-only, no mobile app task management screens
+- **Comprehensive Testing**: Limited test coverage across all layers
+
 ## Task Hub Architecture (Column 2)
 
 The Task Hub is the central column of the three-column layout and consists of three horizontal sections:
@@ -25,18 +46,19 @@ The Quick-Add Bar provides rapid task capture with minimal friction, supporting 
 #### Default Task Properties
 When a task is created via quick-add:
 - `projectId`: Defaults to the last project the user added a task to, or General project if no previous task exists
-- `assignedTo`: Defaults to current user
+- `assignedTo`: **Automatically assigned to the task creator** (current user)
+- `createdBy`: Current user (task creator)
 - `status`: Defaults to "To-Do"
 - `createdAt`: Current timestamp
-- `createdBy`: Current user
 
 #### Expanded Properties Mode
 - **Trigger**: Small button (`+` or `...`) next to input field
-- **Available Properties**:
-  - Project selection
+- **Available Properties** ✅ **Implemented**:
+  - Project selection dropdown
   - Due Date picker
-  - Assignee selection
   - Custom properties (based on selected project)
+- **Missing Properties** ❌:
+  - **Assignee selection dropdown** (currently defaults to creator only)
 
 #### Sticky Properties System
 The system remembers properties from the last created task:
@@ -80,13 +102,14 @@ The Task View serves as the primary interface for viewing and interacting with t
 - **Default View**: Shows "All Tasks" assigned to current user
 - **Multi-Project**: Can display combined tasks from multiple selected projects
 
-#### Task List Properties
+#### Task List Properties ✅ **Implemented**
 Each task displays:
-- **Task Name**: Primary identifier
+- **Task Name**: Primary identifier with inline editing
 - **Project Badge**: Visual project association
-- **Due Date**: When applicable
-- **Status Indicator**: Visual status representation
-- **Custom Properties**: Project-specific fields
+- **Due Date**: When applicable, with overdue highlighting
+- **Status Indicator**: Visual status representation with toggle
+- **Assignee**: Currently shows hard-coded mock user names
+- **Custom Properties**: Project-specific fields with inline editing
 
 #### Interactive Capabilities
 - **Draggable Tasks**: Each task can be dragged to Calendar (Column 3)
@@ -94,10 +117,87 @@ Each task displays:
 - **Status Toggle**: Quick completion marking
 - **Task Expansion**: Click to view full details
 
-### Responsive Behavior
+### Responsive Behavior ✅ **Implemented**
 - **Real-time Updates**: Automatically reflects changes from other users
 - **Filter Synchronization**: Instantly updates when Column 1 selections change
 - **Smooth Transitions**: Animated task additions/removals
+
+## Missing Feature Requirements
+
+### Layout Options (Kanban/Board View) ❌
+**Status**: List view only, Kanban view missing
+**Requirements**:
+- Toggle between List and Kanban/Board layouts
+- Kanban columns based on task status ("To-Do", "In Progress", "Done")
+- Drag-and-drop between columns to change task status
+- Customizable column definitions per project
+- Consistent task properties display across both layouts
+
+### Task Grouping & Organization ❌
+**Status**: No grouping functionality implemented
+**Requirements**:
+- **Group By Options**:
+  - Project (when multiple projects selected)
+  - Due Date (Today, Tomorrow, This Week, Later, No Date)
+  - Status (To-Do, In Progress, Done)
+  - Assignee (when multiple people assigned)
+- **Collapsible Groups**: Expand/collapse group sections
+- **Group Headers**: Show count and summary information
+- **Sorting Within Groups**: Maintain sort order within each group
+
+### Search & Filtering ❌
+**Status**: No search or filtering capabilities
+**Requirements**:
+- **Global Task Search**: Search across task names and descriptions
+- **Advanced Filters**:
+  - Due date range filtering (overdue, today, this week, etc.)
+  - Status filtering (completed, pending, in progress)
+  - Assignee filtering
+  - Custom property filtering
+- **Search Performance**: Debounced search with loading states
+- **Filter Persistence**: Remember applied filters across sessions
+
+### Task Descriptions ❌
+**Status**: Database field exists, no UI implementation
+**Requirements**:
+- **Markdown Editor**: Rich text editing with markdown support
+- **Inline Preview**: Toggle between edit and preview modes
+- **Task Expansion**: Click task to view full description
+- **Responsive Display**: Proper mobile markdown rendering
+- **Auto-save**: Automatic saving of description changes
+
+### Real Assignee Management ❌
+**Status**: Hard-coded mock users, no real user system
+**Requirements**:
+- **User Dropdown**: Real user selection in task creation/editing
+- **User Search**: Autocomplete for finding team members
+- **Default Assignment**: Auto-assign to creator with option to change
+- **Visual Indicators**: User avatars and names throughout the interface
+- **Unassigned Tasks**: Support for unassigned tasks
+
+### Mobile Implementation ❌
+**Status**: Web-only, no mobile app screens
+**Requirements**:
+- **Mobile Task List**: Touch-optimized task display
+- **Mobile Quick-Add**: Optimized input experience for mobile
+- **Touch Interactions**: Mobile-friendly editing and status changes
+- **Navigation**: Mobile-specific navigation patterns
+- **Performance**: Optimized for mobile performance
+
+### Comprehensive Testing ❌
+**Status**: Limited test coverage across all layers
+**Requirements**:
+- **Service Layer Integration Tests**: Test database operations with live Supabase
+- **Hook Unit Tests**: Test state management logic with mocked services
+- **Component Integration Tests**: Test component behavior with real interactions
+- **End-to-End Tests**: Complete user workflow validation
+- **Performance Tests**: Validate response times and load handling
+- **Cross-Platform Tests**: Ensure consistency across web and mobile
+- **Test Coverage Goals**:
+  - Service layer: 100% coverage of critical functions
+  - Hooks: 100% coverage of state management logic
+  - Components: All user interactions tested
+  - E2E: All primary user journeys automated
 
 ## Task Data Structure
 
@@ -106,13 +206,14 @@ Each task displays:
 interface Task {
   taskId: string;           // Unique identifier
   taskName: string;         // Display name
-  description?: string;     // Optional markdown description
+  description?: string;     // ✅ Database field exists, ❌ No UI implementation
   createdAt: timestamp;     // Creation time
   createdBy: string;        // User ID of creator
-  assignedTo: string;       // User ID of assignee
+  assignedTo: string;       // User ID of assignee (✅ auto-assigned to creator)
   projectId: string;        // Associated project
-  dueDate?: date;          // Optional due date
+  dueDate?: date;          // Optional due date (✅ implemented)
   status: string;          // "To-Do", "In Progress", "Done", etc.
+  sortOrder?: number;      // ✅ Manual task ordering within projects
 }
 ```
 
@@ -163,37 +264,40 @@ Tasks can have additional project-specific properties:
 - **Caching**: TanStack Query manages task list caching
 - **Real-time Sync**: Supabase subscriptions for live collaboration
 
-## Database Schema Updates Required
+## Database Schema Status ✅
 
-### User Preferences Table
-A new table or user profile extension is needed to track the last-used project:
+### Current Implementation
+The task management system uses the following database structure:
 
-```sql
--- Option 1: Add column to existing profiles table
-ALTER TABLE profiles
-ADD COLUMN last_used_project_id UUID REFERENCES projects(id);
+- **`tasks` table**: Complete with all required fields including `sort_order` for manual reordering
+- **`projects` table**: Project information with color coding and custom properties
+- **`profiles` table**: User profiles with `last_used_project_id` ✅ **implemented**
+- **`custom_property_definitions` table**: Project-specific custom field definitions
+- **`task_property_values` table**: Custom property values for individual tasks
 
--- Option 2: Create separate user_preferences table
-CREATE TABLE user_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  last_used_project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+### Sticky Project Behavior ✅ **Implemented**
+- User's `last_used_project_id` is automatically updated when creating tasks
+- New tasks default to the most recently used project
+- Fallback to General project when no previous project exists
 
-### Update Logic
-- When a task is created, update the user's `last_used_project_id`
-- On subsequent task creation, use this project as the default
-- If `last_used_project_id` is null or references a deleted project, fall back to General project
+## Technical Implementation Status
 
-## Technical Implementation Notes
+### ✅ Current Tech Stack
 - **Backend**: Supabase with Row-Level Security policies
-- **State Management**: TanStack Query for server state
-- **Validation**: Zod schemas for type safety
-- **Real-time**: Supabase real-time subscriptions
+- **State Management**: TanStack Query for server state with optimistic updates
+- **Validation**: Zod schemas for type safety across all data models
+- **Real-time**: Supabase real-time subscriptions for live collaboration
 - **UI Components**: shadcn/ui components for consistent styling
-- **Autocomplete**: Real-time project search with debouncing for performance
-- **Text Parsing**: Parse `/in` commands and extract project identifiers
-- **Visual Feedback**: Dynamic chip component for selected projects
+- **Project Search**: Real-time autocomplete with debouncing for performance
+- **Text Parsing**: Complete `/in` command parsing and project extraction
+- **Visual Feedback**: Dynamic project chip components
+- **Drag & Drop**: @dnd-kit for task reordering within lists
+- **Form Management**: React Hook Form for complex form interactions
+
+### ❌ Missing Technical Components
+- **Search Infrastructure**: Full-text search indexing and filtering system
+- **Layout Switching**: Architecture for toggling between List and Kanban layouts
+- **User Management**: User search and selection components
+- **Markdown Support**: Editor and renderer for task descriptions
+- **Mobile Optimization**: React Native components and navigation
+- **Testing Infrastructure**: Comprehensive test suite across all layers
