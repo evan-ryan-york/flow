@@ -1,6 +1,6 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
 import {
   useProjectDefinitions,
   useCreateDefinition,
@@ -8,12 +8,12 @@ import {
   useDeleteDefinition,
   useTaskPropertyValues,
   useSetPropertyValue,
-  useDeletePropertyValue
-} from '../../hooks/useCustomProperty';
-import * as customPropertyService from '../../services/customPropertyService';
+  useDeletePropertyValue,
+} from "../../hooks/useCustomProperty";
+import * as customPropertyService from "../../services/customPropertyService";
 
 // Mock the entire customPropertyService
-jest.mock('../../services/customPropertyService');
+jest.mock("../../services/customPropertyService");
 const mockedCustomPropertyService = customPropertyService as jest.Mocked<typeof customPropertyService>;
 
 // Test wrapper component for TanStack Query
@@ -34,65 +34,78 @@ const createWrapper = () => {
   );
 };
 
-// Mock definition data
+// Mock definition data (new multi-project format)
 const mockDefinition = {
-  id: 'def-1',
-  project_id: 'project-1',
-  created_by: 'user-1',
-  name: 'Priority',
-  type: 'select' as const,
-  options: ['Low', 'Medium', 'High'],
+  id: "def-1",
+  created_by: "user-1",
+  name: "Priority",
+  type: "select" as const,
+  options: ["Low", "Medium", "High"],
   display_order: 1,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  created_at: "2024-01-01T00:00:00Z",
+  updated_at: "2024-01-01T00:00:00Z",
+  project_ids: ["project-1"],
+};
+
+// Legacy mock for backward compatibility tests
+const mockDefinitionLegacy = {
+  id: "def-1",
+  project_id: "project-1",
+  created_by: "user-1",
+  name: "Priority",
+  type: "select" as const,
+  options: ["Low", "Medium", "High"],
+  display_order: 1,
+  created_at: "2024-01-01T00:00:00Z",
+  updated_at: "2024-01-01T00:00:00Z",
 };
 
 const mockDefinitions = [
   mockDefinition,
   {
     ...mockDefinition,
-    id: 'def-2',
-    name: 'Environment',
-    type: 'select' as const,
-    options: ['QA', 'Prod'],
+    id: "def-2",
+    name: "Environment",
+    type: "select" as const,
+    options: ["QA", "Prod"],
     display_order: 2,
   },
 ];
 
 // Mock property value data
 const mockPropertyValue = {
-  id: 'val-1',
-  task_id: 'task-1',
-  definition_id: 'def-1',
-  value: 'High',
-  created_by: 'user-1',
+  id: "val-1",
+  task_id: "task-1",
+  definition_id: "def-1",
+  value: "High",
+  created_by: "user-1",
   updated_by: null,
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  created_at: "2024-01-01T00:00:00Z",
+  updated_at: "2024-01-01T00:00:00Z",
 };
 
 const mockPropertyValues = [
   mockPropertyValue,
   {
     ...mockPropertyValue,
-    id: 'val-2',
-    definition_id: 'def-2',
-    value: 'QA',
+    id: "val-2",
+    definition_id: "def-2",
+    value: "QA",
   },
 ];
 
-describe('useCustomProperty hooks', () => {
+describe("useCustomProperty hooks", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('useProjectDefinitions', () => {
-    it('should return loading state initially', async () => {
+  describe("useProjectDefinitions", () => {
+    it("should return loading state initially", async () => {
       mockedCustomPropertyService.getDefinitionsForProject.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockDefinitions), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(mockDefinitions), 100)),
       );
 
-      const { result } = renderHook(() => useProjectDefinitions('project-1'), {
+      const { result } = renderHook(() => useProjectDefinitions("project-1"), {
         wrapper: createWrapper(),
       });
 
@@ -101,10 +114,10 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.isError).toBe(false);
     });
 
-    it('should return data when service resolves successfully', async () => {
+    it("should return data when service resolves successfully", async () => {
       mockedCustomPropertyService.getDefinitionsForProject.mockResolvedValue(mockDefinitions);
 
-      const { result } = renderHook(() => useProjectDefinitions('project-1'), {
+      const { result } = renderHook(() => useProjectDefinitions("project-1"), {
         wrapper: createWrapper(),
       });
 
@@ -113,14 +126,14 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.data).toEqual(mockDefinitions);
       expect(result.current.isError).toBe(false);
-      expect(mockedCustomPropertyService.getDefinitionsForProject).toHaveBeenCalledWith('project-1');
+      expect(mockedCustomPropertyService.getDefinitionsForProject).toHaveBeenCalledWith("project-1");
     });
 
-    it('should return error state when service throws an error', async () => {
-      const errorMessage = 'Failed to fetch definitions';
+    it("should return error state when service throws an error", async () => {
+      const errorMessage = "Failed to fetch definitions";
       mockedCustomPropertyService.getDefinitionsForProject.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useProjectDefinitions('project-1'), {
+      const { result } = renderHook(() => useProjectDefinitions("project-1"), {
         wrapper: createWrapper(),
       });
 
@@ -132,10 +145,10 @@ describe('useCustomProperty hooks', () => {
       expect((result.current.error as Error).message).toBe(errorMessage);
     });
 
-    it('should not execute query when projectId is not provided', () => {
+    it("should not execute query when projectId is not provided", () => {
       mockedCustomPropertyService.getDefinitionsForProject.mockResolvedValue(mockDefinitions);
 
-      const { result } = renderHook(() => useProjectDefinitions(''), {
+      const { result } = renderHook(() => useProjectDefinitions(""), {
         wrapper: createWrapper(),
       });
 
@@ -145,13 +158,13 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('useTaskPropertyValues', () => {
-    it('should return loading state initially', async () => {
+  describe("useTaskPropertyValues", () => {
+    it("should return loading state initially", async () => {
       mockedCustomPropertyService.getValuesForTask.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockPropertyValues), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(mockPropertyValues), 100)),
       );
 
-      const { result } = renderHook(() => useTaskPropertyValues('task-1'), {
+      const { result } = renderHook(() => useTaskPropertyValues("task-1"), {
         wrapper: createWrapper(),
       });
 
@@ -160,10 +173,10 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.isError).toBe(false);
     });
 
-    it('should return data when service resolves successfully', async () => {
+    it("should return data when service resolves successfully", async () => {
       mockedCustomPropertyService.getValuesForTask.mockResolvedValue(mockPropertyValues);
 
-      const { result } = renderHook(() => useTaskPropertyValues('task-1'), {
+      const { result } = renderHook(() => useTaskPropertyValues("task-1"), {
         wrapper: createWrapper(),
       });
 
@@ -172,13 +185,13 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.data).toEqual(mockPropertyValues);
       expect(result.current.isError).toBe(false);
-      expect(mockedCustomPropertyService.getValuesForTask).toHaveBeenCalledWith('task-1');
+      expect(mockedCustomPropertyService.getValuesForTask).toHaveBeenCalledWith("task-1");
     });
 
-    it('should handle empty property values list', async () => {
+    it("should handle empty property values list", async () => {
       mockedCustomPropertyService.getValuesForTask.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useTaskPropertyValues('task-1'), {
+      const { result } = renderHook(() => useTaskPropertyValues("task-1"), {
         wrapper: createWrapper(),
       });
 
@@ -189,8 +202,8 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('useCreateDefinition', () => {
-    it('should initially not be loading or error', () => {
+  describe("useCreateDefinition", () => {
+    it("should initially not be loading or error", () => {
       const { result } = renderHook(() => useCreateDefinition(), {
         wrapper: createWrapper(),
       });
@@ -200,11 +213,12 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.data).toBeUndefined();
     });
 
-    it('should handle successful definition creation', async () => {
+    it("should handle successful definition creation", async () => {
       const newDefinitionData = {
-        project_id: 'project-1',
-        name: 'New Property',
-        type: 'text' as const,
+        project_ids: ["project-1"],
+        created_by: "user-1",
+        name: "New Property",
+        type: "text" as const,
         display_order: 1,
       };
 
@@ -224,12 +238,13 @@ describe('useCustomProperty hooks', () => {
       expect(mockedCustomPropertyService.createDefinition).toHaveBeenCalledWith(newDefinitionData);
     });
 
-    it('should handle definition creation error', async () => {
-      const errorMessage = 'Failed to create definition';
+    it("should handle definition creation error", async () => {
+      const errorMessage = "Failed to create definition";
       const newDefinitionData = {
-        project_id: 'project-1',
-        name: 'New Property',
-        type: 'text' as const,
+        project_ids: ["project-1"],
+        created_by: "user-1",
+        name: "New Property",
+        type: "text" as const,
       };
 
       mockedCustomPropertyService.createDefinition.mockRejectedValue(new Error(errorMessage));
@@ -248,9 +263,9 @@ describe('useCustomProperty hooks', () => {
       expect((result.current.error as Error).message).toBe(errorMessage);
     });
 
-    it('should show pending state during creation', async () => {
+    it("should show pending state during creation", async () => {
       mockedCustomPropertyService.createDefinition.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockDefinition), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(mockDefinition), 100)),
       );
 
       const { result } = renderHook(() => useCreateDefinition(), {
@@ -258,19 +273,20 @@ describe('useCustomProperty hooks', () => {
       });
 
       result.current.mutate({
-        project_id: 'project-1',
-        name: 'New Property',
-        type: 'text',
+        project_ids: ["project-1"],
+        created_by: "user-1",
+        name: "New Property",
+        type: "text",
       });
 
       expect(result.current.isPending).toBe(true);
     });
   });
 
-  describe('useUpdateDefinition', () => {
-    it('should handle successful definition update', async () => {
-      const updatedDefinition = { ...mockDefinition, name: 'Updated Priority' };
-      const updateData = { name: 'Updated Priority' };
+  describe("useUpdateDefinition", () => {
+    it("should handle successful definition update", async () => {
+      const updatedDefinition = { ...mockDefinition, name: "Updated Priority" };
+      const updateData = { name: "Updated Priority" };
 
       mockedCustomPropertyService.updateDefinition.mockResolvedValue(updatedDefinition);
 
@@ -278,17 +294,17 @@ describe('useCustomProperty hooks', () => {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate({ definitionId: 'def-1', updates: updateData });
+      result.current.mutate({ definitionId: "def-1", updates: updateData });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(updatedDefinition);
-      expect(mockedCustomPropertyService.updateDefinition).toHaveBeenCalledWith('def-1', updateData);
+      expect(mockedCustomPropertyService.updateDefinition).toHaveBeenCalledWith("def-1", updateData);
     });
 
-    it('should handle definition update error', async () => {
-      const errorMessage = 'Failed to update definition';
-      const updateData = { name: 'Updated Priority' };
+    it("should handle definition update error", async () => {
+      const errorMessage = "Failed to update definition";
+      const updateData = { name: "Updated Priority" };
 
       mockedCustomPropertyService.updateDefinition.mockRejectedValue(new Error(errorMessage));
 
@@ -296,7 +312,7 @@ describe('useCustomProperty hooks', () => {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate({ definitionId: 'def-1', updates: updateData });
+      result.current.mutate({ definitionId: "def-1", updates: updateData });
 
       await waitFor(() => expect(result.current.isError).toBe(true));
 
@@ -305,24 +321,24 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('useDeleteDefinition', () => {
-    it('should handle successful definition deletion', async () => {
+  describe("useDeleteDefinition", () => {
+    it("should handle successful definition deletion", async () => {
       mockedCustomPropertyService.deleteDefinition.mockResolvedValue();
 
       const { result } = renderHook(() => useDeleteDefinition(), {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate('def-1');
+      result.current.mutate("def-1");
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.isError).toBe(false);
-      expect(mockedCustomPropertyService.deleteDefinition).toHaveBeenCalledWith('def-1');
+      expect(mockedCustomPropertyService.deleteDefinition).toHaveBeenCalledWith("def-1");
     });
 
-    it('should handle definition deletion error', async () => {
-      const errorMessage = 'Failed to delete definition';
+    it("should handle definition deletion error", async () => {
+      const errorMessage = "Failed to delete definition";
 
       mockedCustomPropertyService.deleteDefinition.mockRejectedValue(new Error(errorMessage));
 
@@ -330,7 +346,7 @@ describe('useCustomProperty hooks', () => {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate('def-1');
+      result.current.mutate("def-1");
 
       await waitFor(() => expect(result.current.isError).toBe(true));
 
@@ -339,8 +355,8 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('useSetPropertyValue', () => {
-    it('should handle successful property value setting', async () => {
+  describe("useSetPropertyValue", () => {
+    it("should handle successful property value setting", async () => {
       mockedCustomPropertyService.setPropertyValue.mockResolvedValue(mockPropertyValue);
 
       const { result } = renderHook(() => useSetPropertyValue(), {
@@ -348,9 +364,10 @@ describe('useCustomProperty hooks', () => {
       });
 
       const setValueData = {
-        taskId: 'task-1',
-        definitionId: 'def-1',
-        value: 'High',
+        taskId: "task-1",
+        definitionId: "def-1",
+        value: "High",
+        userId: "user-1",
       };
 
       result.current.mutate(setValueData);
@@ -358,15 +375,11 @@ describe('useCustomProperty hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockPropertyValue);
-      expect(mockedCustomPropertyService.setPropertyValue).toHaveBeenCalledWith(
-        'task-1',
-        'def-1',
-        'High'
-      );
+      expect(mockedCustomPropertyService.setPropertyValue).toHaveBeenCalledWith("task-1", "def-1", "High");
     });
 
-    it('should handle property value setting error', async () => {
-      const errorMessage = 'Failed to set property value';
+    it("should handle property value setting error", async () => {
+      const errorMessage = "Failed to set property value";
 
       mockedCustomPropertyService.setPropertyValue.mockRejectedValue(new Error(errorMessage));
 
@@ -375,9 +388,10 @@ describe('useCustomProperty hooks', () => {
       });
 
       const setValueData = {
-        taskId: 'task-1',
-        definitionId: 'def-1',
-        value: 'High',
+        taskId: "task-1",
+        definitionId: "def-1",
+        value: "High",
+        userId: "user-1",
       };
 
       result.current.mutate(setValueData);
@@ -388,9 +402,9 @@ describe('useCustomProperty hooks', () => {
       expect((result.current.error as Error).message).toBe(errorMessage);
     });
 
-    it('should show pending state during value setting', async () => {
+    it("should show pending state during value setting", async () => {
       mockedCustomPropertyService.setPropertyValue.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockPropertyValue), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(mockPropertyValue), 100)),
       );
 
       const { result } = renderHook(() => useSetPropertyValue(), {
@@ -398,17 +412,18 @@ describe('useCustomProperty hooks', () => {
       });
 
       result.current.mutate({
-        taskId: 'task-1',
-        definitionId: 'def-1',
-        value: 'High',
+        taskId: "task-1",
+        definitionId: "def-1",
+        value: "High",
+        userId: "user-1",
       });
 
       expect(result.current.isPending).toBe(true);
     });
   });
 
-  describe('useDeletePropertyValue', () => {
-    it('should handle successful property value deletion', async () => {
+  describe("useDeletePropertyValue", () => {
+    it("should handle successful property value deletion", async () => {
       mockedCustomPropertyService.deletePropertyValue.mockResolvedValue();
 
       const { result } = renderHook(() => useDeletePropertyValue(), {
@@ -416,8 +431,8 @@ describe('useCustomProperty hooks', () => {
       });
 
       const deleteValueData = {
-        taskId: 'task-1',
-        definitionId: 'def-1',
+        taskId: "task-1",
+        definitionId: "def-1",
       };
 
       result.current.mutate(deleteValueData);
@@ -425,14 +440,11 @@ describe('useCustomProperty hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.isError).toBe(false);
-      expect(mockedCustomPropertyService.deletePropertyValue).toHaveBeenCalledWith(
-        'task-1',
-        'def-1'
-      );
+      expect(mockedCustomPropertyService.deletePropertyValue).toHaveBeenCalledWith("task-1", "def-1");
     });
 
-    it('should handle property value deletion error', async () => {
-      const errorMessage = 'Failed to delete property value';
+    it("should handle property value deletion error", async () => {
+      const errorMessage = "Failed to delete property value";
 
       mockedCustomPropertyService.deletePropertyValue.mockRejectedValue(new Error(errorMessage));
 
@@ -441,8 +453,8 @@ describe('useCustomProperty hooks', () => {
       });
 
       const deleteValueData = {
-        taskId: 'task-1',
-        definitionId: 'def-1',
+        taskId: "task-1",
+        definitionId: "def-1",
       };
 
       result.current.mutate(deleteValueData);
@@ -454,8 +466,8 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('State management behavior', () => {
-    it('should maintain correct loading states for definitions query', async () => {
+  describe("State management behavior", () => {
+    it("should maintain correct loading states for definitions query", async () => {
       let resolvePromise: (value: typeof mockDefinitions) => void;
       const promise = new Promise<typeof mockDefinitions>((resolve) => {
         resolvePromise = resolve;
@@ -463,7 +475,7 @@ describe('useCustomProperty hooks', () => {
 
       mockedCustomPropertyService.getDefinitionsForProject.mockReturnValue(promise);
 
-      const { result } = renderHook(() => useProjectDefinitions('project-1'), {
+      const { result } = renderHook(() => useProjectDefinitions("project-1"), {
         wrapper: createWrapper(),
       });
 
@@ -484,7 +496,7 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.data).toEqual(mockDefinitions);
     });
 
-    it('should maintain correct loading states for property values query', async () => {
+    it("should maintain correct loading states for property values query", async () => {
       let resolvePromise: (value: typeof mockPropertyValues) => void;
       const promise = new Promise<typeof mockPropertyValues>((resolve) => {
         resolvePromise = resolve;
@@ -492,7 +504,7 @@ describe('useCustomProperty hooks', () => {
 
       mockedCustomPropertyService.getValuesForTask.mockReturnValue(promise);
 
-      const { result } = renderHook(() => useTaskPropertyValues('task-1'), {
+      const { result } = renderHook(() => useTaskPropertyValues("task-1"), {
         wrapper: createWrapper(),
       });
 
@@ -513,7 +525,7 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.data).toEqual(mockPropertyValues);
     });
 
-    it('should handle mutations with proper state transitions', async () => {
+    it("should handle mutations with proper state transitions", async () => {
       let resolvePromise: (value: typeof mockDefinition) => void;
       const promise = new Promise<typeof mockDefinition>((resolve) => {
         resolvePromise = resolve;
@@ -532,9 +544,10 @@ describe('useCustomProperty hooks', () => {
 
       // Start mutation
       result.current.mutate({
-        project_id: 'project-1',
-        name: 'Test Property',
-        type: 'text',
+        project_ids: ["project-1"],
+        created_by: "user-1",
+        name: "Test Property",
+        type: "text",
       });
 
       // Pending state
@@ -555,11 +568,11 @@ describe('useCustomProperty hooks', () => {
     });
   });
 
-  describe('Stale time behavior', () => {
-    it('should have longer stale time for definitions (5 minutes)', async () => {
+  describe("Stale time behavior", () => {
+    it("should have longer stale time for definitions (5 minutes)", async () => {
       mockedCustomPropertyService.getDefinitionsForProject.mockResolvedValue(mockDefinitions);
 
-      const { result } = renderHook(() => useProjectDefinitions('project-1'), {
+      const { result } = renderHook(() => useProjectDefinitions("project-1"), {
         wrapper: createWrapper(),
       });
 
@@ -570,10 +583,10 @@ describe('useCustomProperty hooks', () => {
       expect(result.current.data).toEqual(mockDefinitions);
     });
 
-    it('should have shorter stale time for property values (30 seconds)', async () => {
+    it("should have shorter stale time for property values (30 seconds)", async () => {
       mockedCustomPropertyService.getValuesForTask.mockResolvedValue(mockPropertyValues);
 
-      const { result } = renderHook(() => useTaskPropertyValues('task-1'), {
+      const { result } = renderHook(() => useTaskPropertyValues("task-1"), {
         wrapper: createWrapper(),
       });
 
