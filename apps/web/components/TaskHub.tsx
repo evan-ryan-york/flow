@@ -7,6 +7,9 @@ import {
   DragStartEvent,
   DragOverlay,
   closestCenter,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
   PointerSensor,
   useSensor,
   useSensors
@@ -204,10 +207,24 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Final display tasks for TaskList component
   const displayTasks = filteredTasks;
 
-  // Reset manual order when project changes
-  React.useEffect(() => {
-    setLocalTasks([]);
-  }, [selectedProjectIds.join(',')]);
+  // Custom collision detection that prioritizes group drops
+  const customCollisionDetection = (args: any) => {
+    // First check for group collisions using rectIntersection
+    const groupCollisions = rectIntersection({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((container: any) =>
+        container.id.toString().startsWith('group-')
+      )
+    });
+
+    if (groupCollisions.length > 0) {
+      console.log('🎯 Group collision detected:', groupCollisions[0]);
+      return groupCollisions;
+    }
+
+    // Fall back to regular collision detection for task reordering
+    return rectIntersection(args);
+  };
 
   // Reset filters when projects change
   React.useEffect(() => {
@@ -227,26 +244,45 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     const { active, over } = event;
     setDraggedTask(null);
 
+    console.log('🔍 DRAG END DEBUG:', {
+      activeId: active.id,
+      overId: over?.id,
+      overData: over?.data?.current,
+      overType: over?.data?.current?.type,
+      hasOver: !!over
+    });
+
     if (!over || active.id === over.id) {
+      console.log('🚫 Early return: no over or same id');
       return;
     }
 
     const draggedTask = displayTasks.find(task => task.id === active.id);
     if (!draggedTask) {
+      console.log('🚫 No dragged task found');
       return;
     }
 
-    // Check if dropping on a group header (cross-group drop)
-    // Only do cross-group drop if we're NOT dropping on another task
+    // Check if dropping on a group (cross-group drop)
+    // This handles both dropping on group headers and within group areas
     const droppedOnTask = displayTasks.find(task => task.id === over.id);
-    if (over.data?.current?.type === 'group' && !droppedOnTask) {
+    const isGroupDrop = over.data?.current?.type === 'group';
+
+    console.log('🔍 Drop target analysis:', {
+      droppedOnTask: !!droppedOnTask,
+      overType: over.data?.current?.type,
+      groupKey: over.data?.current?.groupKey,
+      groupBy: groupBy,
+      isGroupDrop: isGroupDrop
+    });
+
+    if (isGroupDrop) {
       const groupKey = over.data.current.groupKey;
       const groupLabel = over.data.current.groupLabel;
 
       console.log('🔄 Cross-group drop:', draggedTask.name, 'to group:', groupLabel);
 
-      // Reset manual order mode so TanStack Query updates are visible
-        setLocalTasks([]);
+      // TanStack Query will handle updates automatically
 
       // Determine what property to update based on current grouping
       let updates: any = {};
@@ -308,7 +344,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

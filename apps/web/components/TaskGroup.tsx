@@ -5,8 +5,9 @@ import { NavArrowDown, NavArrowRight } from 'iconoir-react';
 import { TaskItem } from './TaskItem';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TaskGroupProps {
   group: TaskGroupType;
@@ -44,6 +45,13 @@ export function TaskGroup({
       groupLabel: group.label,
       groupBy: groupBy
     }
+  });
+
+  console.log('🔍 GROUP DROPPABLE SETUP:', {
+    groupKey: group.key,
+    groupLabel: group.label,
+    groupBy: groupBy,
+    droppableId: `group-${group.key}`
   });
 
   return (
@@ -211,6 +219,3 @@ function SortableTaskItem({
   );
 }
 
-// Import necessary dependencies
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
