@@ -1,36 +1,33 @@
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Plus, EditPencil, Bin } from 'iconoir-react';
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Plus, EditPencil, Bin } from "iconoir-react";
 import {
   useProjectDefinitions,
-  useCreateDefinition,
+  useCreateDefinitionLegacy,
   useUpdateDefinition,
-  useDeleteDefinition
-} from '@perfect-task-app/data';
-import type { CustomPropertyDefinition } from '@perfect-task-app/models';
+  useDeleteDefinition,
+  useProjectsForUser,
+} from "@perfect-task-app/data";
+import type { CustomPropertyDefinition } from "@perfect-task-app/models";
 
 interface CustomPropertyManagerProps {
-  projectId: string;
+  projectId: string; // Still used for initial context, but now supports multi-select
   projectName: string;
   userId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type PropertyType = 'text' | 'select' | 'date' | 'number';
+type PropertyType = "text" | "select" | "date" | "number";
 
 interface PropertyFormData {
   name: string;
   type: PropertyType;
   options: string[];
+  selectedProjectIds: string[]; // New field for multi-project selection
 }
 
 export function CustomPropertyManager({
@@ -38,30 +35,33 @@ export function CustomPropertyManager({
   projectName,
   userId,
   open,
-  onOpenChange
+  onOpenChange,
 }: CustomPropertyManagerProps) {
   const { data: properties = [], isLoading } = useProjectDefinitions(projectId);
-  const createPropertyMutation = useCreateDefinition();
+  const { data: userProjects = [] } = useProjectsForUser(userId);
+  const createPropertyMutation = useCreateDefinitionLegacy();
   const updatePropertyMutation = useUpdateDefinition();
   const deletePropertyMutation = useDeleteDefinition();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingProperty, setEditingProperty] = useState<CustomPropertyDefinition | null>(null);
   const [formData, setFormData] = useState<PropertyFormData>({
-    name: '',
-    type: 'text',
-    options: []
+    name: "",
+    type: "text",
+    options: [],
+    selectedProjectIds: [projectId], // Default to current project
   });
-  const [optionInput, setOptionInput] = useState('');
+  const [optionInput, setOptionInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      type: 'text',
-      options: []
+      name: "",
+      type: "text",
+      options: [],
+      selectedProjectIds: [projectId], // Reset to current project
     });
-    setOptionInput('');
+    setOptionInput("");
     setError(null);
     setIsCreating(false);
     setEditingProperty(null);
@@ -76,7 +76,8 @@ export function CustomPropertyManager({
     setFormData({
       name: property.name,
       type: property.type as PropertyType,
-      options: Array.isArray(property.options) ? property.options : []
+      options: Array.isArray(property.options) ? property.options : [],
+      selectedProjectIds: [property.project_id], // Use property's project
     });
     setEditingProperty(property);
     setIsCreating(false);
@@ -84,18 +85,18 @@ export function CustomPropertyManager({
 
   const handleAddOption = () => {
     if (optionInput.trim() && !formData.options.includes(optionInput.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        options: [...prev.options, optionInput.trim()]
+        options: [...prev.options, optionInput.trim()],
       }));
-      setOptionInput('');
+      setOptionInput("");
     }
   };
 
   const handleRemoveOption = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      options: prev.options.filter((_, i) => i !== index)
+      options: prev.options.filter((_, i) => i !== index),
     }));
   };
 
@@ -107,12 +108,11 @@ export function CustomPropertyManager({
     // Check for duplicate names
     const trimmedName = formData.name.trim();
     const existingProperty = properties.find(
-      p => p.name.toLowerCase() === trimmedName.toLowerCase() &&
-      (!editingProperty || p.id !== editingProperty.id)
+      (p) => p.name.toLowerCase() === trimmedName.toLowerCase() && (!editingProperty || p.id !== editingProperty.id),
     );
 
     if (existingProperty) {
-      setError('A custom property with this name already exists for this project.');
+      setError("A custom property with this name already exists for this project.");
       return;
     }
 
@@ -124,37 +124,41 @@ export function CustomPropertyManager({
           updates: {
             name: trimmedName,
             type: formData.type,
-            options: formData.type === 'select' ? formData.options : null
-          }
+            options: formData.type === "select" ? formData.options : null,
+          },
         });
       } else {
-        // Create new property
+        // Create new property (using first selected project for now)
         await createPropertyMutation.mutateAsync({
-          project_id: projectId,
+          project_id: formData.selectedProjectIds[0] || projectId,
           created_by: userId,
           name: trimmedName,
           type: formData.type,
-          options: formData.type === 'select' ? formData.options : null,
-          display_order: properties.length
+          options: formData.type === "select" ? formData.options : null,
+          display_order: properties.length,
         });
       }
       resetForm();
     } catch (error) {
-      console.error('Failed to save property:', error);
-      if (error instanceof Error && error.message.includes('duplicate key')) {
-        setError('A custom property with this name already exists for this project.');
+      console.error("Failed to save property:", error);
+      if (error instanceof Error && error.message.includes("duplicate key")) {
+        setError("A custom property with this name already exists for this project.");
       } else {
-        setError('Failed to save custom property. Please try again.');
+        setError("Failed to save custom property. Please try again.");
       }
     }
   };
 
   const handleDelete = async (propertyId: string) => {
-    if (window.confirm('Are you sure you want to delete this custom property? This will remove all values for this property from existing tasks.')) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this custom property? This will remove all values for this property from existing tasks.",
+      )
+    ) {
       try {
         await deletePropertyMutation.mutateAsync(propertyId);
       } catch (error) {
-        console.error('Failed to delete property:', error);
+        console.error("Failed to delete property:", error);
       }
     }
   };
@@ -163,7 +167,7 @@ export function CustomPropertyManager({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Custom Properties - {projectName}</DialogTitle>
+          <DialogTitle>Custom Properties Manager</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -179,29 +183,21 @@ export function CustomPropertyManager({
             ) : (
               <div className="space-y-2">
                 {properties.map((property) => (
-                  <div
-                    key={property.id}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
-                  >
+                  <div key={property.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{property.name}</span>
-                        <span className="text-xs px-2 py-1 bg-gray-200 rounded">
-                          {property.type}
-                        </span>
+                        <span className="text-xs px-2 py-1 bg-gray-200 rounded">{property.type}</span>
                       </div>
-                      {property.type === 'select' && property.options && (
+                      {property.type === "select" && property.options && (
                         <div className="text-xs text-gray-600 mt-1">
-                          Options: {Array.isArray(property.options) ? property.options.join(', ') : ''}
+                          Options: {Array.isArray(property.options) ? property.options.join(", ") : ""}
                         </div>
                       )}
+                      {/* Multi-project display will be added after migration */}
                     </div>
                     <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleStartEdit(property)}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => handleStartEdit(property)}>
                         <EditPencil className="h-3 w-3" />
                       </Button>
                       <Button
@@ -223,14 +219,10 @@ export function CustomPropertyManager({
           {(isCreating || editingProperty) && (
             <div className="space-y-4 p-4 border rounded-lg">
               <h3 className="text-sm font-medium text-gray-900">
-                {editingProperty ? 'Edit Property' : 'Create New Property'}
+                {editingProperty ? "Edit Property" : "Create New Property"}
               </h3>
 
-              {error && (
-                <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
-                  {error}
-                </div>
-              )}
+              {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
 
               <div className="space-y-3">
                 <div>
@@ -238,7 +230,7 @@ export function CustomPropertyManager({
                   <Input
                     id="property-name"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Priority, Environment"
                   />
                 </div>
@@ -248,7 +240,7 @@ export function CustomPropertyManager({
                   <select
                     id="property-type"
                     value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as PropertyType }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value as PropertyType }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="text">Text</option>
@@ -258,7 +250,42 @@ export function CustomPropertyManager({
                   </select>
                 </div>
 
-                {formData.type === 'select' && (
+                <div>
+                  <Label>Assign to Projects</Label>
+                  <div className="space-y-2">
+                    {userProjects.map((project) => (
+                      <label key={project.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedProjectIds.includes(project.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                selectedProjectIds: [...prev.selectedProjectIds, project.id],
+                              }));
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                selectedProjectIds: prev.selectedProjectIds.filter((id) => id !== project.id),
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium">{project.name}</span>
+                        {project.id === projectId && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Current</span>
+                        )}
+                      </label>
+                    ))}
+                    {formData.selectedProjectIds.length === 0 && (
+                      <p className="text-sm text-red-600">Please select at least one project.</p>
+                    )}
+                  </div>
+                </div>
+
+                {formData.type === "select" && (
                   <div>
                     <Label>Options</Label>
                     <div className="space-y-2">
@@ -268,27 +295,20 @@ export function CustomPropertyManager({
                           onChange={(e) => setOptionInput(e.target.value)}
                           placeholder="Add option..."
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === "Enter") {
                               e.preventDefault();
                               handleAddOption();
                             }
                           }}
                         />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAddOption}
-                        >
+                        <Button type="button" size="sm" onClick={handleAddOption}>
                           Add
                         </Button>
                       </div>
                       {formData.options.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {formData.options.map((option, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm"
-                            >
+                            <div key={index} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
                               {option}
                               <button
                                 type="button"
@@ -307,17 +327,18 @@ export function CustomPropertyManager({
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={resetForm}
-                >
+                <Button variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!formData.name.trim() || (formData.type === 'select' && formData.options.length === 0)}
+                  disabled={
+                    !formData.name.trim() ||
+                    (formData.type === "select" && formData.options.length === 0) ||
+                    formData.selectedProjectIds.length === 0
+                  }
                 >
-                  {editingProperty ? 'Update' : 'Create'}
+                  {editingProperty ? "Update" : "Create"}
                 </Button>
               </div>
             </div>
@@ -325,11 +346,7 @@ export function CustomPropertyManager({
 
           {/* Add New Button */}
           {!isCreating && !editingProperty && (
-            <Button
-              variant="outline"
-              onClick={handleStartCreate}
-              className="w-full"
-            >
+            <Button variant="outline" onClick={handleStartCreate} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               Add Custom Property
             </Button>
