@@ -365,3 +365,75 @@ export const getGeneralProject = async (userId: string): Promise<Project | null>
     throw error;
   }
 };
+
+/**
+ * Search projects by name for autocomplete functionality
+ */
+export const searchProjects = async (userId: string, query: string): Promise<Project[]> => {
+  try {
+    if (!query || query.trim() === '') {
+      return [];
+    }
+
+    const trimmedQuery = query.trim();
+
+    // Get projects where user is owner OR member and name matches query
+    // First, get owned projects that match
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', userId)
+      .ilike('name', `%${trimmedQuery}%`)
+      .limit(10);
+
+    if (ownedError) {
+      throw new Error(`Failed to search owned projects: ${ownedError.message}`);
+    }
+
+    // Second, get member projects that match
+    const { data: memberProjects, error: memberError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        project_users!inner(user_id)
+      `)
+      .eq('project_users.user_id', userId)
+      .neq('owner_id', userId) // Exclude owned projects to avoid duplicates
+      .ilike('name', `%${trimmedQuery}%`)
+      .limit(10);
+
+    if (memberError) {
+      throw new Error(`Failed to search member projects: ${memberError.message}`);
+    }
+
+    // Combine and deduplicate results
+    const allProjects = [
+      ...(ownedProjects || []),
+      ...(memberProjects || [])
+    ];
+
+    // Remove duplicates by id and sort by relevance
+    const uniqueProjects = allProjects.filter((project, index, self) =>
+      index === self.findIndex(p => p.id === project.id)
+    );
+
+    // Sort by exact matches first, then partial matches
+    const sortedProjects = uniqueProjects.sort((a, b) => {
+      const aExact = a.name.toLowerCase() === trimmedQuery.toLowerCase();
+      const bExact = b.name.toLowerCase() === trimmedQuery.toLowerCase();
+
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      // Then by name alphabetically
+      return a.name.localeCompare(b.name);
+    });
+
+    // Validate and return
+    const validatedProjects = sortedProjects.map(project => ProjectSchema.parse(project));
+    return validatedProjects.slice(0, 10); // Limit to 10 results
+  } catch (error) {
+    console.error('ProjectService.searchProjects error:', error);
+    throw error;
+  }
+};

@@ -1,106 +1,257 @@
 'use client';
 
+import { useState, memo } from 'react';
+import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { EditPencil } from 'iconoir-react';
+
+type BuiltInColumn = 'assigned_to' | 'due_date';
+
 interface TaskItemProps {
-  task: {
-    taskId: string;
-    taskName: string;
-    description?: string;
-    status: string;
-    dueDate?: string | null;
-    projectId: string;
-  };
+  task: Task;
+  customPropertyDefinitions?: CustomPropertyDefinition[];
+  userId: string;
   isDragging?: boolean;
+  dragAttributes?: any;
+  dragListeners?: any;
+  userMapping?: Record<string, string>;
+  visibleBuiltInColumns?: Set<BuiltInColumn>;
+  onEditClick?: (taskId: string) => void;
 }
 
-const projectNames: Record<string, string> = {
-  '1': 'General',
-  '2': 'Work Projects',
-  '3': 'Personal',
-  '4': 'Side Hustle',
-};
+// Removed unused projectNames constant
 
-const statusColors: Record<string, string> = {
-  'To Do': 'bg-gray-100 text-gray-800',
-  'In Progress': 'bg-blue-100 text-blue-800',
-  'Done': 'bg-green-100 text-green-800',
-};
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']), onEditClick }: TaskItemProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
+  const isDone = task.status === 'Done';
+  const updateTaskMutation = useUpdateTask();
+  const { data: propertyValues = [] } = useTaskPropertyValues(task.id);
+  const setPropertyValueMutation = useSetPropertyValue();
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
 
-export function TaskItem({ task, isDragging = false }: TaskItemProps) {
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'Done';
+  // Helper function to get property value for a given definition
+  const getPropertyValue = (definitionId: string) => {
+    const propertyValue = propertyValues.find(pv => pv.definition_id === definitionId);
+    return propertyValue?.value || '';
+  };
 
-  const handleStatusChange = (newStatus: string) => {
-    // TODO: Integrate with real task update service
-    console.log('Updating task status:', task.taskId, newStatus);
+  // Handle custom property value updates
+  const handlePropertyValueChange = async (definitionId: string, value: string) => {
+    try {
+      await setPropertyValueMutation.mutateAsync({
+        taskId: task.id,
+        definitionId,
+        value: value.trim(),
+        userId,
+      });
+    } catch (error) {
+      console.error('Failed to update custom property value:', error);
+      // TODO: Show error message to user
+    }
+  };
+
+  const handleStatusToggle = () => {
+    const newStatus = isDone ? 'To Do' : 'Done';
+    const newCompletedState = !isDone;
+
+    updateTaskMutation.mutate({
+      taskId: task.id,
+      updates: {
+        status: newStatus,
+        is_completed: newCompletedState,
+      }
+    }, {
+      onError: (error) => {
+        console.error('Failed to update task status:', error);
+        // TODO: Add proper error handling/notification
+      }
+    });
+  };
+
+  const handleDragHandleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Drag functionality handled by parent DraggableTaskItem
   };
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
-      isDragging ? 'rotate-2 shadow-lg' : ''
-    }`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 truncate">{task.taskName}</h3>
-          {task.description && (
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2 ml-3">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            statusColors[task.status] || statusColors['To Do']
-          }`}>
-            {task.status}
-          </span>
-        </div>
-      </div>
+    <div
+      className={`bg-white border-b border-gray-200 hover:bg-gray-50 transition-colors ${
+        isDragging ? 'bg-blue-50 shadow-lg' : ''
+      } ${isDone ? 'opacity-75' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Table Row Layout */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        {/* Drag Handle */}
+        <button
+          {...dragListeners}
+          {...dragAttributes}
+          onClick={handleDragHandleClick}
+          className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
+          title="Drag to reorder"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9" cy="5" r="1"/>
+            <circle cx="15" cy="5" r="1"/>
+            <circle cx="9" cy="12" r="1"/>
+            <circle cx="15" cy="12" r="1"/>
+            <circle cx="9" cy="19" r="1"/>
+            <circle cx="15" cy="19" r="1"/>
+          </svg>
+        </button>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 1v4m8-4v4" />
+        {/* Completion Circle */}
+        <button
+          onClick={handleStatusToggle}
+          disabled={updateTaskMutation.isPending}
+          className={`flex-shrink-0 transition-colors ${
+            updateTaskMutation.isPending
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-400 hover:text-green-600'
+          }`}
+          title={isDone ? "Mark as not done" : "Mark as done"}
+        >
+          {isDone ? (
+            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
-            {projectNames[task.projectId]}
-          </span>
-
-          {task.dueDate && (
-            <span className={`inline-flex items-center ${
-              isOverdue ? 'text-red-600 font-medium' : ''
-            }`}>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {new Date(task.dueDate).toLocaleDateString()}
-              {isOverdue && ' (Overdue)'}
-            </span>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
           )}
-        </div>
+        </button>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-1">
-          {task.status !== 'Done' && (
+        {/* Name Column */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className={`font-medium text-sm truncate block ${
+            isDone ? 'text-gray-500 line-through' : 'text-gray-900'
+          }`}>
+            {task.name}
+          </span>
+          {/* Edit Icon - appears on hover */}
+          {isHovered && onEditClick && (
             <button
-              onClick={() => handleStatusChange('Done')}
-              className="p-1 text-gray-400 hover:text-green-600 rounded"
-              title="Mark as done"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick(task.id);
+              }}
+              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title="Edit task"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <EditPencil className="w-4 h-4" />
             </button>
           )}
-          <button
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
-            title="More options"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
         </div>
+
+        {/* Assigned To Column - Fixed width */}
+        {visibleBuiltInColumns.has('assigned_to') && (
+          <div className="flex-shrink-0 w-24 text-right">
+            <span className="text-sm text-gray-600 truncate block">
+              {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
+            </span>
+          </div>
+        )}
+
+        {/* Due Date Column - Fixed width */}
+        {visibleBuiltInColumns.has('due_date') && (
+          <div className="flex-shrink-0 w-28 text-right">
+            {task.due_date ? (
+              <span className={`text-sm truncate block ${
+                isOverdue && !isDone ? 'text-red-600 font-medium' : 'text-gray-600'
+              }`}>
+                {new Date(task.due_date).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-400">—</span>
+            )}
+          </div>
+        )}
+
+        {/* Custom Property Columns */}
+        {customPropertyDefinitions.map((property) => {
+          const value = getPropertyValue(property.id);
+          const isEditing = editingPropertyId === property.id;
+
+          return (
+            <div key={property.id} className="flex-shrink-0 w-32 text-right">
+              {isEditing ? (
+                <div className="px-1">
+                  {property.type === 'select' ? (
+                    <select
+                      value={value}
+                      onChange={async (e) => {
+                        await handlePropertyValueChange(property.id, e.target.value);
+                        setEditingPropertyId(null);
+                      }}
+                      onBlur={() => setEditingPropertyId(null)}
+                      className="w-full text-xs border border-gray-300 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    >
+                      <option value="">Select...</option>
+                      {property.options && Array.isArray(property.options) &&
+                        property.options.map((option: string, index: number) => (
+                          <option key={index} value={option}>
+                            {option}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  ) : (
+                    <input
+                      type={property.type === 'date' ? 'date' : property.type === 'number' ? 'number' : 'text'}
+                      value={value}
+                      onChange={async (e) => {
+                        await handlePropertyValueChange(property.id, e.target.value);
+                        setEditingPropertyId(null);
+                      }}
+                      onBlur={() => setEditingPropertyId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setEditingPropertyId(null);
+                        }
+                        if (e.key === 'Escape') {
+                          setEditingPropertyId(null);
+                        }
+                      }}
+                      className="w-full text-xs border border-gray-300 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingPropertyId(property.id)}
+                  className="w-full text-right hover:bg-gray-100 px-1 py-0.5 rounded transition-colors"
+                  disabled={isDragging}
+                >
+                  {value ? (
+                    <span className="text-sm text-gray-600 truncate block">
+                      {property.type === 'date' && value ? (
+                        new Date(value).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      ) : (
+                        value
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">—</span>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-}
+});
+
+export { TaskItem };

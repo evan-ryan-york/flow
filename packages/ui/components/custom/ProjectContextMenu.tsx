@@ -5,7 +5,7 @@ import {
   PopoverTrigger,
 } from '../ui/popover';
 import { Button } from '../ui/button';
-import { MoreVert, EditPencil, Bin, Palette } from 'iconoir-react';
+import { MoreVert, EditPencil, Bin } from 'iconoir-react';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { RenameProjectDialog } from './RenameProjectDialog';
 import type { Project } from '@perfect-task-app/models';
@@ -69,6 +69,7 @@ export function ProjectContextMenu({ project, userId }: ProjectContextMenuProps)
         open={showRenameDialog}
         onOpenChange={setShowRenameDialog}
       />
+
     </>
   );
 }

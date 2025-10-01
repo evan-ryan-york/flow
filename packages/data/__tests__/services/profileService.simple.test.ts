@@ -28,7 +28,6 @@ describe('profileService Unit Tests (Mock-based)', () => {
     id: '550e8400-e29b-41d4-a716-446655440000',
     first_name: 'John',
     last_name: 'Doe',
-    email: 'john.doe@example.com',
     avatar_url: 'https://example.com/avatar.jpg',
     created_at: '2023-01-01T00:00:00Z',
     updated_at: '2023-01-01T00:00:00Z',
