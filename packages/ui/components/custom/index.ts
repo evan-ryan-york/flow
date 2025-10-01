@@ -3,3 +3,7 @@
 // export * from "./TaskItem"
 // export * from "./ProjectCard"
 // export * from "./TimeBlockCard"
+
+export * from "./ProjectAutocomplete";
+export * from "./ProjectChip";
+export * from "./CustomPropertyManager";

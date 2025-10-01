@@ -31,7 +31,7 @@ export function AddProjectButton({ onCreateProject, isLoading }: AddProjectButto
       setInputValue('');
       setIsInputMode(false);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to create project');
     }
   };

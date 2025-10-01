@@ -168,8 +168,9 @@ With this addition, if another user in a collaborative project adds a task, the 
 ### 1. Separation of Concerns
 - **UI Components**: Only handle rendering and user interactions
 - **Custom Hooks**: Manage data lifecycle and provide clean APIs to components
-- **Service Functions**: Handle all direct API communication with Supabase
+- **Service Functions**: Handle all direct API communication with Supabase using the shared authenticated client
 - **Zod Schemas**: Define and validate data shapes
+- **Single Supabase Client**: All services use `getSupabaseClient()` from `packages/data/supabase.ts` for consistent authentication
 
 ### 2. Type Safety Throughout
 - Raw Supabase responses are immediately validated with Zod

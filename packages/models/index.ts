@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // ---------------------------------
 // 1. Profiles
@@ -8,11 +8,12 @@ export const ProfileSchema = z.object({
   first_name: z.string().nullable().optional(),
   last_name: z.string().nullable().optional(),
   avatar_url: z.string().url().nullable().optional(),
+  last_used_project_id: z.string().uuid().nullable().optional(),
+  visible_project_ids: z.array(z.string().uuid()).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
-
 
 // ---------------------------------
 // 2. Projects
@@ -21,7 +22,7 @@ export const ProjectSchema = z.object({
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   name: z.string().min(1).max(50),
-  color: z.enum(['rose', 'amber', 'mint', 'sky', 'violet', 'lime', 'teal', 'crimson']).default('sky'),
+  color: z.enum(["rose", "amber", "mint", "sky", "violet", "lime", "teal", "crimson"]).default("sky"),
   is_general: z.boolean().default(false),
   created_at: z.string(), // More flexible datetime validation
   updated_at: z.string(), // More flexible datetime validation
@@ -35,10 +36,9 @@ export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
 export const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(50).trim().optional(),
-  color: z.enum(['rose', 'amber', 'mint', 'sky', 'violet', 'lime', 'teal', 'crimson']).optional(),
+  color: z.enum(["rose", "amber", "mint", "sky", "violet", "lime", "teal", "crimson"]).optional(),
 });
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
-
 
 // ---------------------------------
 // 3. Project Users (Join Table)
@@ -46,11 +46,10 @@ export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
 export const ProjectUserSchema = z.object({
   project_id: z.string().uuid(),
   user_id: z.string().uuid(),
-  role: z.enum(['admin', 'member', 'viewer']), // Using enum for type safety
+  role: z.enum(["admin", "member", "viewer"]), // Using enum for type safety
   joined_at: z.string().datetime(),
 });
 export type ProjectUser = z.infer<typeof ProjectUserSchema>;
-
 
 // ---------------------------------
 // 4. Tasks
@@ -63,30 +62,50 @@ export const TaskSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable(),
   due_date: z.string().nullable(),
-  status: z.string(), // Added back for Kanban/workflow
-  is_completed: z.boolean(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  status: z.string().default("To Do"),
+  is_completed: z.boolean().default(false),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type Task = z.infer<typeof TaskSchema>;
-
 
 // ---------------------------------
 // 5. Custom Property Definitions
 // ---------------------------------
 export const CustomPropertyDefinitionSchema = z.object({
   id: z.string().uuid(),
-  project_id: z.string().uuid(),
+  project_id: z.string().uuid(), // Keeping for backward compatibility during migration
   created_by: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(['text', 'select', 'date', 'number']),
+  type: z.enum(["text", "select", "date", "number"]),
   options: z.any().nullable(), // Kept as `any` to match jsonb flexibility
   display_order: z.number().int(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type CustomPropertyDefinition = z.infer<typeof CustomPropertyDefinitionSchema>;
 
+// Extended schema for custom properties with project assignments (used in API responses)
+export const CustomPropertyDefinitionWithProjectsSchema = z.object({
+  id: z.string().uuid(),
+  created_by: z.string().uuid(),
+  name: z.string().min(1),
+  type: z.enum(["text", "select", "date", "number"]),
+  options: z.any().nullable(),
+  display_order: z.number().int(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  project_ids: z.array(z.string().uuid()), // Projects this property is assigned to
+});
+export type CustomPropertyDefinitionWithProjects = z.infer<typeof CustomPropertyDefinitionWithProjectsSchema>;
+
+// Schema for custom property project assignments (junction table)
+export const CustomPropertyProjectAssignmentSchema = z.object({
+  definition_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  created_at: z.string(),
+});
+export type CustomPropertyProjectAssignment = z.infer<typeof CustomPropertyProjectAssignmentSchema>;
 
 // ---------------------------------
 // 6. Custom Property Values
@@ -98,34 +117,32 @@ export const CustomPropertyValueSchema = z.object({
   value: z.string(),
   created_by: z.string().uuid(),
   updated_by: z.string().uuid().nullable(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type CustomPropertyValue = z.infer<typeof CustomPropertyValueSchema>;
-
 
 // ---------------------------------
 // 7. Views
 // ---------------------------------
 // Define a more specific schema for the 'config' object for better type safety
 const ViewConfigSchema = z.object({
-    projectIds: z.array(z.string().uuid()),
-    groupBy: z.string().optional(),
-    sortBy: z.string().optional(),
-    visibleProperties: z.array(z.string().uuid()).optional(),
+  projectIds: z.array(z.string().uuid()),
+  groupBy: z.string().optional(),
+  sortBy: z.string().optional(),
+  visibleProperties: z.array(z.string().uuid()).optional(),
 });
 
 export const ViewSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(['list', 'kanban']),
+  type: z.enum(["list", "kanban"]),
   config: ViewConfigSchema,
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
 export type View = z.infer<typeof ViewSchema>;
-
 
 // ---------------------------------
 // 8. Time Blocks
@@ -141,7 +158,6 @@ export const TimeBlockSchema = z.object({
   updated_at: z.string().datetime(),
 });
 export type TimeBlock = z.infer<typeof TimeBlockSchema>;
-
 
 // ---------------------------------
 // 9. Time Block Tasks (Join Table)

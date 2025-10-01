@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
+import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;
@@ -12,6 +13,30 @@ interface ThreeColumnLayoutProps {
 export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Load user's saved project visibility preferences
+  const { data: generalProject } = useGeneralProject(userId);
+  const { data: visibleProjectIds, isLoading: isLoadingVisibleProjects } = useVisibleProjectIds(userId);
+  const updateVisibleProjectsMutation = useUpdateVisibleProjectIds();
+
+  // Initialize with saved visible projects or default to General project
+  useEffect(() => {
+    if (!hasInitialized && !isLoadingVisibleProjects) {
+      if (visibleProjectIds && visibleProjectIds.length > 0) {
+        setSelectedProjectIds(visibleProjectIds);
+      } else if (generalProject) {
+        setSelectedProjectIds([generalProject.id]);
+      }
+      setHasInitialized(true);
+    }
+  }, [generalProject, visibleProjectIds, isLoadingVisibleProjects, hasInitialized]);
+
+  // Save project selection changes to the database
+  const handleProjectSelectionChange = (newProjectIds: string[]) => {
+    setSelectedProjectIds(newProjectIds);
+    updateVisibleProjectsMutation.mutate({ projectIds: newProjectIds, userId });
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -20,7 +45,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         <ProjectsPanel
           userId={userId}
           selectedProjectIds={selectedProjectIds}
-          onProjectSelectionChange={setSelectedProjectIds}
+          onProjectSelectionChange={handleProjectSelectionChange}
         />
       </div>
 

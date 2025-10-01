@@ -30,7 +30,7 @@ export function AppHeader({ user }: AppHeaderProps) {
           <div className="flex items-center space-x-4">
             <div className="text-sm">
               <div className="font-medium text-gray-900">
-                {user.user_metadata.full_name || user.email}
+                {user.user_metadata.name || user.email}
               </div>
               <div className="text-gray-500">{user.email}</div>
             </div>
