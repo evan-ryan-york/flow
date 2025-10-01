@@ -24,6 +24,7 @@ interface TaskListProps {
   showGroupHeaders?: boolean;
   groupBy?: GroupByOption | null;
   userMapping?: Record<string, string>;
+  onTaskEditClick?: (taskId: string) => void;
 }
 
 // Built-in columns that can be hidden
@@ -264,7 +265,8 @@ const TaskList = memo(function TaskList({
   groupedTasks,
   showGroupHeaders = false,
   groupBy,
-  userMapping = {}
+  userMapping = {},
+  onTaskEditClick
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -432,7 +434,7 @@ const TaskList = memo(function TaskList({
           strategy={verticalListSortingStrategy}
         >
           {displayedTasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} visibleBuiltInColumns={visibleBuiltInColumns} />
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} />
           ))}
         </SortableContext>
       </div>
@@ -442,7 +444,7 @@ const TaskList = memo(function TaskList({
 
 export { TaskList };
 
-function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, visibleBuiltInColumns }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; visibleBuiltInColumns: Set<BuiltInColumn> }) {
+function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, visibleBuiltInColumns, onTaskEditClick }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void }) {
   const {
     attributes,
     listeners,
@@ -474,6 +476,7 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
         dragListeners={listeners}
         userMapping={userMapping}
         visibleBuiltInColumns={visibleBuiltInColumns}
+        onEditClick={onTaskEditClick}
       />
     </div>
   );

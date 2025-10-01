@@ -21,6 +21,7 @@ import {
   useProjectsForUser,
   useAllProfiles,
   useUpdateTask,
+  useTaskEditPanel,
 } from "@perfect-task-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
@@ -28,6 +29,7 @@ import { TaskList } from "./TaskList";
 import { SavedViews } from "./SavedViews";
 import { TaskItem } from "./TaskItem";
 import { TaskFiltersBar } from "./TaskFiltersBar";
+import { TaskEditPullover } from "./TaskEditPullover";
 import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
 import { FilterState, createEmptyFilterState, filterTasks } from "@perfect-task-app/ui/lib/taskFiltering";
 import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping";
@@ -46,6 +48,17 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<FilterState>(createEmptyFilterState());
   const [groupBy, setGroupBy] = useState<GroupByOption | null>(null);
+
+  // Task edit panel state
+  const {
+    isOpen: isEditPanelOpen,
+    selectedTaskId,
+    openPanel: openEditPanel,
+    closePanel: closeEditPanel,
+    switchTask: switchEditTask,
+    hasUnsavedChanges,
+    setHasUnsavedChanges,
+  } = useTaskEditPanel();
 
   // Fallback to original hook until database migration is applied
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
@@ -375,6 +388,18 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             showGroupHeaders={groupBy !== null && groupBy !== "none"}
             groupBy={groupBy}
             userMapping={userMapping}
+            onTaskEditClick={(taskId) => {
+              if (isEditPanelOpen && selectedTaskId === taskId) {
+                // If same task is clicked, close the panel
+                closeEditPanel();
+              } else if (isEditPanelOpen) {
+                // If panel is open but different task, switch task
+                switchEditTask(taskId);
+              } else {
+                // Open panel with new task
+                openEditPanel(taskId);
+              }
+            }}
           />
         </div>
 
@@ -397,6 +422,16 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Task Edit Pullover */}
+      <TaskEditPullover
+        taskId={selectedTaskId}
+        isOpen={isEditPanelOpen}
+        onClose={closeEditPanel}
+        userId={userId}
+        hasUnsavedChanges={hasUnsavedChanges}
+        setHasUnsavedChanges={setHasUnsavedChanges}
+      />
     </DndContext>
   );
 }

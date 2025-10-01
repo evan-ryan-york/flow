@@ -3,6 +3,7 @@
 import { useState, memo } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { EditPencil } from 'iconoir-react';
 
 type BuiltInColumn = 'assigned_to' | 'due_date';
 
@@ -15,11 +16,13 @@ interface TaskItemProps {
   dragListeners?: any;
   userMapping?: Record<string, string>;
   visibleBuiltInColumns?: Set<BuiltInColumn>;
+  onEditClick?: (taskId: string) => void;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']) }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']), onEditClick }: TaskItemProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
   const isDone = task.status === 'Done';
   const updateTaskMutation = useUpdateTask();
@@ -72,9 +75,13 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
   };
 
   return (
-    <div className={`bg-white border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-      isDragging ? 'bg-blue-50 shadow-lg' : ''
-    } ${isDone ? 'opacity-75' : ''}`}>
+    <div
+      className={`bg-white border-b border-gray-200 hover:bg-gray-50 transition-colors ${
+        isDragging ? 'bg-blue-50 shadow-lg' : ''
+      } ${isDone ? 'opacity-75' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Table Row Layout */}
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Drag Handle */}
@@ -118,23 +125,25 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         </button>
 
         {/* Name Column */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
-            {(() => {
-              console.log('🔍 TASK NAME DEBUG:', {
-                taskId: task.id,
-                taskName: task.name,
-                taskNameType: typeof task.name,
-                taskNameLength: task.name?.length,
-                isDone,
-                textColor: isDone ? 'text-gray-500 line-through' : 'text-gray-900',
-                fullTask: task
-              });
-              return task.name;
-            })()}
+            {task.name}
           </span>
+          {/* Edit Icon - appears on hover */}
+          {isHovered && onEditClick && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick(task.id);
+              }}
+              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              title="Edit task"
+            >
+              <EditPencil className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Assigned To Column - Fixed width */}

@@ -9,3 +9,4 @@ export * from './hooks/useTask';
 export * from './hooks/useCustomProperty';
 export * from './hooks/useView';
 export * from './hooks/useTimeBlock';
+export * from './hooks/useTaskEditPanel';
