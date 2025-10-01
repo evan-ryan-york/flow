@@ -189,9 +189,13 @@ perfect-task-app/
 ### Service Layer Pattern
 Every service function follows this pattern:
 ```typescript
+import { getSupabaseClient } from '../supabase';
+
+const supabase = getSupabaseClient(); // Uses shared authenticated client
+
 export const serviceFunction = async (params): Promise<Type> => {
   try {
-    // 1. Supabase API call
+    // 1. Supabase API call (with auth context from client)
     const { data, error } = await supabase.from('table')...;
 
     // 2. Error handling
@@ -209,6 +213,8 @@ export const serviceFunction = async (params): Promise<Type> => {
   }
 };
 ```
+
+**Critical**: All services use `getSupabaseClient()` from `packages/data/supabase.ts` which provides a singleton client with proper session management via `createBrowserClient` from `@supabase/ssr`.
 
 ### Hook Layer Pattern
 Every React hook follows this pattern:
@@ -507,10 +513,11 @@ const buttonVariants = cva(
 - **Error Handling**: Comprehensive edge case testing
 
 ### Database Development
-- **Local-First**: All development uses local Supabase instance
-- **Migration-Driven**: All schema changes via SQL migration files
-- **RLS Enforced**: Row-Level Security policies on all tables
+- **Remote-First**: Development connects directly to hosted Supabase instance
+- **Migration-Driven**: All schema changes via SQL migration files applied with psql
+- **RLS Enforced**: Row-Level Security policies on all tables (projects, tasks, custom_properties, etc.)
 - **Type Generation**: Database types generated from Zod schemas
+- **Security**: All tables have proper RLS policies preventing unauthorized access
 
 ## Key Implementation Features
 

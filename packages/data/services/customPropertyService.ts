@@ -14,7 +14,7 @@ import {
 
 export interface CreateDefinitionData {
   project_ids: string[]; // Changed to support multiple projects
-  created_by: string;
+  created_by?: string; // Made optional - will use auth.uid() if not provided
   name: string;
   type: "text" | "select" | "date" | "number";
   options?: any;
@@ -46,6 +46,67 @@ export interface SetPropertyValueData {
 }
 
 // Custom Property Definitions Functions
+
+// Get all custom property definitions for a user across all their projects
+export const getAllDefinitionsForUser = async (userId: string): Promise<CustomPropertyDefinitionWithProjects[]> => {
+  try {
+    // Get all definitions created by this user with their project assignments
+    const { data, error } = await supabase
+      .from("custom_property_definitions")
+      .select(
+        `
+        id,
+        created_by,
+        name,
+        type,
+        options,
+        display_order,
+        created_at,
+        updated_at,
+        project_id,
+        custom_property_project_assignments(project_id)
+      `,
+      )
+      .eq("created_by", userId)
+      .order("name", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch all property definitions for user: ${error.message}`);
+    }
+
+    // Transform data to include project_ids array
+    const transformedData =
+      data?.map((def: any) => {
+        // Get project assignments from the junction table
+        let project_ids =
+          def.custom_property_project_assignments?.map((assignment: any) => assignment.project_id) || [];
+
+        // Fallback to legacy project_id if no assignments exist (for backward compatibility)
+        if (project_ids.length === 0 && def.project_id) {
+          project_ids = [def.project_id];
+        }
+
+        return {
+          id: def.id,
+          created_by: def.created_by,
+          name: def.name,
+          type: def.type,
+          options: def.options,
+          display_order: def.display_order,
+          created_at: def.created_at,
+          updated_at: def.updated_at,
+          project_ids,
+        };
+      }) || [];
+
+    // Zod validation
+    const validatedDefinitions = CustomPropertyDefinitionWithProjectsSchema.array().parse(transformedData);
+    return validatedDefinitions;
+  } catch (error) {
+    console.error("CustomPropertyService.getAllDefinitionsForUser error:", error);
+    throw error;
+  }
+};
 
 // Legacy version - maintains backward compatibility until migration is applied
 export const getDefinitionsForProject = async (projectId: string): Promise<CustomPropertyDefinition[]> => {
@@ -138,11 +199,12 @@ export const createDefinition = async (
 ): Promise<CustomPropertyDefinitionWithProjects> => {
   try {
     // First create the definition (without project_ids in the insert)
-    const { project_ids, ...definitionWithoutProjectIds } = definitionData;
+    const { project_ids, created_by, ...definitionWithoutCreatedBy } = definitionData;
     const { data, error } = await supabase
       .from("custom_property_definitions")
       .insert({
-        ...definitionWithoutProjectIds,
+        ...definitionWithoutCreatedBy,
+        // Don't pass created_by - the database trigger will set it to auth.uid()
         project_id: project_ids[0], // Keep backward compatibility by using first project
         display_order: definitionData.display_order || 0,
       })
