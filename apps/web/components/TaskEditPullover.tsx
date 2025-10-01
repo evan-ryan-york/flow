@@ -115,24 +115,24 @@ export function TaskEditPullover({
   const currentProject = projects.find((p) => p.id === task?.project_id);
 
   // Initialize local state when task changes
+  // Use layout effect to initialize synchronously before paint
   useEffect(() => {
     if (task && task.id !== initializedTaskIdRef.current) {
       setLocalTaskName(task.name || '');
       setLocalDescription(task.description || '');
+
+      // Initialize custom property values at the same time
+      if (propertyValues.length > 0) {
+        const values: Record<string, string> = {};
+        propertyValues.forEach((pv) => {
+          values[pv.definition_id] = pv.value;
+        });
+        setCustomPropertyValues(values);
+      }
+
       initializedTaskIdRef.current = task.id;
     }
-  }, [task]);
-
-  // Initialize custom property values
-  useEffect(() => {
-    if (taskId && propertyValues.length > 0 && taskId !== initializedTaskIdRef.current) {
-      const values: Record<string, string> = {};
-      propertyValues.forEach((pv) => {
-        values[pv.definition_id] = pv.value;
-      });
-      setCustomPropertyValues(values);
-    }
-  }, [taskId, propertyValues.length]); // Depend on length, not the array itself
+  }, [task?.id, propertyValues]); // Only re-run when task ID changes or propertyValues updates
 
   // Auto-save functions
   const saveTaskName = useCallback(
@@ -242,46 +242,44 @@ export function TaskEditPullover({
     onClose();
   };
 
-  if (!isOpen || !taskId || !task) {
-    return null;
-  }
-
   return (
     <>
-      {/* Pullover Panel */}
+      {/* Pullover Panel - Always render to allow CSS transitions */}
       <div
-        className={`fixed right-0 top-0 h-full bg-white border-l border-gray-200 shadow-xl transition-transform duration-300 ease-in-out z-40 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed right-0 top-0 h-full bg-white border-l border-gray-200 shadow-xl transition-all duration-500 ease-in-out z-40 ${
+          isOpen && taskId ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ width: 'calc(33.333% - 2rem)' }} // Approximately 1/3 of screen minus some margin
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex-1 min-w-0 mr-4">
-            <Input
-              type="text"
-              value={localTaskName}
-              onChange={(e) => handleTaskNameChange(e.target.value)}
-              className="font-semibold text-lg border-0 px-0 focus:ring-0 focus:border-b focus:border-blue-500"
-              placeholder="Task name"
-            />
-            {currentProject && (
-              <div className="mt-2">
-                <ProjectChip project={currentProject} onRemove={() => {}} />
+        {task ? (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex-1 min-w-0 mr-4">
+                <Input
+                  type="text"
+                  value={localTaskName || task.name || ''}
+                  onChange={(e) => handleTaskNameChange(e.target.value)}
+                  className="font-semibold text-lg border-0 px-0 focus:ring-0 focus:border-b focus:border-blue-500"
+                  placeholder="Task name"
+                />
+                {currentProject && (
+                  <div className="mt-2">
+                    <ProjectChip project={currentProject} onRemove={() => {}} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <button
-            onClick={handleClose}
-            className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-            title="Close"
-          >
-            <Xmark className="w-5 h-5" />
-          </button>
-        </div>
+              <button
+                onClick={handleClose}
+                className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                title="Close"
+              >
+                <Xmark className="w-5 h-5" />
+              </button>
+            </div>
 
-        {/* Body - Scrollable */}
-        <div className="overflow-y-auto h-[calc(100vh-88px)] px-6 py-4">
+            {/* Body - Scrollable */}
+            <div className="overflow-y-auto h-[calc(100vh-88px)] px-6 py-4">
           <div className="space-y-6">
             {/* Description */}
             <div>
@@ -289,7 +287,7 @@ export function TaskEditPullover({
                 Description
               </label>
               <textarea
-                value={localDescription}
+                value={localDescription || task.description || ''}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-y"
                 placeholder="Add description..."
@@ -415,6 +413,12 @@ export function TaskEditPullover({
             )}
           </div>
         </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        )}
       </div>
 
       {/* Unsaved Changes Warning Dialog */}

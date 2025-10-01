@@ -394,8 +394,18 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
                 closeEditPanel();
               } else if (isEditPanelOpen) {
                 // If panel is open but different task, switch task
+                // Pre-populate the cache with the task data from the list
+                const taskData = displayTasks.find((t) => t.id === taskId);
+                if (taskData) {
+                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                }
                 switchEditTask(taskId);
               } else {
+                // Pre-populate the cache with the task data from the list
+                const taskData = displayTasks.find((t) => t.id === taskId);
+                if (taskData) {
+                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                }
                 // Open panel with new task
                 openEditPanel(taskId);
               }
