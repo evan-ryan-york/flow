@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Task } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 import { FilterState, getAvailableFilters } from '@perfect-task-app/ui/lib/taskFiltering';
 import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 import { TaskSearchInput } from './filters/TaskSearchInput';
@@ -28,6 +28,7 @@ interface TaskFiltersBarProps {
   userId: string;
   profiles?: any[];
   projects?: any[];
+  customPropertyDefinitions?: CustomPropertyDefinition[];
 
   // Task counts for feedback
   totalTasks: number;
@@ -46,6 +47,7 @@ export function TaskFiltersBar({
   userId,
   profiles = [],
   projects = [],
+  customPropertyDefinitions = [],
   totalTasks,
   filteredTasks
 }: TaskFiltersBarProps) {
@@ -149,6 +151,7 @@ export function TaskFiltersBar({
               onChange={onGroupByChange}
               tasks={tasks}
               selectedProjectIds={selectedProjectIds}
+              customPropertyDefinitions={customPropertyDefinitions}
             />
           </div>
         </div>

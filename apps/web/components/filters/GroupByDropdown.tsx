@@ -5,13 +5,14 @@ import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
 import { Group, Check } from 'iconoir-react';
 import { GroupByOption, getAvailableGroupByOptions } from '@perfect-task-app/ui/lib/taskGrouping';
-import { Task } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
 interface GroupByDropdownProps {
   value: GroupByOption | null;
   onChange: (groupBy: GroupByOption | null) => void;
   tasks: Task[];
   selectedProjectIds: string[];
+  customPropertyDefinitions?: CustomPropertyDefinition[];
   className?: string;
 }
 
@@ -20,12 +21,35 @@ export function GroupByDropdown({
   onChange,
   tasks,
   selectedProjectIds,
+  customPropertyDefinitions = [],
   className
 }: GroupByDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const availableOptions = getAvailableGroupByOptions(tasks, selectedProjectIds);
-  const activeOption = availableOptions.find(opt => opt.value === (value || 'none'));
+
+  // Add custom property options (only select and date types for better UX)
+  const customPropertyOptions = customPropertyDefinitions
+    .filter(prop => prop.type === 'select' || prop.type === 'date')
+    .map(prop => ({
+      value: { type: 'customProperty' as const, definitionId: prop.id },
+      label: `Group by ${prop.name}`,
+      disabled: false
+    }));
+
+  const allOptions = [...availableOptions, ...customPropertyOptions];
+
+  // Find active option
+  let activeOption;
+  if (!value || value === 'none') {
+    activeOption = availableOptions.find(opt => opt.value === 'none');
+  } else if (typeof value === 'object' && value !== null && value.type === 'customProperty') {
+    const prop = customPropertyDefinitions.find(p => p.id === value.definitionId);
+    activeOption = prop ? { value, label: `Group by ${prop.name}` } : undefined;
+  } else {
+    activeOption = availableOptions.find(opt => opt.value === value);
+  }
+
   const hasActiveGrouping = value && value !== 'none';
 
   const handleOptionSelect = (option: GroupByOption) => {
@@ -63,12 +87,23 @@ export function GroupByDropdown({
 
         <div className="p-2">
           <div className="space-y-1">
-            {availableOptions.map((option) => {
-              const isSelected = (value || 'none') === option.value;
+            {allOptions.map((option, index) => {
+              // Determine if this option is selected
+              let isSelected = false;
+              if (typeof option.value === 'object' && option.value !== null && option.value.type === 'customProperty') {
+                isSelected = typeof value === 'object' && value !== null && value.type === 'customProperty' && value.definitionId === option.value.definitionId;
+              } else {
+                isSelected = (value || 'none') === option.value;
+              }
+
+              // Generate unique key
+              const key = typeof option.value === 'object' && option.value !== null
+                ? `custom-${option.value.definitionId}`
+                : String(option.value);
 
               return (
                 <button
-                  key={option.value}
+                  key={key}
                   onClick={() => !option.disabled && handleOptionSelect(option.value)}
                   disabled={option.disabled}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${

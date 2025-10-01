@@ -1,7 +1,13 @@
-import { Task } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, CustomPropertyValue } from '@perfect-task-app/models';
 import { isToday, isTomorrow, startOfWeek, endOfWeek } from 'date-fns';
 
-export type GroupByOption = 'none' | 'project' | 'status' | 'dueDate' | 'assignee';
+export type GroupByOption =
+  | 'none'
+  | 'project'
+  | 'status'
+  | 'dueDate'
+  | 'assignee'
+  | { type: 'customProperty'; definitionId: string };
 
 export interface TaskGroup {
   key: string;
@@ -17,8 +23,27 @@ export function groupTasks(
   tasks: Task[],
   groupBy: GroupByOption,
   projects: any[] = [],
-  profiles: any[] = []
+  profiles: any[] = [],
+  customPropertyDefinition?: CustomPropertyDefinition,
+  customPropertyValues?: CustomPropertyValue[]
 ): TaskGroup[] {
+  // Handle custom property grouping
+  if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+    if (!customPropertyDefinition || !customPropertyValues) {
+      console.warn('Custom property grouping requires definition and values');
+      return [{
+        key: 'all',
+        label: 'All Tasks',
+        tasks,
+        count: tasks.length,
+        completedCount: tasks.filter(t => t.status === 'Done').length,
+        sortOrder: 0
+      }];
+    }
+    return groupTasksByCustomProperty(tasks, customPropertyDefinition, customPropertyValues);
+  }
+
+  // Handle built-in grouping options
   switch (groupBy) {
     case 'project':
       return groupTasksByProject(tasks, projects);
@@ -214,6 +239,101 @@ export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskG
   });
 
   return groups.sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+// Group tasks by custom property value
+export function groupTasksByCustomProperty(
+  tasks: Task[],
+  propertyDefinition: CustomPropertyDefinition,
+  propertyValues: CustomPropertyValue[]
+): TaskGroup[] {
+  // Create a map of task_id -> value
+  const valueMap = new Map<string, string>();
+  propertyValues
+    .filter(pv => pv.definition_id === propertyDefinition.id)
+    .forEach(pv => {
+      valueMap.set(pv.task_id, pv.value);
+    });
+
+  // Group tasks by their property value
+  const groups = new Map<string, Task[]>();
+
+  tasks.forEach(task => {
+    const value = valueMap.get(task.id) || '(No Value)';
+    if (!groups.has(value)) {
+      groups.set(value, []);
+    }
+    groups.get(value)!.push(task);
+  });
+
+  // Convert to TaskGroup array
+  const result: TaskGroup[] = [];
+
+  // For 'select' type, use the defined options order
+  if (propertyDefinition.type === 'select' && Array.isArray(propertyDefinition.options)) {
+    propertyDefinition.options.forEach((option: string, index: number) => {
+      const tasksForOption = groups.get(option) || [];
+      if (tasksForOption.length > 0) {
+        result.push({
+          key: option,
+          label: option,
+          tasks: tasksForOption,
+          count: tasksForOption.length,
+          completedCount: tasksForOption.filter(t => t.status === 'Done').length,
+          sortOrder: index
+        });
+      }
+    });
+
+    // Add "No Value" group at the end if exists
+    const noValueTasks = groups.get('(No Value)') || [];
+    if (noValueTasks.length > 0) {
+      result.push({
+        key: '(No Value)',
+        label: '(No Value)',
+        tasks: noValueTasks,
+        count: noValueTasks.length,
+        completedCount: noValueTasks.filter(t => t.status === 'Done').length,
+        sortOrder: 9999
+      });
+    }
+  } else {
+    // For text/number/date, sort alphabetically/numerically
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+      if (a === '(No Value)') return 1;
+      if (b === '(No Value)') return -1;
+
+      if (propertyDefinition.type === 'number') {
+        const numA = parseFloat(a);
+        const numB = parseFloat(b);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+      }
+      if (propertyDefinition.type === 'date') {
+        const dateA = new Date(a);
+        const dateB = new Date(b);
+        if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+          return dateA.getTime() - dateB.getTime();
+        }
+      }
+      return a.localeCompare(b);
+    });
+
+    sortedKeys.forEach((key, index) => {
+      const tasksForKey = groups.get(key)!;
+      result.push({
+        key,
+        label: key,
+        tasks: tasksForKey,
+        count: tasksForKey.length,
+        completedCount: tasksForKey.filter(t => t.status === 'Done').length,
+        sortOrder: index
+      });
+    });
+  }
+
+  return result;
 }
 
 // Get available grouping options based on current tasks

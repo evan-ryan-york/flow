@@ -22,6 +22,8 @@ import {
   useAllProfiles,
   useUpdateTask,
   useTaskEditPanel,
+  useTasksPropertyValues,
+  useSetPropertyValue,
 } from "@perfect-task-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
@@ -93,6 +95,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // Task update hook for cross-group drops
   const updateTaskMutation = useUpdateTask();
+  const setPropertyValueMutation = useSetPropertyValue();
   const queryClient = useQueryClient();
 
   // Real-time synchronization
@@ -171,6 +174,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Use sorted server tasks as the base
   const baseTasks = sortedServerTasks;
 
+  // Fetch all custom property values for grouping support
+  const taskIds = useMemo(() => baseTasks.map(t => t.id), [baseTasks]);
+  const { data: allPropertyValues = [] } = useTasksPropertyValues(taskIds);
+
   // Apply filtering to tasks
   const filteredTasks = useMemo(() => {
     let filtered = [...baseTasks];
@@ -206,8 +213,21 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       ];
     }
 
-    return groupTasks(filteredTasks, groupBy, allProjects, allProfiles);
-  }, [filteredTasks, groupBy, allProjects, allProfiles]);
+    // Determine custom property definition if needed
+    let customPropDef: CustomPropertyDefinition | undefined;
+    if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+      customPropDef = allCustomProperties.find(p => p.id === groupBy.definitionId);
+    }
+
+    return groupTasks(
+      filteredTasks,
+      groupBy,
+      allProjects,
+      allProfiles,
+      customPropDef,
+      allPropertyValues
+    );
+  }, [filteredTasks, groupBy, allProjects, allProfiles, allCustomProperties, allPropertyValues]);
 
   // Final display tasks for TaskList component
   const displayTasks = filteredTasks;
@@ -286,6 +306,28 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       const groupLabel = over.data.current?.groupLabel;
 
       console.log("🔄 Cross-group drop:", draggedTask.name, "to group:", groupLabel);
+
+      // Check if grouping by custom property
+      if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+        // Update custom property value
+        setPropertyValueMutation.mutate(
+          {
+            taskId: draggedTask.id,
+            definitionId: groupBy.definitionId,
+            value: groupKey === '(No Value)' ? '' : groupKey,
+            userId,
+          },
+          {
+            onSuccess: () => {
+              console.log("✅ Custom property updated successfully to group:", groupLabel);
+            },
+            onError: (error) => {
+              console.error("❌ Failed to update custom property:", error);
+            },
+          }
+        );
+        return;
+      }
 
       // TanStack Query will handle updates automatically
 
@@ -371,6 +413,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           userId={userId}
           profiles={allProfiles}
           projects={allProjects}
+          customPropertyDefinitions={allCustomProperties}
           totalTasks={baseTasks.length}
           filteredTasks={filteredTasks.length}
         />

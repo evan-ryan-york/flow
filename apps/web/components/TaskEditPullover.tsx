@@ -121,14 +121,12 @@ export function TaskEditPullover({
       setLocalTaskName(task.name || '');
       setLocalDescription(task.description || '');
 
-      // Initialize custom property values at the same time
-      if (propertyValues.length > 0) {
-        const values: Record<string, string> = {};
-        propertyValues.forEach((pv) => {
-          values[pv.definition_id] = pv.value;
-        });
-        setCustomPropertyValues(values);
-      }
+      // Initialize custom property values - always reset, even if empty
+      const values: Record<string, string> = {};
+      propertyValues.forEach((pv) => {
+        values[pv.definition_id] = pv.value;
+      });
+      setCustomPropertyValues(values);
 
       initializedTaskIdRef.current = task.id;
     }

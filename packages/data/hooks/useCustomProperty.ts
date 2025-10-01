@@ -6,6 +6,7 @@ import {
   updateDefinition,
   deleteDefinition,
   getValuesForTask,
+  getValuesForTasks,
   setPropertyValue,
   deletePropertyValue,
   getProjectsForDefinition,
@@ -174,6 +175,15 @@ export const useTaskPropertyValues = (taskId: string) => {
   });
 };
 
+export const useTasksPropertyValues = (taskIds: string[]) => {
+  return useQuery({
+    queryKey: ['customProperties', 'values', 'tasks', taskIds.sort().join(',')],
+    queryFn: () => getValuesForTasks(taskIds),
+    enabled: taskIds.length > 0,
+    staleTime: 1000 * 30, // 30 seconds
+  });
+};
+
 export const useSetPropertyValue = () => {
   const queryClient = useQueryClient();
 
@@ -189,6 +199,11 @@ export const useSetPropertyValue = () => {
       // Invalidate task property values query to refetch
       queryClient.invalidateQueries({
         queryKey: CUSTOM_PROPERTY_KEYS.taskValues(updatedValue.task_id),
+      });
+
+      // Invalidate all bulk property values queries (for grouping)
+      queryClient.invalidateQueries({
+        queryKey: ['customProperties', 'values', 'tasks'],
       });
 
       // Also invalidate tasks queries to ensure UI updates for newly created tasks
