@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getDefinitionsForProject,
+  getAllDefinitionsForUser,
   createDefinition,
   updateDefinition,
   deleteDefinition,
@@ -19,6 +20,7 @@ const CUSTOM_PROPERTY_KEYS = {
   all: ["customProperties"] as const,
   definitions: ["customProperties", "definitions"] as const,
   projectDefinitions: (projectId: string) => ["customProperties", "definitions", "project", projectId] as const,
+  userDefinitions: (userId: string) => ["customProperties", "definitions", "user", userId] as const,
   values: ["customProperties", "values"] as const,
   taskValues: (taskId: string) => ["customProperties", "values", "task", taskId] as const,
 };
@@ -34,6 +36,15 @@ export const useProjectDefinitions = (projectId: string) => {
   });
 };
 
+export const useAllUserDefinitions = (userId: string) => {
+  return useQuery({
+    queryKey: CUSTOM_PROPERTY_KEYS.userDefinitions(userId),
+    queryFn: () => getAllDefinitionsForUser(userId),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes - definitions don't change often
+  });
+};
+
 export const useCreateDefinition = () => {
   const queryClient = useQueryClient();
 
@@ -45,6 +56,10 @@ export const useCreateDefinition = () => {
         queryClient.invalidateQueries({
           queryKey: CUSTOM_PROPERTY_KEYS.projectDefinitions(projectId),
         });
+      });
+      // Invalidate user definitions query
+      queryClient.invalidateQueries({
+        queryKey: CUSTOM_PROPERTY_KEYS.userDefinitions(newDefinition.created_by),
       });
     },
   });
@@ -91,6 +106,10 @@ export const useUpdateDefinition = () => {
         queryClient.invalidateQueries({
           queryKey: CUSTOM_PROPERTY_KEYS.projectDefinitions(projectId),
         });
+      });
+      // Invalidate user definitions query
+      queryClient.invalidateQueries({
+        queryKey: CUSTOM_PROPERTY_KEYS.userDefinitions(updatedDefinition.created_by),
       });
     },
   });

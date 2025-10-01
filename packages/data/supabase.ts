@@ -1,5 +1,6 @@
 // packages/data/supabase.ts
 import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 // Get Supabase config from environment variables
 // Support both browser and server environments
@@ -19,14 +20,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create a shared client for the data package
-// This will be used by services and can be overridden by specific implementations
-export const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: typeof window !== 'undefined', // Only detect in browser
-  },
-}) : null;
+// Use createBrowserClient for proper session management in browser environments
+export const supabase = supabaseUrl && supabaseAnonKey ? (
+  typeof window !== 'undefined'
+    ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+    : createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: false, // Server-side doesn't persist
+        },
+      })
+) : null;
 
 // Add auth state change listener (only in browser)
 if (typeof window !== 'undefined' && supabase) {

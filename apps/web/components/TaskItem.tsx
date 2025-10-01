@@ -4,6 +4,8 @@ import { useState, memo } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
 
+type BuiltInColumn = 'assigned_to' | 'due_date';
+
 interface TaskItemProps {
   task: Task;
   customPropertyDefinitions?: CustomPropertyDefinition[];
@@ -12,11 +14,12 @@ interface TaskItemProps {
   dragAttributes?: any;
   dragListeners?: any;
   userMapping?: Record<string, string>;
+  visibleBuiltInColumns?: Set<BuiltInColumn>;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {} }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']) }: TaskItemProps) {
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
   const isDone = task.status === 'Done';
   const updateTaskMutation = useUpdateTask();
@@ -73,7 +76,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
       isDragging ? 'bg-blue-50 shadow-lg' : ''
     } ${isDone ? 'opacity-75' : ''}`}>
       {/* Table Row Layout */}
-      <div className="flex items-center px-4 py-3 gap-4">
+      <div className="flex items-center gap-3 px-4 py-3">
         {/* Drag Handle */}
         <button
           {...dragListeners}
@@ -114,7 +117,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           )}
         </button>
 
-        {/* Name Column - Flexible */}
+        {/* Name Column */}
         <div className="flex-1 min-w-0">
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
@@ -135,27 +138,31 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         </div>
 
         {/* Assigned To Column - Fixed width */}
-        <div className="flex-shrink-0 w-24 text-right">
-          <span className="text-sm text-gray-600 truncate block">
-            {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
-          </span>
-        </div>
+        {visibleBuiltInColumns.has('assigned_to') && (
+          <div className="flex-shrink-0 w-24 text-right">
+            <span className="text-sm text-gray-600 truncate block">
+              {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
+            </span>
+          </div>
+        )}
 
         {/* Due Date Column - Fixed width */}
-        <div className="flex-shrink-0 w-28 text-right">
-          {task.due_date ? (
-            <span className={`text-sm truncate block ${
-              isOverdue && !isDone ? 'text-red-600 font-medium' : 'text-gray-600'
-            }`}>
-              {new Date(task.due_date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-              })}
-            </span>
-          ) : (
-            <span className="text-sm text-gray-400">—</span>
-          )}
-        </div>
+        {visibleBuiltInColumns.has('due_date') && (
+          <div className="flex-shrink-0 w-28 text-right">
+            {task.due_date ? (
+              <span className={`text-sm truncate block ${
+                isOverdue && !isDone ? 'text-red-600 font-medium' : 'text-gray-600'
+              }`}>
+                {new Date(task.due_date).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            ) : (
+              <span className="text-sm text-gray-400">—</span>
+            )}
+          </div>
+        )}
 
         {/* Custom Property Columns */}
         {customPropertyDefinitions.map((property) => {

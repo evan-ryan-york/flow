@@ -2,19 +2,13 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState, createContext, useContext, useEffect } from 'react';
-import { createClient } from './supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import { getSupabaseClient } from '@perfect-task-app/data';
 
-// Supabase Context
-const SupabaseContext = createContext<SupabaseClient | null>(null);
-
+// Re-export useSupabase for components that need direct Supabase access (auth, etc.)
+// This ensures everyone uses the same client instance
 export function useSupabase() {
-  const context = useContext(SupabaseContext);
-  if (!context) {
-    throw new Error('useSupabase must be used within a SupabaseProvider');
-  }
-  return context;
+  return getSupabaseClient();
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -47,7 +41,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
   }));
 
-  const [supabase] = useState(() => createClient());
+  // Use the shared Supabase client from the data package
+  const supabase = getSupabaseClient();
 
   // Handle auth state changes and invalidate queries
   useEffect(() => {
@@ -64,13 +59,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [supabase, queryClient]);
 
   return (
-    <SupabaseContext.Provider value={supabase}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-        {process.env.NODE_ENV === 'development' && (
-          <ReactQueryDevtools initialIsOpen={false} />
-        )}
-      </QueryClientProvider>
-    </SupabaseContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
+    </QueryClientProvider>
   );
 }

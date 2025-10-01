@@ -6,12 +6,13 @@ import { Label } from "../ui/label";
 import { Plus, EditPencil, Bin } from "iconoir-react";
 import {
   useProjectDefinitions,
-  useCreateDefinitionLegacy,
+  useAllUserDefinitions,
+  useCreateDefinition,
   useUpdateDefinition,
   useDeleteDefinition,
   useProjectsForUser,
 } from "@perfect-task-app/data";
-import type { CustomPropertyDefinition } from "@perfect-task-app/models";
+import type { CustomPropertyDefinition, CustomPropertyDefinitionWithProjects } from "@perfect-task-app/models";
 
 interface CustomPropertyManagerProps {
   projectId: string; // Still used for initial context, but now supports multi-select
@@ -37,14 +38,14 @@ export function CustomPropertyManager({
   open,
   onOpenChange,
 }: CustomPropertyManagerProps) {
-  const { data: properties = [], isLoading } = useProjectDefinitions(projectId);
+  const { data: allUserProperties = [], isLoading } = useAllUserDefinitions(userId);
   const { data: userProjects = [] } = useProjectsForUser(userId);
-  const createPropertyMutation = useCreateDefinitionLegacy();
+  const createPropertyMutation = useCreateDefinition();
   const updatePropertyMutation = useUpdateDefinition();
   const deletePropertyMutation = useDeleteDefinition();
 
   const [isCreating, setIsCreating] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<CustomPropertyDefinition | null>(null);
+  const [editingProperty, setEditingProperty] = useState<CustomPropertyDefinitionWithProjects | null>(null);
   const [formData, setFormData] = useState<PropertyFormData>({
     name: "",
     type: "text",
@@ -72,12 +73,12 @@ export function CustomPropertyManager({
     setIsCreating(true);
   };
 
-  const handleStartEdit = (property: CustomPropertyDefinition) => {
+  const handleStartEdit = (property: CustomPropertyDefinitionWithProjects) => {
     setFormData({
       name: property.name,
       type: property.type as PropertyType,
       options: Array.isArray(property.options) ? property.options : [],
-      selectedProjectIds: [property.project_id], // Use property's project
+      selectedProjectIds: property.project_ids, // Use property's assigned projects
     });
     setEditingProperty(property);
     setIsCreating(false);
@@ -105,14 +106,14 @@ export function CustomPropertyManager({
 
     setError(null);
 
-    // Check for duplicate names
+    // Check for duplicate names across all user properties
     const trimmedName = formData.name.trim();
-    const existingProperty = properties.find(
+    const existingProperty = allUserProperties.find(
       (p) => p.name.toLowerCase() === trimmedName.toLowerCase() && (!editingProperty || p.id !== editingProperty.id),
     );
 
     if (existingProperty) {
-      setError("A custom property with this name already exists for this project.");
+      setError("A custom property with this name already exists in your properties.");
       return;
     }
 
@@ -125,17 +126,18 @@ export function CustomPropertyManager({
             name: trimmedName,
             type: formData.type,
             options: formData.type === "select" ? formData.options : null,
+            project_ids: formData.selectedProjectIds,
           },
         });
       } else {
-        // Create new property (using first selected project for now)
+        // Create new property
         await createPropertyMutation.mutateAsync({
-          project_id: formData.selectedProjectIds[0] || projectId,
-          created_by: userId,
+          project_ids: formData.selectedProjectIds,
+          // Don't send created_by - the database will set it automatically
           name: trimmedName,
           type: formData.type,
           options: formData.type === "select" ? formData.options : null,
-          display_order: properties.length,
+          display_order: allUserProperties.length,
         });
       }
       resetForm();
@@ -173,44 +175,68 @@ export function CustomPropertyManager({
         <div className="space-y-4">
           {/* Existing Properties */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-900">Current Properties</h3>
+            <h3 className="text-sm font-medium text-gray-900">Your Custom Properties</h3>
             {isLoading ? (
               <div className="text-sm text-gray-500">Loading...</div>
-            ) : properties.length === 0 ? (
+            ) : allUserProperties.length === 0 ? (
               <div className="text-sm text-gray-500 p-4 border rounded-lg">
                 No custom properties yet. Create one below!
               </div>
             ) : (
               <div className="space-y-2">
-                {properties.map((property) => (
-                  <div key={property.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{property.name}</span>
-                        <span className="text-xs px-2 py-1 bg-gray-200 rounded">{property.type}</span>
-                      </div>
-                      {property.type === "select" && property.options && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          Options: {Array.isArray(property.options) ? property.options.join(", ") : ""}
+                {allUserProperties.map((property) => {
+                  // Find project names for the chips
+                  const assignedProjects = userProjects.filter((project) => property.project_ids.includes(project.id));
+                  const isAssignedToCurrentProject = property.project_ids.includes(projectId);
+
+                  return (
+                    <div
+                      key={property.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{property.name}</span>
+                          <span className="text-xs px-2 py-1 bg-gray-200 rounded">{property.type}</span>
+                          {isAssignedToCurrentProject && (
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">Current Project</span>
+                          )}
                         </div>
-                      )}
-                      {/* Multi-project display will be added after migration */}
+                        {property.type === "select" && property.options && (
+                          <div className="text-xs text-gray-600 mb-2">
+                            Options: {Array.isArray(property.options) ? property.options.join(", ") : ""}
+                          </div>
+                        )}
+                        {/* Project assignment chips */}
+                        <div className="flex flex-wrap gap-1">
+                          {assignedProjects.map((project) => (
+                            <span key={project.id} className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                              {project.name}
+                            </span>
+                          ))}
+                          {property.project_ids.length === 0 && (
+                            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                              No projects assigned
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => handleStartEdit(property)}>
+                          <EditPencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(property.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Bin className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => handleStartEdit(property)}>
-                        <EditPencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(property.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Bin className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
