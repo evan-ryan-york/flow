@@ -363,6 +363,30 @@ export const getValuesForTask = async (taskId: string): Promise<CustomPropertyVa
   }
 };
 
+export const getValuesForTasks = async (taskIds: string[]): Promise<CustomPropertyValue[]> => {
+  try {
+    if (taskIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("custom_property_values")
+      .select("*")
+      .in("task_id", taskIds);
+
+    if (error) {
+      throw new Error(`Failed to fetch property values for tasks: ${error.message}`);
+    }
+
+    // Zod validation
+    const validatedValues = CustomPropertyValueSchema.array().parse(data || []);
+    return validatedValues;
+  } catch (error) {
+    console.error("CustomPropertyService.getValuesForTasks error:", error);
+    throw error;
+  }
+};
+
 export const setPropertyValue = async (data: SetPropertyValueData): Promise<CustomPropertyValue> => {
   try {
     console.log("Setting property value:", data);

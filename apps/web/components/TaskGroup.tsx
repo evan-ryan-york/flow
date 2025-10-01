@@ -54,13 +54,21 @@ export function TaskGroup({
     droppableId: `group-${group.key}`
   });
 
+  // Check if drag-and-drop should be enabled for this grouping type
+  const isDragDropEnabled = groupBy && (
+    groupBy === 'project' ||
+    groupBy === 'status' ||
+    groupBy === 'assignee' ||
+    (typeof groupBy === 'object' && groupBy.type === 'customProperty')
+  );
+
   return (
     <div
       ref={setNodeRef}
       className={`mb-6 rounded-lg transition-all duration-200 ${
         isOver
           ? 'bg-blue-50 border-2 border-blue-300 shadow-lg'
-          : isDraggingActive && groupBy && groupBy !== 'dueDate'
+          : isDraggingActive && isDragDropEnabled
           ? 'bg-blue-50/30 border-2 border-blue-200 hover:border-blue-300'
           : 'border-2 border-transparent'
       }`}
@@ -70,7 +78,7 @@ export function TaskGroup({
         className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 cursor-pointer transition-colors ${
           isOver
             ? 'bg-blue-100'
-            : isDraggingActive && groupBy && groupBy !== 'dueDate'
+            : isDraggingActive && isDragDropEnabled
             ? 'bg-blue-50 hover:bg-blue-100'
             : 'bg-gray-50 hover:bg-gray-100'
         }`}
@@ -95,7 +103,7 @@ export function TaskGroup({
           {/* Group Title */}
           <h3 className="font-medium text-gray-900">
             {group.label}
-            {isDraggingActive && groupBy && groupBy !== 'dueDate' && !isOver && (
+            {isDraggingActive && isDragDropEnabled && !isOver && (
               <span className="ml-2 text-xs text-blue-500 font-normal opacity-75">
                 Drop anywhere in this section
               </span>
