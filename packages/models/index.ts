@@ -168,3 +168,62 @@ export const TimeBlockTaskSchema = z.object({
   added_at: z.string().datetime(),
 });
 export type TimeBlockTask = z.infer<typeof TimeBlockTaskSchema>;
+
+// ---------------------------------
+// 10. Google Calendar Connections
+// ---------------------------------
+export const GoogleCalendarConnectionSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  email: z.string().email(),
+  label: z.string().min(1).max(50),
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_at: z.string().datetime(),
+  requires_reauth: z.boolean().default(false).optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type GoogleCalendarConnection = z.infer<typeof GoogleCalendarConnectionSchema>;
+
+// ---------------------------------
+// 11. Calendar Subscriptions
+// ---------------------------------
+export const CalendarSubscriptionSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  connection_id: z.string().uuid(),
+  google_calendar_id: z.string(),
+  calendar_name: z.string(),
+  calendar_color: z.string().nullable(),
+  background_color: z.string().nullable(),
+  is_visible: z.boolean().default(true),
+  sync_enabled: z.boolean().default(true),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type CalendarSubscription = z.infer<typeof CalendarSubscriptionSchema>;
+
+// ---------------------------------
+// 12. Calendar Events
+// ---------------------------------
+export const CalendarEventSchema = z.object({
+  id: z.string().uuid(),
+  connection_id: z.string().uuid(),
+  subscription_id: z.string().uuid(),
+  google_calendar_event_id: z.string(),
+  google_calendar_id: z.string(),
+  user_id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  start_time: z.string().datetime(),
+  end_time: z.string().datetime(),
+  is_all_day: z.boolean().default(false),
+  location: z.string().nullable(),
+  color: z.string().nullable(),
+  last_synced_at: z.string().datetime(),
+  etag: z.string().nullable(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type CalendarEvent = z.infer<typeof CalendarEventSchema>;

@@ -308,7 +308,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       console.log("🔄 Cross-group drop:", draggedTask.name, "to group:", groupLabel);
 
       // Check if grouping by custom property
-      if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+      if (groupBy && typeof groupBy === 'object' && groupBy.type === 'customProperty') {
         // Update custom property value
         setPropertyValueMutation.mutate(
           {
