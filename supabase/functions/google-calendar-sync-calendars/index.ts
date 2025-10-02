@@ -12,7 +12,8 @@ async function refreshTokenIfNeeded(supabaseClient: any, connectionId: string) {
   const refreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-calendar-refresh-token`;
 
   try {
-    await fetch(refreshUrl, {
+    console.log('🔄 Attempting to refresh token for connection:', connectionId);
+    const response = await fetch(refreshUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
@@ -20,8 +21,15 @@ async function refreshTokenIfNeeded(supabaseClient: any, connectionId: string) {
       },
       body: JSON.stringify({ connectionId }),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Token refresh failed:", response.status, errorText);
+    } else {
+      console.log('✅ Token refreshed successfully');
+    }
   } catch (error) {
-    console.error("Error refreshing token:", error);
+    console.error("❌ Error refreshing token:", error);
     // Continue anyway - the token might still be valid
   }
 }

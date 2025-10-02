@@ -311,6 +311,13 @@ export function useSyncCalendarList() {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
+      console.log('🔍 Sync Calendar List Debug:', {
+        url: `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`,
+        hasToken: !!token,
+        tokenPrefix: token ? token.substring(0, 20) : 'NONE',
+        connectionId,
+      });
+
       const response = await fetch(
         `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`,
         {
@@ -323,14 +330,38 @@ export function useSyncCalendarList() {
         }
       );
 
+      console.log('🔍 Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🔍 Error response:', errorText);
         throw new Error('Calendar list sync failed');
       }
 
-      return response.json();
+      const result = await response.json();
+
+      // After syncing calendar list, trigger event sync
+      const eventSyncResponse = await fetch(
+        `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ connectionId }),
+        }
+      );
+
+      if (!eventSyncResponse.ok) {
+        console.error('Event sync failed after calendar list sync');
+      }
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
     },
   });
 }

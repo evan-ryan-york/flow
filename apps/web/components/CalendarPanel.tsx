@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, startOfDay, endOfDay, addDays } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useDroppable } from '@dnd-kit/core';
 import { useRouter } from 'next/navigation';
-import { Settings } from '@perfect-task-app/ui/components/Calendar/icons';
+import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
+import { useCalendarEvents, useTriggerEventSync } from '@perfect-task-app/data/hooks/useCalendar';
+import type { CalendarEvent } from '@perfect-task-app/models';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -25,30 +27,24 @@ interface CalendarPanelProps {
   userId: string;
 }
 
-// Mock events data - will integrate with real data later
-const mockEvents = [
-  {
-    id: '1',
-    title: 'Team Meeting',
-    start: new Date(2025, 8, 24, 10, 0), // Sept 24, 10:00 AM
-    end: new Date(2025, 8, 24, 11, 0),   // Sept 24, 11:00 AM
-    resource: { type: 'meeting', source: 'google' },
-  },
-  {
-    id: '2',
-    title: 'Work Time',
-    start: new Date(2025, 8, 24, 14, 0), // Sept 24, 2:00 PM
-    end: new Date(2025, 8, 24, 16, 0),   // Sept 24, 4:00 PM
-    resource: { type: 'work-block', tasks: ['1'] },
-  },
-  {
-    id: '3',
-    title: 'Focus Time',
-    start: new Date(2025, 8, 25, 9, 0),  // Sept 25, 9:00 AM
-    end: new Date(2025, 8, 25, 11, 0),   // Sept 25, 11:00 AM
-    resource: { type: 'work-block', tasks: [] },
-  },
-];
+// Transform CalendarEvent to react-big-calendar event format
+function transformCalendarEvent(event: CalendarEvent) {
+  return {
+    id: event.id,
+    title: event.title,
+    start: new Date(event.start_time),
+    end: new Date(event.end_time),
+    resource: {
+      type: 'google-event',
+      source: 'google',
+      description: event.description,
+      location: event.location,
+      color: event.color,
+      isAllDay: event.is_all_day,
+      googleCalendarId: event.google_calendar_id,
+    },
+  };
+}
 
 export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
   const router = useRouter();
@@ -59,7 +55,55 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
     id: 'calendar-panel',
   });
 
-  const events = useMemo(() => mockEvents, []);
+  // Calculate date range based on view and selected date
+  const dateRange = useMemo(() => {
+    if (view === 'day') {
+      return {
+        start: startOfDay(date),
+        end: endOfDay(date),
+      };
+    } else {
+      // Week view - get 7 days starting from current date
+      return {
+        start: startOfDay(date),
+        end: endOfDay(addDays(date, 6)),
+      };
+    }
+  }, [view, date]);
+
+  // Fetch calendar events
+  const { data: calendarEvents = [], isLoading, error } = useCalendarEvents(
+    dateRange.start,
+    dateRange.end,
+    { visibleOnly: true }
+  );
+
+  // Event sync mutation
+  const triggerEventSync = useTriggerEventSync();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('📅 CalendarPanel Debug:', {
+      dateRange,
+      calendarEventsCount: calendarEvents.length,
+      isLoading,
+      error: error?.message,
+      syncPending: triggerEventSync.isPending,
+    });
+  }, [calendarEvents, isLoading, error, dateRange]);
+
+  // Trigger initial event sync on mount if we have no events
+  React.useEffect(() => {
+    if (!isLoading && calendarEvents.length === 0) {
+      console.log('🔄 No events found, triggering initial sync...');
+      triggerEventSync.mutate(undefined);
+    }
+  }, []); // Only run once on mount
+
+  // Transform events for react-big-calendar
+  const events = useMemo(() => {
+    return calendarEvents.map(transformCalendarEvent);
+  }, [calendarEvents]);
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     // Create new work time block
@@ -97,14 +141,18 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
       };
     }
 
-    if (resource?.source === 'google') {
+    if (resource?.type === 'google-event') {
+      // Use the calendar's color if available, otherwise default to green
+      const bgColor = resource.color || '#10b981';
+
       return {
         style: {
-          backgroundColor: '#10b981',
-          borderColor: '#059669',
+          backgroundColor: bgColor,
+          borderColor: bgColor,
           color: 'white',
           borderRadius: '6px',
           border: 'none',
+          opacity: resource.isAllDay ? 0.8 : 1,
         },
       };
     }
@@ -126,6 +174,19 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
             >
               <Settings className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => triggerEventSync.mutate(undefined)}
+              disabled={triggerEventSync.isPending}
+              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
+              title="Sync Events"
+            >
+              <RefreshCw className={`h-4 w-4 ${triggerEventSync.isPending ? 'animate-spin' : ''}`} />
+            </button>
+            {events.length > 0 && (
+              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+                {events.length}
+              </span>
+            )}
           </div>
           <div className="flex gap-1">
             <button
@@ -181,7 +242,20 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <div className="flex flex-col items-center gap-2">
+              <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+              <span className="text-sm text-gray-600">Loading events...</span>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm z-10">
+            Failed to load events. Please try again.
+          </div>
+        )}
         <Calendar
           localizer={localizer}
           events={events}
@@ -203,6 +277,11 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
           max={new Date(0, 0, 0, 22, 0, 0)} // 10 PM
           dayLayoutAlgorithm="no-overlap"
         />
+        {!isLoading && !error && events.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-gray-400 text-sm">No events for this {view}</p>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
