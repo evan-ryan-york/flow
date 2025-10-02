@@ -57,14 +57,28 @@ export function useGoogleCalendarConnections() {
     queryFn: async () => {
       if (!supabase) throw new Error('Supabase client not initialized');
 
+      console.log('🔍 Fetching google_calendar_connections...');
       const { data, error } = await supabase
         .from('google_calendar_connections')
         .select('*')
         .order('created_at', { ascending: true });
 
+      console.log('🔍 Raw data:', data);
+      console.log('🔍 Error:', error);
+
       if (error) throw error;
 
-      return data?.map(conn => GoogleCalendarConnectionSchema.parse(conn)) || [];
+      try {
+        const parsed = data?.map(conn => {
+          console.log('🔍 Parsing connection:', conn);
+          return GoogleCalendarConnectionSchema.parse(conn);
+        }) || [];
+        console.log('🔍 Parsed connections:', parsed);
+        return parsed;
+      } catch (parseError) {
+        console.error('❌ Zod parsing error:', parseError);
+        throw parseError;
+      }
     },
   });
 }
@@ -77,6 +91,9 @@ export function useConnectGoogleCalendar() {
     mutationFn: async (label?: string) => {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
+
+      console.log('🔑 Session token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
+      console.log('🌐 Functions URL:', SUPABASE_FUNCTIONS_URL);
 
       const response = await fetch(
         `${SUPABASE_FUNCTIONS_URL}/google-calendar-oauth?action=initiate`,
@@ -99,9 +116,48 @@ export function useConnectGoogleCalendar() {
         localStorage.setItem('pending_calendar_label', label);
       }
 
-      // Redirect to Google OAuth
+      // Open OAuth in a popup window
       if (typeof window !== 'undefined') {
-        window.location.href = authUrl;
+        const width = 600;
+        const height = 700;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+
+        const popup = window.open(
+          authUrl,
+          'google-oauth',
+          `width=${width},height=${height},left=${left},top=${top},popup=yes`
+        );
+
+        // Listen for the OAuth success message from the popup
+        return new Promise((resolve, reject) => {
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'oauth-success') {
+              window.removeEventListener('message', handleMessage);
+              resolve(event.data.connectionId);
+            } else if (event.data?.type === 'oauth-error') {
+              window.removeEventListener('message', handleMessage);
+              reject(new Error(event.data.error));
+            }
+          };
+
+          window.addEventListener('message', handleMessage);
+
+          // Check if popup was blocked
+          if (!popup || popup.closed) {
+            window.removeEventListener('message', handleMessage);
+            reject(new Error('Popup was blocked. Please allow popups for this site.'));
+          }
+
+          // Monitor popup closure
+          const checkClosed = setInterval(() => {
+            if (popup?.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', handleMessage);
+              // Don't reject here - the message might have been sent
+            }
+          }, 500);
+        });
       }
     },
   });
@@ -169,6 +225,7 @@ export function useCalendarSubscriptions(connectionId?: string) {
     queryFn: async () => {
       if (!supabase) throw new Error('Supabase client not initialized');
 
+      console.log('🔍 Fetching subscriptions for connectionId:', connectionId);
       let query = supabase
         .from('calendar_subscriptions')
         .select('*')
@@ -179,6 +236,8 @@ export function useCalendarSubscriptions(connectionId?: string) {
       }
 
       const { data, error } = await query;
+      console.log('🔍 Subscriptions data:', data);
+      console.log('🔍 Subscriptions error:', error);
 
       if (error) throw error;
 

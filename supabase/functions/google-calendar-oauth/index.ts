@@ -14,31 +14,67 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+
+    // Check if this is an OAuth callback (has code and state params)
+    const isCallback = code && state;
+
+    // Create Supabase client - different handling for callback vs initiate
+    let supabaseClient;
+    let user;
+
+    if (isCallback) {
+      // Callback flow - no auth header needed, use service role to verify state
+      supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+    } else {
+      // Initiate flow - requires authenticated user
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({
+          error: "Unauthorized",
+          details: "Missing Authorization header"
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      );
+
+      // Get authenticated user - pass the JWT token explicitly
+      const token = authHeader.replace("Bearer ", "");
+      const {
+        data: { user: authUser },
+        error: userError,
+      } = await supabaseClient.auth.getUser(token);
+
+      if (userError || !authUser) {
+        console.error("Auth error:", userError);
+        return new Response(JSON.stringify({
+          error: "Unauthorized",
+          details: userError?.message || "No user found"
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      user = authUser;
+    }
 
     // INITIATE OAUTH FLOW
     if (action === "initiate") {
@@ -95,10 +131,32 @@ serve(async (req) => {
       // Handle OAuth denial
       if (error) {
         return new Response(
-          `<html><body><script>window.close(); window.opener?.postMessage({ type: 'oauth-error', error: '${error}' }, '*');</script><p>Authorization failed. You can close this window.</p></body></html>`,
+          `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Authorization Failed</title>
+</head>
+<body>
+  <script>
+    try {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'oauth-error',
+          error: '${error}'
+        }, '*');
+      }
+      window.close();
+    } catch (e) {
+      console.error('Error closing window:', e);
+    }
+  </script>
+  <p>Authorization failed. You can close this window.</p>
+</body>
+</html>`,
           {
             status: 400,
-            headers: { ...corsHeaders, "Content-Type": "text/html" },
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
           }
         );
       }
@@ -229,32 +287,115 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("Error inserting connection:", insertError);
+
+        // Check if it's a duplicate key error
+        if (insertError.code === '23505') {
+          return new Response(
+            `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Already Connected</title>
+</head>
+<body>
+  <script>
+    try {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'oauth-error',
+          error: 'This email address is already connected to your account.'
+        }, '*');
+      }
+      setTimeout(() => window.close(), 2000);
+    } catch (e) {
+      console.error('Error closing window:', e);
+    }
+  </script>
+  <p>This email address is already connected to your account.</p>
+  <p>This window will close automatically...</p>
+</body>
+</html>`,
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+            }
+          );
+        }
+
+        // Other database errors
+        console.error("Insert details:", {
+          user_id: stateData.user_id,
+          email: email,
+          expiresAt: expiresAt,
+          hasAccessToken: !!tokens.access_token,
+          hasRefreshToken: !!tokens.refresh_token
+        });
         return new Response(
-          JSON.stringify({ error: "Failed to save connection" }),
+          `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Connection Failed</title>
+</head>
+<body>
+  <script>
+    try {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'oauth-error',
+          error: 'Failed to save calendar connection. Please try again.'
+        }, '*');
+      }
+      setTimeout(() => window.close(), 2000);
+    } catch (e) {
+      console.error('Error closing window:', e);
+    }
+  </script>
+  <p>Failed to save calendar connection. Please try again.</p>
+  <p>This window will close automatically...</p>
+</body>
+</html>`,
           {
             status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
           }
         );
       }
 
-      // Trigger initial calendar list fetch
-      const syncCalendarsUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-calendar-sync-calendars`;
-
-      fetch(syncCalendarsUrl, {
-        method: "POST",
-        headers: {
-          Authorization: req.headers.get("Authorization")!,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ connectionId: connection.id }),
-      }).catch((err) => console.error("Error triggering calendar sync:", err));
+      // Trigger initial calendar list fetch (skip for now, will be done by client)
+      // Note: In callback flow, we don't have an auth token to pass
+      // The client will trigger this sync after receiving the success message
 
       // Return success HTML that closes the popup and notifies parent
       return new Response(
-        `<html><body><script>window.close(); window.opener?.postMessage({ type: 'oauth-success', connectionId: '${connection.id}' }, '*');</script><p>Authorization successful! You can close this window.</p></body></html>`,
+        `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Authorization Successful</title>
+</head>
+<body>
+  <script>
+    try {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'oauth-success',
+          connectionId: '${connection.id}'
+        }, '*');
+      }
+      window.close();
+    } catch (e) {
+      console.error('Error closing window:', e);
+    }
+  </script>
+  <p>Authorization successful! You can close this window.</p>
+</body>
+</html>`,
         {
-          headers: { ...corsHeaders, "Content-Type": "text/html" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/html; charset=utf-8"
+          },
         }
       );
     }

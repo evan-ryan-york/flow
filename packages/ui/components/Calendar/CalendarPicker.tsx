@@ -6,13 +6,14 @@ import { cn } from "../../lib/utils"
 import { Checkbox } from "../ui/checkbox"
 
 interface CalendarPickerProps {
+  connectionId?: string
   onSelectionChange?: (visibleSubscriptionIds: string[]) => void
   className?: string
 }
 
-export function CalendarPicker({ onSelectionChange, className }: CalendarPickerProps) {
+export function CalendarPicker({ connectionId, onSelectionChange, className }: CalendarPickerProps) {
   const { data: connections, isLoading: connectionsLoading } = useGoogleCalendarConnections()
-  const { data: subscriptions, isLoading: subscriptionsLoading } = useCalendarSubscriptions()
+  const { data: subscriptions, isLoading: subscriptionsLoading } = useCalendarSubscriptions(connectionId)
   const toggleVisibility = useToggleCalendarVisibility()
 
   // Group subscriptions by connection

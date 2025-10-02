@@ -149,10 +149,11 @@ serve(async (req) => {
     // Get user if authenticated (not service role)
     let userId: string | undefined;
     if (!isServiceRole) {
+      const token = authHeader?.replace("Bearer ", "");
       const {
         data: { user },
         error: userError,
-      } = await supabaseClient.auth.getUser();
+      } = await supabaseClient.auth.getUser(token);
 
       if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {

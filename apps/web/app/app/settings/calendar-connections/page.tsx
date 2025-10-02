@@ -25,12 +25,20 @@ import { CalendarPicker } from "@perfect-task-app/ui/components/Calendar"
 import { Plus, Trash2, Edit2, RefreshCw, Check, X } from "@perfect-task-app/ui/components/Calendar/icons"
 
 export default function CalendarConnectionsPage() {
-  const { data: connections, isLoading: connectionsLoading } = useGoogleCalendarConnections()
+  const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useGoogleCalendarConnections()
   const { data: subscriptions } = useCalendarSubscriptions()
   const connectCalendar = useConnectGoogleCalendar()
   const disconnectCalendar = useDisconnectGoogleCalendar()
   const updateLabel = useUpdateConnectionLabel()
   const syncCalendarList = useSyncCalendarList()
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('📊 Connections:', connections)
+    console.log('📊 Loading:', connectionsLoading)
+    console.log('📊 Error:', connectionsError)
+    console.log('📊 Subscriptions:', subscriptions)
+  }, [connections, connectionsLoading, connectionsError, subscriptions])
 
   const [connectDialogOpen, setConnectDialogOpen] = React.useState(false)
   const [newLabel, setNewLabel] = React.useState("")
@@ -38,7 +46,11 @@ export default function CalendarConnectionsPage() {
   const [editLabel, setEditLabel] = React.useState("")
 
   const handleConnect = () => {
-    connectCalendar.mutate(newLabel || undefined)
+    connectCalendar.mutate(newLabel || undefined, {
+      onError: (error) => {
+        alert(error.message || 'Failed to connect calendar')
+      }
+    })
     setConnectDialogOpen(false)
     setNewLabel("")
   }
@@ -73,9 +85,11 @@ export default function CalendarConnectionsPage() {
   const handleSyncCalendars = (connectionId: string) => {
     syncCalendarList.mutate(connectionId, {
       onSuccess: () => {
+        console.log('✅ Sync successful, invalidating queries...')
         alert('Calendar list synced successfully!')
       },
       onError: (error) => {
+        console.error('❌ Sync failed:', error)
         alert(`Failed to sync: ${error.message}`)
       }
     })
@@ -235,7 +249,7 @@ export default function CalendarConnectionsPage() {
 
                 <CardContent>
                   {/* Calendar list for this connection */}
-                  <CalendarPicker />
+                  <CalendarPicker connectionId={connection.id} />
                 </CardContent>
               </Card>
             ))}

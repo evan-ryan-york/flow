@@ -179,10 +179,10 @@ export const GoogleCalendarConnectionSchema = z.object({
   label: z.string().min(1).max(50),
   access_token: z.string(),
   refresh_token: z.string(),
-  expires_at: z.string().datetime(),
+  expires_at: z.string(),
   requires_reauth: z.boolean().default(false).optional(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type GoogleCalendarConnection = z.infer<typeof GoogleCalendarConnectionSchema>;
 
@@ -199,8 +199,8 @@ export const CalendarSubscriptionSchema = z.object({
   background_color: z.string().nullable(),
   is_visible: z.boolean().default(true),
   sync_enabled: z.boolean().default(true),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type CalendarSubscription = z.infer<typeof CalendarSubscriptionSchema>;
 
@@ -216,14 +216,14 @@ export const CalendarEventSchema = z.object({
   user_id: z.string().uuid(),
   title: z.string(),
   description: z.string().nullable(),
-  start_time: z.string().datetime(),
-  end_time: z.string().datetime(),
+  start_time: z.string(),
+  end_time: z.string(),
   is_all_day: z.boolean().default(false),
   location: z.string().nullable(),
   color: z.string().nullable(),
-  last_synced_at: z.string().datetime(),
+  last_synced_at: z.string(),
   etag: z.string().nullable(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type CalendarEvent = z.infer<typeof CalendarEventSchema>;
