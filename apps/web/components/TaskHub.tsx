@@ -65,16 +65,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Fallback to original hook until database migration is applied
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
 
-  // DEBUG: Check if TaskHub is rendering properly
-  console.log("🔍 TaskHub RENDER:", {
-    selectedProjectIds,
-    userId,
-    serverTasks: serverTasks.length,
-    isLoading,
-    error: error?.message,
-    hasProjects: selectedProjectIds.length > 0,
-  });
-
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
   const { data: allProfiles = [] } = useAllProfiles();
@@ -243,7 +233,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     });
 
     if (groupCollisions.length > 0) {
-      console.log("🎯 Group collision detected:", groupCollisions[0]);
       return groupCollisions;
     }
 
@@ -269,22 +258,12 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     const { active, over } = event;
     setDraggedTask(null);
 
-    console.log("🔍 DRAG END DEBUG:", {
-      activeId: active.id,
-      overId: over?.id,
-      overData: over?.data?.current,
-      overType: over?.data?.current?.type,
-      hasOver: !!over,
-    });
-
     if (!over || active.id === over.id) {
-      console.log("🚫 Early return: no over or same id");
       return;
     }
 
     const draggedTask = displayTasks.find((task) => task.id === active.id);
     if (!draggedTask) {
-      console.log("🚫 No dragged task found");
       return;
     }
 
@@ -293,19 +272,9 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     const droppedOnTask = displayTasks.find((task) => task.id === over.id);
     const isGroupDrop = over.data?.current?.type === "group";
 
-    console.log("🔍 Drop target analysis:", {
-      droppedOnTask: !!droppedOnTask,
-      overType: over.data?.current?.type,
-      groupKey: over.data?.current?.groupKey,
-      groupBy: groupBy,
-      isGroupDrop: isGroupDrop,
-    });
-
     if (isGroupDrop) {
       const groupKey = over.data.current?.groupKey;
       const groupLabel = over.data.current?.groupLabel;
-
-      console.log("🔄 Cross-group drop:", draggedTask.name, "to group:", groupLabel);
 
       // Check if grouping by custom property
       if (groupBy && typeof groupBy === 'object' && groupBy.type === 'customProperty') {
@@ -316,14 +285,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             definitionId: groupBy.definitionId,
             value: groupKey === '(No Value)' ? '' : groupKey,
             userId,
-          },
-          {
-            onSuccess: () => {
-              console.log("✅ Custom property updated successfully to group:", groupLabel);
-            },
-            onError: (error) => {
-              console.error("❌ Failed to update custom property:", error);
-            },
           }
         );
         return;
@@ -347,7 +308,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         case "dueDate":
           // Due date grouping is more complex - we can't directly assign a date from group key
           // For now, we'll skip due date group drops
-          console.warn("Due date group drops not yet supported");
           return;
         default:
           return;
@@ -358,22 +318,13 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         {
           taskId: draggedTask.id,
           updates,
-        },
-        {
-          onSuccess: () => {
-            console.log("✅ Task moved successfully to group:", groupLabel);
-          },
-          onError: (error) => {
-            console.error("❌ Failed to move task:", error);
-          },
-        },
+        }
       );
 
       return;
     }
 
     // Task reordering within the same list - currently no persistence
-    console.log("🔄 Task reorder (visual only):", draggedTask.name, "moved within list");
   };
 
   if (error) {
