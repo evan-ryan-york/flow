@@ -33,21 +33,31 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization token from the request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: { Authorization: authHeader },
         },
       }
     );
 
-    // Get authenticated user
+    // Get authenticated user - pass the JWT token explicitly
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -134,6 +144,9 @@ serve(async (req) => {
     const calendarListData = await calendarListResponse.json();
     const calendars = calendarListData.items || [];
 
+    console.log(`📅 Found ${calendars.length} calendars from Google`);
+    console.log('📅 Calendar IDs:', calendars.map((c: any) => c.id));
+
     // Get existing subscriptions for this connection
     const { data: existingSubscriptions } = await supabaseClient
       .from("calendar_subscriptions")
@@ -154,6 +167,7 @@ serve(async (req) => {
       const existing = existingMap.get(calendar.id);
 
       const subscriptionData = {
+        user_id: user.id, // Required for RLS policy
         connection_id: connectionId,
         google_calendar_id: calendar.id,
         calendar_name: calendar.summary || "(No name)",
@@ -177,7 +191,8 @@ serve(async (req) => {
       }
     });
 
-    await Promise.all(upsertPromises);
+    const upsertResults = await Promise.all(upsertPromises);
+    console.log('📅 Upsert results:', upsertResults.map(r => ({ error: r.error, count: r.data?.length })));
 
     // Delete subscriptions for calendars that no longer exist in Google
     const subscriptionsToDelete = (existingSubscriptions || []).filter(

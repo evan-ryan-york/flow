@@ -5,6 +5,8 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useDroppable } from '@dnd-kit/core';
+import { useRouter } from 'next/navigation';
+import { Settings } from '@perfect-task-app/ui/components/Calendar/icons';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -49,6 +51,7 @@ const mockEvents = [
 ];
 
 export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
+  const router = useRouter();
   const [view, setView] = useState<'day' | 'week'>('day');
   const [date, setDate] = useState(new Date());
 
@@ -114,7 +117,16 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Calendar</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-gray-900">Calendar</h2>
+            <button
+              onClick={() => router.push('/app/settings/calendar-connections')}
+              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+              title="Calendar Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
           <div className="flex gap-1">
             <button
               onClick={() => setView('day')}
