@@ -96,14 +96,9 @@ export function CalendarHeader({
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToday}
-          className="px-3"
-        >
-          Today
-        </Button>
+        <h2 className="text-lg font-semibold">
+          {formatDateDisplay()}
+        </h2>
 
         <Button
           variant="outline"
@@ -113,10 +108,6 @@ export function CalendarHeader({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
-
-        <h2 className="text-lg font-semibold ml-4">
-          {formatDateDisplay()}
-        </h2>
       </div>
 
       <div className="flex items-center gap-2">
