@@ -452,7 +452,13 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({
+    id: task.id,
+    // Disable the default drag activation - we'll use the handle explicitly
+    activationConstraint: {
+      distance: 5, // Require 5px movement before activating drag
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

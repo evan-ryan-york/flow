@@ -8,3 +8,5 @@ export * from './services/taskService';
 export * from './services/customPropertyService';
 export * from './services/viewService';
 export * from './services/timeBlockService';
+export * from './services/timeBlockTaskService';
+export * from './hooks/useTimeBlockTasks';

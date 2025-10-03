@@ -301,6 +301,60 @@ export function useToggleCalendarVisibility() {
 }
 
 /**
+ * Mutation: Update calendar subscription color
+ */
+export function useUpdateCalendarColor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ subscriptionId, color }: { subscriptionId: string; color: string }) => {
+      if (!supabase) throw new Error('Supabase client not initialized');
+
+      const { error } = await supabase
+        .from('calendar_subscriptions')
+        .update({ background_color: color })
+        .eq('id', subscriptionId);
+
+      if (error) throw error;
+    },
+    onMutate: async ({ subscriptionId, color }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+
+      // Snapshot the previous value
+      const previousSubscriptions = queryClient.getQueryData(CALENDAR_KEYS.subscriptions.all);
+
+      // Optimistically update
+      queryClient.setQueriesData(
+        { queryKey: CALENDAR_KEYS.subscriptions.all },
+        (old: CalendarSubscription[] | undefined) => {
+          if (!old) return old;
+          return old.map(sub =>
+            sub.id === subscriptionId ? { ...sub, background_color: color } : sub
+          );
+        }
+      );
+
+      return { previousSubscriptions };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousSubscriptions) {
+        queryClient.setQueryData(
+          CALENDAR_KEYS.subscriptions.all,
+          context.previousSubscriptions
+        );
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
+    },
+  });
+}
+
+/**
  * Mutation: Trigger calendar list sync from Google
  */
 export function useSyncCalendarList() {

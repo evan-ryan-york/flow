@@ -71,7 +71,25 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
   const handleDragHandleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Drag functionality handled by parent DraggableTaskItem
+    // Drag handle for @dnd-kit sorting is passed via dragListeners
+  };
+
+  // HTML5 drag handlers for dragging to calendar
+  const handleCalendarDragStart = (e: React.DragEvent) => {
+    // Set data for calendar drop
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('application/json', JSON.stringify(task));
+
+    // Dispatch custom event for calendar to listen to
+    window.dispatchEvent(new CustomEvent('task-drag-start', { detail: task }));
+
+    console.log('🎯 Task drag to calendar started:', task.name);
+  };
+
+  const handleCalendarDragEnd = () => {
+    // Notify calendar that drag ended
+    window.dispatchEvent(new CustomEvent('task-drag-end'));
+    console.log('🎯 Task drag to calendar ended');
   };
 
   return (
@@ -124,8 +142,14 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           )}
         </button>
 
-        {/* Name Column */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
+        {/* Name Column - draggable to calendar */}
+        <div
+          draggable
+          onDragStart={handleCalendarDragStart}
+          onDragEnd={handleCalendarDragEnd}
+          className="flex-1 min-w-0 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          title="Drag to calendar to schedule"
+        >
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
@@ -140,6 +164,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
               }}
               className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
               title="Edit task"
+              draggable={false}
             >
               <EditPencil className="w-4 h-4" />
             </button>
