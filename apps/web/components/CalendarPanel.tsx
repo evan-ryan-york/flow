@@ -7,8 +7,9 @@ import { enUS } from 'date-fns/locale';
 import { useDroppable } from '@dnd-kit/core';
 import { useRouter } from 'next/navigation';
 import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
-import { useCalendarEvents, useTriggerEventSync } from '@perfect-task-app/data/hooks/useCalendar';
-import type { CalendarEvent } from '@perfect-task-app/models';
+import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
+import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
+import type { CalendarEvent, TimeBlock } from '@perfect-task-app/models';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -46,7 +47,21 @@ function transformCalendarEvent(event: CalendarEvent) {
   };
 }
 
-export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
+// Transform TimeBlock to react-big-calendar event format
+function transformTimeBlock(timeBlock: TimeBlock) {
+  return {
+    id: timeBlock.id,
+    title: timeBlock.title,
+    start: new Date(timeBlock.start_time),
+    end: new Date(timeBlock.end_time),
+    resource: {
+      type: 'work-block',
+      tasks: [],
+    },
+  };
+}
+
+export function CalendarPanel({ userId }: CalendarPanelProps) {
   const router = useRouter();
   const [view, setView] = useState<'day' | 'week'>('day');
   const [date, setDate] = useState(new Date());
@@ -71,59 +86,148 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
     }
   }, [view, date]);
 
+  // Calculate ISO date range for time blocks
+  const isoDateRange = useMemo(() => ({
+    start: dateRange.start.toISOString(),
+    end: dateRange.end.toISOString(),
+  }), [dateRange]);
+
   // Fetch calendar events
-  const { data: calendarEvents = [], isLoading, error } = useCalendarEvents(
+  const { data: calendarEvents = [], isLoading: isLoadingEvents, error: eventsError } = useCalendarEvents(
     dateRange.start,
     dateRange.end,
     { visibleOnly: true }
   );
 
+  // Fetch time blocks
+  const { data: timeBlocks = [], isLoading: isLoadingBlocks, error: blocksError } = useUserTimeBlocks(
+    userId,
+    isoDateRange
+  );
+
+  // Fetch calendar connections and subscriptions
+  const { data: connections = [] } = useGoogleCalendarConnections();
+  const { data: subscriptions = [] } = useCalendarSubscriptions();
+
   // Event sync mutation
   const triggerEventSync = useTriggerEventSync();
+
+  // Time block mutations
+  const createTimeBlock = useCreateTimeBlock();
+  const deleteTimeBlock = useDeleteTimeBlock();
+
+  const isLoading = isLoadingEvents || isLoadingBlocks;
+  const error = eventsError || blocksError;
 
   // Debug logging
   React.useEffect(() => {
     console.log('📅 CalendarPanel Debug:', {
       dateRange,
       calendarEventsCount: calendarEvents.length,
+      timeBlocksCount: timeBlocks.length,
       isLoading,
       error: error?.message,
       syncPending: triggerEventSync.isPending,
     });
-  }, [calendarEvents, isLoading, error, dateRange]);
+  }, [calendarEvents, timeBlocks, isLoading, error, dateRange]);
 
-  // Trigger initial event sync on mount if we have no events
+  // Trigger automatic event sync when needed
+  const [lastAutoSync, setLastAutoSync] = React.useState<Date | null>(null);
+  const [previousVisibleCount, setPreviousVisibleCount] = React.useState(0);
+
+  // Count visible calendars
+  const visibleCalendarCount = React.useMemo(() => {
+    return subscriptions.filter(sub => sub.is_visible).length;
+  }, [subscriptions]);
+
   React.useEffect(() => {
-    if (!isLoading && calendarEvents.length === 0) {
-      console.log('🔄 No events found, triggering initial sync...');
+    // Auto-sync conditions:
+    // 1. Not currently loading
+    // 2. Have at least one connection
+    // 3. Haven't auto-synced in the last 5 minutes (or never synced)
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    const needsSync = !isLoading &&
+                     connections.length > 0 &&
+                     (!lastAutoSync || lastAutoSync < fiveMinutesAgo);
+
+    if (needsSync) {
+      console.log('🔄 Triggering automatic event sync...', {
+        connectionsCount: connections.length,
+        eventsCount: calendarEvents.length,
+        lastSync: lastAutoSync
+      });
+      triggerEventSync.mutate(undefined, {
+        onSuccess: () => {
+          setLastAutoSync(new Date());
+        }
+      });
+    }
+  }, [isLoading, connections.length]); // Only depend on loading state and connection count
+
+  // Sync when visible calendars change (user toggles visibility)
+  React.useEffect(() => {
+    if (previousVisibleCount > 0 && visibleCalendarCount > previousVisibleCount) {
+      console.log('🔄 New calendar made visible, triggering sync...', {
+        previousCount: previousVisibleCount,
+        currentCount: visibleCalendarCount
+      });
       triggerEventSync.mutate(undefined);
     }
-  }, []); // Only run once on mount
+    setPreviousVisibleCount(visibleCalendarCount);
+  }, [visibleCalendarCount]);
 
-  // Transform events for react-big-calendar
+  // Transform and merge events for react-big-calendar
   const events = useMemo(() => {
-    return calendarEvents.map(transformCalendarEvent);
-  }, [calendarEvents]);
+    const googleEvents = calendarEvents.map(transformCalendarEvent);
+    const workBlocks = timeBlocks.map(transformTimeBlock);
+    return [...googleEvents, ...workBlocks];
+  }, [calendarEvents, timeBlocks]);
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     // Create new work time block
     const title = prompt('Enter work block title:');
     if (title) {
-      const newEvent = {
-        id: `work-${Date.now()}`,
+      createTimeBlock.mutate({
         title,
-        start,
-        end,
-        resource: { type: 'work-block', tasks: [] },
-      };
-      console.log('Creating work block:', newEvent);
-      // TODO: Integrate with real time block creation
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+      }, {
+        onSuccess: (newBlock) => {
+          console.log('✅ Work block created successfully:', newBlock);
+        },
+        onError: (error) => {
+          console.error('❌ Failed to create work block:', error);
+          alert('Failed to create work block. Please try again.');
+        },
+      });
     }
   };
 
   const handleSelectEvent = (event: any) => {
     console.log('Selected event:', event);
-    // TODO: Show event details or edit modal
+
+    // Only allow deletion of work blocks (not Google Calendar events)
+    if (event.resource?.type === 'work-block') {
+      const confirmDelete = window.confirm(
+        `Delete work block "${event.title}"?\n\nThis action cannot be undone.`
+      );
+
+      if (confirmDelete) {
+        deleteTimeBlock.mutate(event.id, {
+          onSuccess: () => {
+            console.log('✅ Work block deleted successfully');
+          },
+          onError: (error) => {
+            console.error('❌ Failed to delete work block:', error);
+            alert('Failed to delete work block. Please try again.');
+          },
+        });
+      }
+    } else if (event.resource?.type === 'google-event') {
+      // For Google Calendar events, just show info (no deletion)
+      alert(`Google Calendar Event: ${event.title}\n\nTo edit or delete this event, please use Google Calendar.`);
+    }
   };
 
   const eventStyleGetter = (event: any) => {
@@ -136,7 +240,8 @@ export function CalendarPanel({ userId: _userId }: CalendarPanelProps) {
           borderColor: '#2563eb',
           color: 'white',
           borderRadius: '6px',
-          border: 'none',
+          border: '2px solid #1d4ed8',
+          fontWeight: '600',
         },
       };
     }

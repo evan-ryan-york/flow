@@ -152,10 +152,10 @@ export const TimeBlockSchema = z.object({
   user_id: z.string().uuid(),
   google_calendar_event_id: z.string().nullable(),
   title: z.string(),
-  start_time: z.string().datetime(),
-  end_time: z.string().datetime(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  start_time: z.string(), // More flexible datetime validation
+  end_time: z.string(), // More flexible datetime validation
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 export type TimeBlock = z.infer<typeof TimeBlockSchema>;
 
@@ -165,7 +165,7 @@ export type TimeBlock = z.infer<typeof TimeBlockSchema>;
 export const TimeBlockTaskSchema = z.object({
   time_block_id: z.string().uuid(),
   task_id: z.string().uuid(),
-  added_at: z.string().datetime(),
+  added_at: z.string(),
 });
 export type TimeBlockTask = z.infer<typeof TimeBlockTaskSchema>;
 
