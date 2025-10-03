@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import {
   useGoogleCalendarConnections,
   useConnectGoogleCalendar,
@@ -25,6 +26,7 @@ import { CalendarPicker } from "@perfect-task-app/ui/components/Calendar"
 import { Plus, Trash2, Edit2, RefreshCw, Check, X } from "@perfect-task-app/ui/components/Calendar/icons"
 
 export default function CalendarConnectionsPage() {
+  const router = useRouter()
   const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useGoogleCalendarConnections()
   const { data: subscriptions } = useCalendarSubscriptions()
   const connectCalendar = useConnectGoogleCalendar()
@@ -111,6 +113,21 @@ export default function CalendarConnectionsPage() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/app')}
+          className="mb-4 -ml-2"
+        >
+          <svg
+            className="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to App
+        </Button>
         <h1 className="text-3xl font-bold mb-2">Calendar Connections</h1>
         <p className="text-muted-foreground">
           Manage your connected Google Calendar accounts

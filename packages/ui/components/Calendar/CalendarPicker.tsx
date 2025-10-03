@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useGoogleCalendarConnections, useCalendarSubscriptions, useToggleCalendarVisibility } from "@perfect-task-app/data"
+import { useGoogleCalendarConnections, useCalendarSubscriptions, useToggleCalendarVisibility, useUpdateCalendarColor } from "@perfect-task-app/data"
 import { cn } from "../../lib/utils"
 import { Checkbox } from "../ui/checkbox"
 
@@ -15,6 +15,8 @@ export function CalendarPicker({ connectionId, onSelectionChange, className }: C
   const { data: connections, isLoading: connectionsLoading } = useGoogleCalendarConnections()
   const { data: subscriptions, isLoading: subscriptionsLoading } = useCalendarSubscriptions(connectionId)
   const toggleVisibility = useToggleCalendarVisibility()
+  const updateColor = useUpdateCalendarColor()
+  const [editingColorId, setEditingColorId] = React.useState<string | null>(null)
 
   // Group subscriptions by connection
   const subscriptionsByConnection = React.useMemo(() => {
@@ -79,9 +81,9 @@ export function CalendarPicker({ connectionId, onSelectionChange, className }: C
 
             <div className="ml-2 space-y-2">
               {connectionSubs.map(subscription => (
-                <label
+                <div
                   key={subscription.id}
-                  className="flex items-center gap-2 cursor-pointer hover:bg-accent/50 p-2 rounded-md transition-colors"
+                  className="flex items-center gap-2 hover:bg-accent/50 p-2 rounded-md transition-colors"
                 >
                   <Checkbox
                     checked={subscription.is_visible}
@@ -92,16 +94,30 @@ export function CalendarPicker({ connectionId, onSelectionChange, className }: C
                       })
                     }}
                   />
-                  <div
-                    className="w-3 h-3 rounded-sm flex-shrink-0"
-                    style={{
-                      backgroundColor: subscription.background_color || subscription.calendar_color || '#4285f4'
-                    }}
-                  />
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={subscription.background_color || subscription.calendar_color || '#4285f4'}
+                      onChange={(e) => {
+                        updateColor.mutate({
+                          subscriptionId: subscription.id,
+                          color: e.target.value,
+                        })
+                      }}
+                      className="w-3 h-3 rounded-sm flex-shrink-0 cursor-pointer border-0 p-0"
+                      style={{
+                        backgroundColor: subscription.background_color || subscription.calendar_color || '#4285f4',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        appearance: 'none',
+                      }}
+                      title="Click to change calendar color"
+                    />
+                  </div>
                   <span className="text-sm flex-1 truncate">
                     {subscription.calendar_name}
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           </div>

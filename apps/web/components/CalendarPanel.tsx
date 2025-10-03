@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, startOfDay, endOfDay, addDays } from 'date-fns';
 import { enUS } from 'date-fns/locale';
-import { useDroppable } from '@dnd-kit/core';
 import { useRouter } from 'next/navigation';
 import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
+import { TimeBlockEvent } from '@perfect-task-app/ui/components/Calendar/TimeBlockEvent';
 import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
-import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
-import type { CalendarEvent, TimeBlock } from '@perfect-task-app/models';
+import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock, useAssignTaskToTimeBlock } from '@perfect-task-app/data';
+import type { CalendarEvent, TimeBlock, Task } from '@perfect-task-app/models';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 const locales = {
   'en-US': enUS,
@@ -24,8 +26,37 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+// Create drag-and-drop enabled calendar
+const DnDCalendar = withDragAndDrop(Calendar);
+
 interface CalendarPanelProps {
   userId: string;
+}
+
+// Calculate the relative luminance of a color (WCAG formula)
+function getRelativeLuminance(hex: string): number {
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+
+  // Parse RGB
+  const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+  const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+  const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
+
+  // Apply gamma correction
+  const [rs, gs, bs] = [r, g, b].map(c =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  );
+
+  // Calculate relative luminance
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+// Determine if white or black text has better contrast on a given background color
+function getTextColor(backgroundColor: string): string {
+  const luminance = getRelativeLuminance(backgroundColor);
+  // If background is light (luminance > 0.5), use black text. Otherwise use white.
+  return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
 // Transform CalendarEvent to react-big-calendar event format
@@ -40,7 +71,7 @@ function transformCalendarEvent(event: CalendarEvent) {
       source: 'google',
       description: event.description,
       location: event.location,
-      color: event.color,
+      color: event.color || '#059669', // Use the color from DB (user-customizable)
       isAllDay: event.is_all_day,
       googleCalendarId: event.google_calendar_id,
     },
@@ -48,7 +79,7 @@ function transformCalendarEvent(event: CalendarEvent) {
 }
 
 // Transform TimeBlock to react-big-calendar event format
-function transformTimeBlock(timeBlock: TimeBlock) {
+function transformTimeBlock(timeBlock: TimeBlock, onTaskChange?: () => void) {
   return {
     id: timeBlock.id,
     title: timeBlock.title,
@@ -57,6 +88,7 @@ function transformTimeBlock(timeBlock: TimeBlock) {
     resource: {
       type: 'work-block',
       tasks: [],
+      onTaskChange, // Callback to trigger calendar re-render
     },
   };
 }
@@ -65,10 +97,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   const router = useRouter();
   const [view, setView] = useState<'day' | 'week'>('day');
   const [date, setDate] = useState(new Date());
-
-  const { setNodeRef, isOver } = useDroppable({
-    id: 'calendar-panel',
-  });
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   // Calculate date range based on view and selected date
   const dateRange = useMemo(() => {
@@ -115,6 +144,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   // Time block mutations
   const createTimeBlock = useCreateTimeBlock();
   const deleteTimeBlock = useDeleteTimeBlock();
+  const assignTaskMutation = useAssignTaskToTimeBlock();
 
   const isLoading = isLoadingEvents || isLoadingBlocks;
   const error = eventsError || blocksError;
@@ -177,12 +207,97 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     setPreviousVisibleCount(visibleCalendarCount);
   }, [visibleCalendarCount]);
 
+  // Listen for task drag events from Task Hub
+  React.useEffect(() => {
+    const handleTaskDragStart = (e: Event) => {
+      const customEvent = e as CustomEvent<Task>;
+      setDraggedTask(customEvent.detail);
+      console.log('🎯 Task drag started:', customEvent.detail.name);
+    };
+
+    const handleTaskDragEnd = () => {
+      setDraggedTask(null);
+      console.log('🎯 Task drag ended');
+    };
+
+    window.addEventListener('task-drag-start', handleTaskDragStart);
+    window.addEventListener('task-drag-end', handleTaskDragEnd);
+
+    return () => {
+      window.removeEventListener('task-drag-start', handleTaskDragStart);
+      window.removeEventListener('task-drag-end', handleTaskDragEnd);
+    };
+  }, []);
+
+  // State to force calendar re-render when tasks change
+  const [calendarKey, setCalendarKey] = useState(0);
+
+  // Callback to force calendar re-render when tasks change (stable reference)
+  const handleTaskChange = useCallback(() => {
+    console.log('🔄 handleTaskChange called - forcing calendar re-render');
+    setCalendarKey(prev => {
+      const newKey = prev + 1;
+      console.log('🔄 Calendar key updated:', prev, '->', newKey);
+      return newKey;
+    });
+  }, []);
+
   // Transform and merge events for react-big-calendar
   const events = useMemo(() => {
     const googleEvents = calendarEvents.map(transformCalendarEvent);
-    const workBlocks = timeBlocks.map(transformTimeBlock);
+    const workBlocks = timeBlocks.map(block => transformTimeBlock(block, handleTaskChange));
     return [...googleEvents, ...workBlocks];
-  }, [calendarEvents, timeBlocks]);
+  }, [calendarEvents, timeBlocks, handleTaskChange]);
+
+  // Required by react-big-calendar DnD - returns null to prevent visual preview
+  // We don't want to show a temporary calendar event while dragging
+  const dragFromOutsideItem = () => {
+    return null;
+  };
+
+  // Handle dropping a task onto the calendar
+  const handleDropFromOutside = ({ start, end }: { start: Date | string; end: Date | string }) => {
+    if (!draggedTask) {
+      console.log('⚠️ No task being dragged');
+      return;
+    }
+
+    const dropStart = new Date(start);
+    const dropEnd = new Date(end);
+
+    // Find if there's an existing work block at this time
+    const existingBlock = timeBlocks.find(block => {
+      const blockStart = new Date(block.start_time);
+      const blockEnd = new Date(block.end_time);
+      // Check if the drop overlaps with this block
+      return dropStart >= blockStart && dropStart < blockEnd;
+    });
+
+    if (existingBlock) {
+      // Assign task to existing block
+      console.log('✅ Assigning task to existing block:', existingBlock.title);
+      assignTaskMutation.mutate({
+        taskId: draggedTask.id,
+        timeBlockId: existingBlock.id,
+      }, {
+        onSuccess: () => {
+          console.log('✅ Task assigned successfully');
+          // Force calendar re-render to show new task
+          setCalendarKey(prev => prev + 1);
+        },
+        onError: (error) => {
+          console.error('❌ Failed to assign task:', error);
+          alert('Failed to assign task. Please try again.');
+        },
+      });
+    } else {
+      // No work block at this time - do nothing per requirements
+      console.log('⚠️ No work block at drop location - ignoring drop');
+      alert('Please drop the task on an existing work block. Create a work block first.');
+    }
+
+    setDraggedTask(null);
+  };
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     // Create new work time block
@@ -234,11 +349,12 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     const { resource } = event;
 
     if (resource?.type === 'work-block') {
+      const bgColor = '#3b82f6';
       return {
         style: {
-          backgroundColor: '#3b82f6',
+          backgroundColor: bgColor,
           borderColor: '#2563eb',
-          color: 'white',
+          color: getTextColor(bgColor),
           borderRadius: '6px',
           border: '2px solid #1d4ed8',
           fontWeight: '600',
@@ -247,17 +363,18 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     }
 
     if (resource?.type === 'google-event') {
-      // Use the calendar's color if available, otherwise default to green
-      const bgColor = resource.color || '#10b981';
+      // Use the calendar's color if available, otherwise default to a darker green for better contrast
+      const bgColor = resource.color || '#059669';
 
       return {
         style: {
           backgroundColor: bgColor,
           borderColor: bgColor,
-          color: 'white',
+          color: getTextColor(bgColor),
           borderRadius: '6px',
           border: 'none',
           opacity: resource.isAllDay ? 0.8 : 1,
+          fontWeight: '500',
         },
       };
     }
@@ -266,7 +383,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   };
 
   return (
-    <div ref={setNodeRef} className={`h-full flex flex-col ${isOver ? 'dnd-drop-zone' : ''}`}>
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
@@ -349,17 +466,41 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       {/* Calendar */}
       <div className="flex-1 p-4 relative overflow-hidden">
         <style>{`
-          .rbc-time-content {
-            overflow-y: visible !important;
-          }
-          .rbc-time-content > * {
-            overflow-y: visible !important;
-          }
           .rbc-timeslot-group {
             min-height: 60px !important;
           }
           .rbc-time-slot {
             min-height: 15px !important;
+          }
+          .rbc-day-slot .rbc-time-slot {
+            background-color: white !important;
+          }
+          .rbc-time-view {
+            background-color: white !important;
+          }
+          .rbc-time-content {
+            background-color: white !important;
+          }
+          /* Match app fonts */
+          .rbc-calendar {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+          }
+          .rbc-header {
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            color: #111827 !important;
+          }
+          .rbc-time-header-content {
+            font-weight: 500 !important;
+          }
+          .rbc-label {
+            font-size: 0.75rem !important;
+            font-weight: 400 !important;
+            color: #6b7280 !important;
+          }
+          .rbc-event {
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
           }
         `}</style>
         {isLoading && (
@@ -375,29 +516,43 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
             Failed to load events. Please try again.
           </div>
         )}
-        <div className="h-full overflow-auto">
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: '100%', minHeight: '1000px' }}
-            view={view === 'day' ? Views.DAY : Views.WEEK}
-            onView={() => {}} // Controlled by our buttons
-            date={date}
-            onNavigate={setDate}
-            onSelectSlot={handleSelectSlot}
-            onSelectEvent={handleSelectEvent}
-            selectable
-            popup
-            toolbar={false}
-            eventPropGetter={eventStyleGetter}
-            step={15}
-            timeslots={4}
-            scrollToTime={new Date(0, 0, 0, 7, 0, 0)} // Scroll to 7 AM on load
-            dayLayoutAlgorithm="no-overlap"
-          />
-        </div>
+        <DnDCalendar
+          key={calendarKey}
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: '100%' }}
+          view={view === 'day' ? Views.DAY : Views.WEEK}
+          onView={() => {}} // Controlled by our buttons
+          date={date}
+          onNavigate={setDate}
+          onSelectSlot={handleSelectSlot}
+          onSelectEvent={handleSelectEvent}
+          selectable
+          popup
+          toolbar={false}
+          eventPropGetter={eventStyleGetter}
+          step={15}
+          timeslots={4}
+          scrollToTime={new Date(0, 0, 0, 7, 0, 0)} // Scroll to 7 AM on load
+          dayLayoutAlgorithm="no-overlap"
+          // Drag and drop props
+          onDropFromOutside={handleDropFromOutside}
+          dragFromOutsideItem={dragFromOutsideItem}
+          onDragOver={(e: React.DragEvent) => e.preventDefault()}
+          draggableAccessor={() => false} // Disable dragging of calendar events
+          // Custom event component
+          components={{
+            event: (props: any) => {
+              if (props.event.resource?.type === 'work-block') {
+                return <TimeBlockEvent event={props.event} />;
+              }
+              // Default rendering for Google Calendar events
+              return <div>{props.event.title}</div>;
+            },
+          }}
+        />
         {!isLoading && !error && events.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-gray-400 text-sm">No events for this {view}</p>
