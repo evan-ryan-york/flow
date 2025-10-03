@@ -347,7 +347,21 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 p-4 relative">
+      <div className="flex-1 p-4 relative overflow-hidden">
+        <style>{`
+          .rbc-time-content {
+            overflow-y: visible !important;
+          }
+          .rbc-time-content > * {
+            overflow-y: visible !important;
+          }
+          .rbc-timeslot-group {
+            min-height: 60px !important;
+          }
+          .rbc-time-slot {
+            min-height: 15px !important;
+          }
+        `}</style>
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-2">
@@ -361,27 +375,29 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
             Failed to load events. Please try again.
           </div>
         )}
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: '100%' }}
-          view={view === 'day' ? Views.DAY : Views.WEEK}
-          onView={() => {}} // Controlled by our buttons
-          date={date}
-          onNavigate={setDate}
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={handleSelectEvent}
-          selectable
-          popup
-          eventPropGetter={eventStyleGetter}
-          step={15}
-          timeslots={4}
-          min={new Date(0, 0, 0, 7, 0, 0)} // 7 AM
-          max={new Date(0, 0, 0, 22, 0, 0)} // 10 PM
-          dayLayoutAlgorithm="no-overlap"
-        />
+        <div className="h-full overflow-auto">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%', minHeight: '1000px' }}
+            view={view === 'day' ? Views.DAY : Views.WEEK}
+            onView={() => {}} // Controlled by our buttons
+            date={date}
+            onNavigate={setDate}
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            selectable
+            popup
+            toolbar={false}
+            eventPropGetter={eventStyleGetter}
+            step={15}
+            timeslots={4}
+            scrollToTime={new Date(0, 0, 0, 7, 0, 0)} // Scroll to 7 AM on load
+            dayLayoutAlgorithm="no-overlap"
+          />
+        </div>
         {!isLoading && !error && events.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-gray-400 text-sm">No events for this {view}</p>
