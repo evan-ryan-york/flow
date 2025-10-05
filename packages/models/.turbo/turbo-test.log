@@ -1,6 +1,7 @@
 
-> @perfect-task-app/models@1.0.0 test /Users/ryanyork/Software/Project Manager/perfect-task-app/packages/models
-> echo "Error: no test specified" && exit 1
+> @perfect-task-app/models@1.0.0 test /Users/ryanyork/Software/project-manager/perfect-task-app/packages/models
+> echo "Error: no test specified" && exit 1 --passWithNoTests
 
 Error: no test specified
+sh: line 0: exit: too many arguments
  ELIFECYCLE  Test failed. See above for more details.

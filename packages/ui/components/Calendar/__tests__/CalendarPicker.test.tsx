@@ -8,6 +8,7 @@ jest.mock('@perfect-task-app/data', () => ({
   useGoogleCalendarConnections: jest.fn(),
   useCalendarSubscriptions: jest.fn(),
   useToggleCalendarVisibility: jest.fn(),
+  useUpdateCalendarColor: jest.fn(),
 }));
 
 const mockConnections = [
@@ -82,6 +83,13 @@ const createWrapper = () => {
 describe('CalendarPicker', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set up default mocks
+    (dataHooks.useToggleCalendarVisibility as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+    });
+    (dataHooks.useUpdateCalendarColor as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+    });
   });
 
   it('renders loading state', () => {

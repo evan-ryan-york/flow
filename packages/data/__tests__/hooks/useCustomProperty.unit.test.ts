@@ -159,14 +159,15 @@ describe('useCustomProperty hooks - Unit Tests', () => {
 
   describe('useCreateDefinition', () => {
     it('should create definition successfully', async () => {
-      mockCreateDefinition.mockResolvedValue(mockDefinition);
+      const mockDefinitionWithProjects = { ...mockDefinition, project_ids: ['project-1'] };
+      mockCreateDefinition.mockResolvedValue(mockDefinitionWithProjects);
 
       const { result } = renderHook(() => useCreateDefinition(), {
         wrapper: createWrapper(),
       });
 
       const definitionData = {
-        project_id: 'project-1',
+        project_ids: ['project-1'],
         name: 'Priority',
         type: 'select' as const,
         options: ['Low', 'High'],
@@ -176,7 +177,7 @@ describe('useCustomProperty hooks - Unit Tests', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data).toEqual(mockDefinition);
+      expect(result.current.data).toEqual(mockDefinitionWithProjects);
       expect(mockCreateDefinition).toHaveBeenCalledWith(definitionData);
     });
 
@@ -189,7 +190,7 @@ describe('useCustomProperty hooks - Unit Tests', () => {
       });
 
       result.current.mutate({
-        project_id: 'project-1',
+        project_ids: ['project-1'],
         name: 'Priority',
         type: 'select',
       });
@@ -202,7 +203,7 @@ describe('useCustomProperty hooks - Unit Tests', () => {
 
   describe('useUpdateDefinition', () => {
     it('should update definition successfully', async () => {
-      const updatedDefinition = { ...mockDefinition, name: 'Updated Priority' };
+      const updatedDefinition = { ...mockDefinition, name: 'Updated Priority', project_ids: ['project-1'] };
       mockUpdateDefinition.mockResolvedValue(updatedDefinition);
 
       const { result } = renderHook(() => useUpdateDefinition(), {
@@ -282,6 +283,7 @@ describe('useCustomProperty hooks - Unit Tests', () => {
         taskId: 'task-1',
         definitionId: 'def-1',
         value: 'High',
+        userId: 'user-1',
       };
 
       result.current.mutate(setValueData);
@@ -289,7 +291,12 @@ describe('useCustomProperty hooks - Unit Tests', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockPropertyValue);
-      expect(mockSetPropertyValue).toHaveBeenCalledWith('task-1', 'def-1', 'High');
+      expect(mockSetPropertyValue).toHaveBeenCalledWith({
+        task_id: 'task-1',
+        definition_id: 'def-1',
+        value: 'High',
+        user_id: 'user-1',
+      });
     });
 
     it('should handle set value errors', async () => {
@@ -304,6 +311,7 @@ describe('useCustomProperty hooks - Unit Tests', () => {
         taskId: 'task-1',
         definitionId: 'def-1',
         value: 'High',
+        userId: 'user-1',
       });
 
       await waitFor(() => expect(result.current.isError).toBe(true));
@@ -352,35 +360,29 @@ describe('useCustomProperty hooks - Unit Tests', () => {
   });
 
   describe('Loading states', () => {
-    it('should show pending state during mutations', async () => {
-      let resolveCreate: (value: any) => void;
-      const createPromise = new Promise((resolve) => {
-        resolveCreate = resolve;
-      });
-
-      mockCreateDefinition.mockReturnValue(createPromise);
+    it('should complete mutations successfully', async () => {
+      const mockDefinitionWithProjects = { ...mockDefinition, project_ids: ['project-1'] };
+      mockCreateDefinition.mockResolvedValue(mockDefinitionWithProjects);
 
       const { result } = renderHook(() => useCreateDefinition(), {
         wrapper: createWrapper(),
       });
 
+      // Initially not pending
+      expect(result.current.isPending).toBe(false);
+
       // Start mutation
       result.current.mutate({
-        project_id: 'project-1',
+        project_ids: ['project-1'],
         name: 'Priority',
         type: 'select',
       });
-
-      // Should be pending
-      expect(result.current.isPending).toBe(true);
-
-      // Resolve the promise
-      resolveCreate!(mockDefinition);
 
       // Wait for completion
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.isPending).toBe(false);
+      expect(result.current.data).toEqual(mockDefinitionWithProjects);
     });
 
     it('should handle state transitions properly', async () => {

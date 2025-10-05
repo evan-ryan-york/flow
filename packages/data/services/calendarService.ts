@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { supabase as supabaseClient } from '../supabase';
 import {
   GoogleCalendarConnectionSchema,
   CalendarSubscriptionSchema,
@@ -7,6 +7,12 @@ import {
   type CalendarSubscription,
   type CalendarEvent,
 } from '@perfect-task-app/models';
+
+// Ensure supabase client is initialized
+if (!supabaseClient) {
+  throw new Error('Supabase client not initialized');
+}
+const supabase = supabaseClient;
 
 // ---------------------------------
 // Calendar Connections
@@ -133,6 +139,21 @@ export async function toggleCalendarVisibility(
   const { error } = await supabase
     .from('calendar_subscriptions')
     .update({ is_visible: isVisible, updated_at: new Date().toISOString() })
+    .eq('id', subscriptionId);
+
+  if (error) throw error;
+}
+
+/**
+ * Update calendar subscription color
+ */
+export async function updateCalendarColor(
+  subscriptionId: string,
+  color: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('calendar_subscriptions')
+    .update({ background_color: color, updated_at: new Date().toISOString() })
     .eq('id', subscriptionId);
 
   if (error) throw error;

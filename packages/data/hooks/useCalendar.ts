@@ -2,13 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '../supabase';
 import {
-  GoogleCalendarConnectionSchema,
-  CalendarSubscriptionSchema,
   CalendarEventSchema,
   type GoogleCalendarConnection,
   type CalendarSubscription,
   type CalendarEvent,
 } from '@perfect-task-app/models';
+import {
+  getCalendarConnections,
+  deleteCalendarConnection,
+  updateCalendarConnectionLabel,
+  getCalendarSubscriptions,
+  toggleCalendarVisibility,
+  updateCalendarColor,
+  getCalendarEvents,
+} from '../services/calendarService';
 
 // Query key factory for consistent caching
 const CALENDAR_KEYS = {
@@ -54,32 +61,7 @@ const getSessionToken = async () => {
 export function useGoogleCalendarConnections() {
   return useQuery({
     queryKey: CALENDAR_KEYS.connections,
-    queryFn: async () => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      console.log('🔍 Fetching google_calendar_connections...');
-      const { data, error } = await supabase
-        .from('google_calendar_connections')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      console.log('🔍 Raw data:', data);
-      console.log('🔍 Error:', error);
-
-      if (error) throw error;
-
-      try {
-        const parsed = data?.map(conn => {
-          console.log('🔍 Parsing connection:', conn);
-          return GoogleCalendarConnectionSchema.parse(conn);
-        }) || [];
-        console.log('🔍 Parsed connections:', parsed);
-        return parsed;
-      } catch (parseError) {
-        console.error('❌ Zod parsing error:', parseError);
-        throw parseError;
-      }
-    },
+    queryFn: getCalendarConnections,
   });
 }
 
@@ -170,16 +152,7 @@ export function useDisconnectGoogleCalendar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (connectionId: string) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      const { error } = await supabase
-        .from('google_calendar_connections')
-        .delete()
-        .eq('id', connectionId);
-
-      if (error) throw error;
-    },
+    mutationFn: deleteCalendarConnection,
     onSuccess: () => {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.connections });
@@ -197,14 +170,7 @@ export function useUpdateConnectionLabel() {
 
   return useMutation({
     mutationFn: async ({ connectionId, label }: { connectionId: string; label: string }) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      const { error } = await supabase
-        .from('google_calendar_connections')
-        .update({ label })
-        .eq('id', connectionId);
-
-      if (error) throw error;
+      await updateCalendarConnectionLabel(connectionId, label);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.connections });
@@ -223,25 +189,7 @@ export function useCalendarSubscriptions(connectionId?: string) {
   return useQuery({
     queryKey: CALENDAR_KEYS.subscriptions.byConnection(connectionId),
     queryFn: async () => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      console.log('🔍 Fetching subscriptions for connectionId:', connectionId);
-      let query = supabase
-        .from('calendar_subscriptions')
-        .select('*')
-        .order('calendar_name');
-
-      if (connectionId) {
-        query = query.eq('connection_id', connectionId);
-      }
-
-      const { data, error } = await query;
-      console.log('🔍 Subscriptions data:', data);
-      console.log('🔍 Subscriptions error:', error);
-
-      if (error) throw error;
-
-      return data?.map(sub => CalendarSubscriptionSchema.parse(sub)) || [];
+      return getCalendarSubscriptions(connectionId);
     },
   });
 }
@@ -254,14 +202,7 @@ export function useToggleCalendarVisibility() {
 
   return useMutation({
     mutationFn: async ({ subscriptionId, isVisible }: { subscriptionId: string; isVisible: boolean }) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      const { error } = await supabase
-        .from('calendar_subscriptions')
-        .update({ is_visible: isVisible })
-        .eq('id', subscriptionId);
-
-      if (error) throw error;
+      await toggleCalendarVisibility(subscriptionId, isVisible);
     },
     onMutate: async ({ subscriptionId, isVisible }) => {
       // Cancel outgoing refetches to avoid overwriting our optimistic update
@@ -308,14 +249,7 @@ export function useUpdateCalendarColor() {
 
   return useMutation({
     mutationFn: async ({ subscriptionId, color }: { subscriptionId: string; color: string }) => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      const { error } = await supabase
-        .from('calendar_subscriptions')
-        .update({ background_color: color })
-        .eq('id', subscriptionId);
-
-      if (error) throw error;
+      await updateCalendarColor(subscriptionId, color);
     },
     onMutate: async ({ subscriptionId, color }) => {
       // Cancel outgoing refetches
@@ -439,29 +373,11 @@ export function useCalendarEvents(
       options?.visibleOnly
     ),
     queryFn: async () => {
-      if (!supabase) throw new Error('Supabase client not initialized');
-
-      let query = supabase
-        .from('calendar_events')
-        .select('*, calendar_subscriptions!inner(*)')
-        .gte('start_time', startDate.toISOString())
-        .lte('end_time', endDate.toISOString())
-        .order('start_time');
-
-      // Filter to only visible calendars if requested
-      if (options?.visibleOnly) {
-        query = query.eq('calendar_subscriptions.is_visible', true);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Parse and extract just the event data (remove the joined subscription data)
-      return data?.map(event => {
-        const { calendar_subscriptions, ...eventData } = event as any;
-        return CalendarEventSchema.parse(eventData);
-      }) || [];
+      return getCalendarEvents({
+        startDate,
+        endDate,
+        visibleOnly: options?.visibleOnly,
+      });
     },
     refetchOnWindowFocus: true, // Refresh when user returns to tab
     staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
