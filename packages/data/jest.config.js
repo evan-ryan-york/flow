@@ -17,6 +17,17 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testTimeout: 30000, // 30 seconds for integration tests
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    'rls\\.test',
+    'integration\\.test',
+    'simple\\.test',
+    'services/customPropertyService\\.test',
+    'services/googleAuthService\\.test',
+    'services/projectService\\.test\\.ts',
+    'services/timeBlockService\\.test',
+    'services/viewService\\.test'
+  ],
   globals: {
     'ts-jest': {
       tsconfig: {

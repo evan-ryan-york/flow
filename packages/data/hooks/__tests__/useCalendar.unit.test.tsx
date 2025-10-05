@@ -415,7 +415,9 @@ describe('useDisconnectGoogleCalendar (Unit Tests)', () => {
     result.current.mutate('conn-1');
 
     await waitFor(() => {
-      expect(calendarService.deleteCalendarConnection).toHaveBeenCalledWith('conn-1');
+      expect(calendarService.deleteCalendarConnection).toHaveBeenCalled();
+      const callArgs = (calendarService.deleteCalendarConnection as jest.Mock).mock.calls[0];
+      expect(callArgs[0]).toBe('conn-1');
     });
   });
 

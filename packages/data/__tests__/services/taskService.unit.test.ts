@@ -2,7 +2,7 @@
 import * as taskService from '../../services/taskService';
 import { TaskSchema } from '@perfect-task-app/models';
 
-// Mock the supabase module with factory function
+// Mock the supabase module - must be at top before imports
 jest.mock('../../supabase', () => {
   const mockSupabase = {
     auth: {
@@ -19,12 +19,11 @@ jest.mock('../../supabase', () => {
   };
 
   return {
-    getSupabaseClient: jest.fn(() => mockSupabase),
-    supabase: mockSupabase,
+    getSupabaseClient: () => mockSupabase,
   };
 });
 
-// Get the mocked supabase for use in tests
+// Get the mocked supabase instance
 import { getSupabaseClient } from '../../supabase';
 const mockSupabase = getSupabaseClient() as any;
 
@@ -121,7 +120,7 @@ describe('taskService Unit Tests', () => {
 
   describe('createTask', () => {
     it('should create task with authenticated user', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue(mockUser);
+      mockSupabase.auth.getUser.mockResolvedValue({ data: mockUser, error: null });
 
       mockSupabase.from.mockReturnValue({
         insert: jest.fn().mockReturnValue({
@@ -148,7 +147,7 @@ describe('taskService Unit Tests', () => {
     });
 
     it('should throw error when user is not authenticated', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({ user: null });
+      mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
       const taskData = {
         project_id: 'project-1',
@@ -161,7 +160,7 @@ describe('taskService Unit Tests', () => {
     });
 
     it('should handle database insertion errors', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue(mockUser);
+      mockSupabase.auth.getUser.mockResolvedValue({ data: mockUser, error: null });
 
       const error = { message: 'Insertion failed' };
       mockSupabase.from.mockReturnValue({

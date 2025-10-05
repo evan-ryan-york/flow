@@ -40,6 +40,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: connA, error: connAError } = await userA.client
       .from('google_calendar_connections')
       .insert({
+        user_id: userA.user.id,
         email: 'usera@gmail.com',
         label: 'User A Personal',
         access_token: 'token-a',
@@ -56,6 +57,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: subA } = await userA.client
       .from('calendar_subscriptions')
       .insert({
+        user_id: userA.user.id,
         connection_id: connectionA.id,
         google_calendar_id: 'calendar-a@group.calendar.google.com',
         calendar_name: 'User A Calendar',
@@ -72,6 +74,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: evtA } = await userA.client
       .from('calendar_events')
       .insert({
+        user_id: userA.user.id,
         connection_id: connectionA.id,
         subscription_id: subscriptionA.id,
         google_calendar_event_id: 'google-event-a-123',
@@ -94,6 +97,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: connB } = await userB.client
       .from('google_calendar_connections')
       .insert({
+        user_id: userB.user.id,
         email: 'userb@gmail.com',
         label: 'User B Work',
         access_token: 'token-b',
@@ -108,6 +112,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: subB } = await userB.client
       .from('calendar_subscriptions')
       .insert({
+        user_id: userB.user.id,
         connection_id: connectionB.id,
         google_calendar_id: 'calendar-b@group.calendar.google.com',
         calendar_name: 'User B Calendar',
@@ -124,6 +129,7 @@ describe('Calendar Service RLS Security Tests', () => {
     const { data: evtB } = await userB.client
       .from('calendar_events')
       .insert({
+        user_id: userB.user.id,
         connection_id: connectionB.id,
         subscription_id: subscriptionB.id,
         google_calendar_event_id: 'google-event-b-456',

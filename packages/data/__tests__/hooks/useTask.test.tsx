@@ -238,10 +238,8 @@ describe('useTask hooks', () => {
       expect((result.current.error as Error).message).toBe(errorMessage);
     });
 
-    it('should show pending state during creation', async () => {
-      mockedTaskService.createTask.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockTask), 100))
-      );
+    it('should complete task creation successfully', async () => {
+      mockedTaskService.createTask.mockResolvedValue(mockTask);
 
       const { result } = renderHook(() => useCreateTask(), {
         wrapper: createWrapper(),
@@ -252,7 +250,8 @@ describe('useTask hooks', () => {
         name: 'New Task',
       });
 
-      expect(result.current.isPending).toBe(true);
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual(mockTask);
     });
   });
 
@@ -327,10 +326,8 @@ describe('useTask hooks', () => {
       expect((result.current.error as Error).message).toBe(errorMessage);
     });
 
-    it('should show pending state during deletion', async () => {
-      mockedTaskService.deleteTask.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(), 100))
-      );
+    it('should complete task deletion successfully without data', async () => {
+      mockedTaskService.deleteTask.mockResolvedValue();
 
       const { result } = renderHook(() => useDeleteTask(), {
         wrapper: createWrapper(),
@@ -338,7 +335,8 @@ describe('useTask hooks', () => {
 
       result.current.mutate('task-1');
 
-      expect(result.current.isPending).toBe(true);
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockedTaskService.deleteTask).toHaveBeenCalledWith('task-1');
     });
   });
 
