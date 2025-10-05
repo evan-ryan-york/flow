@@ -1,4 +1,5 @@
 // Jest setup file for @perfect-task-app/data package
+require('@testing-library/jest-dom');
 
 // Mock console.error and console.warn to keep test output clean
 const originalError = console.error;

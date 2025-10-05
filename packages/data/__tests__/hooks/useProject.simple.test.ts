@@ -2,8 +2,8 @@ import * as projectService from '../../services/projectService';
 import { Project, ProjectUser } from '@perfect-task-app/models';
 
 // Mock the supabase module first to prevent initialization errors
-jest.mock('../../supabase', () => ({
-  supabase: {
+jest.mock('../../supabase', () => {
+  const mockSupabaseClient = {
     from: jest.fn(),
     auth: {
       signUp: jest.fn(),
@@ -12,8 +12,13 @@ jest.mock('../../supabase', () => ({
       getSession: jest.fn(),
       getUser: jest.fn(),
     },
-  },
-}));
+  };
+
+  return {
+    supabase: mockSupabaseClient,
+    getSupabaseClient: jest.fn(() => mockSupabaseClient),
+  };
+});
 
 // Mock the project service
 jest.mock('../../services/projectService');
