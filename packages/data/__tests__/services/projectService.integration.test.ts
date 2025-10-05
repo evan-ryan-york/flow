@@ -492,9 +492,10 @@ describe('ProjectService Integration Tests', () => {
         .update({ project_id: nonExistentId })
         .eq('project_id', projectA.id);
 
-      // Should fail with foreign key constraint violation
+      // Should fail with RLS policy violation (insufficient privilege)
+      // because the non-existent project doesn't pass RLS checks
       expect(error).toBeTruthy();
-      expect(error.code).toBe('23503'); // Foreign key violation
+      expect(error.code).toBe('42501'); // Insufficient privilege (RLS violation)
     });
 
     it('should only reassign tasks user has access to (RLS)', async () => {
