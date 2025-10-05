@@ -37,7 +37,7 @@ describe('Calendar Service RLS Security Tests', () => {
 
   beforeEach(async () => {
     // Create connection for User A using their authenticated client
-    const { data: connA } = await userA.client
+    const { data: connA, error: connAError } = await userA.client
       .from('google_calendar_connections')
       .insert({
         email: 'usera@gmail.com',
@@ -48,6 +48,8 @@ describe('Calendar Service RLS Security Tests', () => {
       })
       .select()
       .single();
+
+    if (connAError) throw new Error(`Failed to create connection A: ${connAError.message}`);
     connectionA = connA;
 
     // Create subscription for User A
