@@ -70,6 +70,13 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     }
   }, [lastUsedProjectId, projects?.length, generalProject?.id, isManualProjectSelection]);
 
+  // Reset manual project selection flag when lastUsedProjectId matches selectedProject
+  useEffect(() => {
+    if (isManualProjectSelection && selectedProject && lastUsedProjectId === selectedProject.id) {
+      setIsManualProjectSelection(false);
+    }
+  }, [isManualProjectSelection, selectedProject?.id, lastUsedProjectId]);
+
   // Set default assignee to current user
   useEffect(() => {
     if (!assignedUser) {
@@ -220,7 +227,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
       setShowAdvanced(false);
       setShowAutocomplete(false);
       setProjectQuery("");
-      setIsManualProjectSelection(false); // Reset manual flag to allow sticky behavior
+      // Keep isManualProjectSelection as true to prevent the useEffect from reverting the project
       // Note: selectedProject is intentionally kept for sticky behavior
       // The backend will update lastUsedProjectId automatically
     } catch (error) {

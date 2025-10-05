@@ -2,10 +2,10 @@
 
 import { useState, memo } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { EditPencil } from 'iconoir-react';
 
-type BuiltInColumn = 'assigned_to' | 'due_date';
+type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 
 interface TaskItemProps {
   task: Task;
@@ -15,13 +15,16 @@ interface TaskItemProps {
   dragAttributes?: any;
   dragListeners?: any;
   userMapping?: Record<string, string>;
+  projectMapping?: Record<string, string>;
+  projects?: Project[];
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
   visibleBuiltInColumns?: Set<BuiltInColumn>;
   onEditClick?: (taskId: string) => void;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
   const isDone = task.status === 'Done';
@@ -173,10 +176,34 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
         {/* Assigned To Column - Fixed width */}
         {visibleBuiltInColumns.has('assigned_to') && (
-          <div className="flex-shrink-0 w-24 text-right">
-            <span className="text-sm text-gray-600 truncate block">
-              {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
-            </span>
+          <div className="flex-shrink-0 w-24 flex justify-end">
+            {task.assigned_to ? (
+              <div
+                className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium"
+                title={userMapping[task.assigned_to] || 'Unknown User'}
+              >
+                {(() => {
+                  const profile = profiles.find(p => p.id === task.assigned_to);
+                  if (!profile) {
+                    return 'U';
+                  }
+
+                  const firstInitial = profile.first_name?.[0]?.toUpperCase() || '';
+                  const lastInitial = profile.last_name?.[0]?.toUpperCase() || '';
+
+                  if (firstInitial && lastInitial) {
+                    return firstInitial + lastInitial;
+                  } else if (firstInitial) {
+                    return firstInitial;
+                  } else if (lastInitial) {
+                    return lastInitial;
+                  }
+                  return 'U';
+                })()}
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400">—</span>
+            )}
           </div>
         )}
 
@@ -195,6 +222,53 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
             ) : (
               <span className="text-sm text-gray-400">—</span>
             )}
+          </div>
+        )}
+
+        {/* Project Column - Fixed width */}
+        {visibleBuiltInColumns.has('project') && (
+          <div className="flex-shrink-0 w-28 flex justify-end">
+            {(() => {
+              const project = projects.find(p => p.id === task.project_id);
+              if (!project) {
+                return <span className="text-sm text-gray-400">Unknown</span>;
+              }
+
+              const getColorClasses = (color: string) => {
+                switch (color) {
+                  case 'rose': return 'bg-rose-100 text-rose-800 border-rose-200';
+                  case 'amber': return 'bg-amber-100 text-amber-800 border-amber-200';
+                  case 'mint': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                  case 'sky': return 'bg-sky-100 text-sky-800 border-sky-200';
+                  case 'violet': return 'bg-violet-100 text-violet-800 border-violet-200';
+                  case 'lime': return 'bg-lime-100 text-lime-800 border-lime-200';
+                  case 'teal': return 'bg-teal-100 text-teal-800 border-teal-200';
+                  case 'crimson': return 'bg-red-100 text-red-800 border-red-200';
+                  default: return 'bg-gray-100 text-gray-800 border-gray-200';
+                }
+              };
+
+              const getColorDot = (color: string) => {
+                switch (color) {
+                  case 'rose': return 'bg-rose-500';
+                  case 'amber': return 'bg-amber-500';
+                  case 'mint': return 'bg-emerald-500';
+                  case 'sky': return 'bg-sky-500';
+                  case 'violet': return 'bg-violet-500';
+                  case 'lime': return 'bg-lime-500';
+                  case 'teal': return 'bg-teal-500';
+                  case 'crimson': return 'bg-red-600';
+                  default: return 'bg-gray-500';
+                }
+              };
+
+              return (
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${getColorClasses(project.color)}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${getColorDot(project.color)}`} />
+                  <span className="truncate max-w-[80px]">{project.name}</span>
+                </span>
+              );
+            })()}
           </div>
         )}
 

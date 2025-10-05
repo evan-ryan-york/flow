@@ -83,6 +83,15 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     return mapping;
   }, [allProfiles, userId]);
 
+  // Create project mapping for task project display
+  const projectMapping = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    allProjects.forEach((project) => {
+      mapping[project.id] = project.name;
+    });
+    return mapping;
+  }, [allProjects]);
+
   // Task update hook for cross-group drops
   const updateTaskMutation = useUpdateTask();
   const setPropertyValueMutation = useSetPropertyValue();
@@ -382,6 +391,9 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             showGroupHeaders={groupBy !== null && groupBy !== "none"}
             groupBy={groupBy}
             userMapping={userMapping}
+            projectMapping={projectMapping}
+            projects={allProjects}
+            profiles={allProfiles}
             onTaskEditClick={(taskId) => {
               if (isEditPanelOpen && selectedTaskId === taskId) {
                 // If same task is clicked, close the panel

@@ -9,7 +9,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { TaskItem } from './TaskItem';
 import { TaskGroup } from './TaskGroup';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-app/models';
 import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 
 interface TaskListProps {
@@ -24,14 +24,18 @@ interface TaskListProps {
   showGroupHeaders?: boolean;
   groupBy?: GroupByOption | null;
   userMapping?: Record<string, string>;
+  projectMapping?: Record<string, string>;
+  projects?: Project[];
+  profiles?: Profile[];
   onTaskEditClick?: (taskId: string) => void;
 }
 
 // Built-in columns that can be hidden
-type BuiltInColumn = 'assigned_to' | 'due_date';
+type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
   { id: 'assigned_to', label: 'Assigned To' },
   { id: 'due_date', label: 'Due Date' },
+  { id: 'project', label: 'Project' },
 ];
 
 // Column menu component
@@ -229,6 +233,19 @@ function TableHeaders({
           </div>
         </div>
       )}
+      {/* Project Column */}
+      {visibleBuiltInColumns.has('project') && (
+        <div className="flex-shrink-0 w-28 flex items-center justify-end">
+          <div className="flex items-center text-right">
+            <span>Project</span>
+            <ColumnMenu
+              columnId="project"
+              columnName="Project"
+              onHide={() => onHideBuiltInColumn('project')}
+            />
+          </div>
+        </div>
+      )}
       {/* Custom Property Columns */}
       {visibleColumns.map((property) => (
         <div key={property.id} className="flex-shrink-0 w-32 flex items-center justify-end">
@@ -266,6 +283,9 @@ const TaskList = memo(function TaskList({
   showGroupHeaders = false,
   groupBy,
   userMapping = {},
+  projectMapping = {},
+  projects = [],
+  profiles = [],
   onTaskEditClick
 }: TaskListProps) {
   // State for managing collapsed groups
@@ -278,7 +298,7 @@ const TaskList = memo(function TaskList({
 
   // State for built-in column visibility - all visible by default
   const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<BuiltInColumn>>(() =>
-    new Set<BuiltInColumn>(['assigned_to', 'due_date'])
+    new Set<BuiltInColumn>(['assigned_to', 'due_date', 'project'])
   );
 
   // Update visible columns when custom property definitions change
@@ -434,7 +454,7 @@ const TaskList = memo(function TaskList({
           strategy={verticalListSortingStrategy}
         >
           {displayedTasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} />
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} projectMapping={projectMapping} projects={projects} profiles={profiles} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} />
           ))}
         </SortableContext>
       </div>
@@ -444,7 +464,7 @@ const TaskList = memo(function TaskList({
 
 export { TaskList };
 
-function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, visibleBuiltInColumns, onTaskEditClick }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void }) {
+function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, projectMapping, projects, profiles, visibleBuiltInColumns, onTaskEditClick }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; projectMapping?: Record<string, string>; projects?: Project[]; profiles?: Profile[]; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void }) {
   const {
     attributes,
     listeners,
@@ -454,10 +474,6 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
     isDragging,
   } = useSortable({
     id: task.id,
-    // Disable the default drag activation - we'll use the handle explicitly
-    activationConstraint: {
-      distance: 5, // Require 5px movement before activating drag
-    }
   });
 
   const style = {
@@ -481,6 +497,9 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
         dragAttributes={attributes}
         dragListeners={listeners}
         userMapping={userMapping}
+        projectMapping={projectMapping}
+        projects={projects}
+        profiles={profiles}
         visibleBuiltInColumns={visibleBuiltInColumns}
         onEditClick={onTaskEditClick}
       />
