@@ -11,6 +11,7 @@ export interface CreateViewData {
     groupBy?: string;
     sortBy?: string;
     visibleProperties?: string[];
+    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project')[];
   };
 }
 
@@ -22,6 +23,7 @@ export interface UpdateViewData {
     groupBy?: string;
     sortBy?: string;
     visibleProperties?: string[];
+    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project')[];
   };
 }
 
@@ -37,8 +39,15 @@ export const getViewsForUser = async (userId: string): Promise<View[]> => {
       throw new Error(`Failed to fetch views for user: ${error.message}`);
     }
 
+    // Parse the config field from JSON string to object for each view
+    const parsedData = data?.map((view) => ({
+      ...view,
+      config: typeof view.config === 'string' ? JSON.parse(view.config) : view.config,
+    })) || [];
+
     // Zod validation happens here - ensuring type safety
-    const validatedViews = ViewSchema.array().parse(data);
+    const validatedViews = ViewSchema.array().parse(parsedData);
+
     return validatedViews;
   } catch (error) {
     console.error('ViewService.getViewsForUser error:', error);

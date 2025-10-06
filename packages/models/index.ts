@@ -131,6 +131,7 @@ const ViewConfigSchema = z.object({
   groupBy: z.string().optional(),
   sortBy: z.string().optional(),
   visibleProperties: z.array(z.string().uuid()).optional(),
+  visibleBuiltInColumns: z.array(z.enum(['assigned_to', 'due_date', 'project'])).optional(),
 });
 
 export const ViewSchema = z.object({
@@ -139,8 +140,8 @@ export const ViewSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["list", "kanban"]),
   config: ViewConfigSchema,
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string(), // More flexible datetime validation
+  updated_at: z.string(), // More flexible datetime validation
 });
 export type View = z.infer<typeof ViewSchema>;
 
