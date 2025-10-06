@@ -12,6 +12,9 @@ import { TaskGroup } from './TaskGroup';
 import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-app/models';
 import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 
+// Built-in columns that can be hidden
+export type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
+
 interface TaskListProps {
   tasks: Task[];
   selectedProjectIds: string[];
@@ -28,10 +31,13 @@ interface TaskListProps {
   projects?: Project[];
   profiles?: Profile[];
   onTaskEditClick?: (taskId: string) => void;
+  // Column visibility - controlled by parent
+  visibleColumnIds?: Set<string>;
+  visibleBuiltInColumns?: Set<BuiltInColumn>;
+  onVisibleColumnIdsChange?: (ids: Set<string>) => void;
+  onVisibleBuiltInColumnsChange?: (cols: Set<BuiltInColumn>) => void;
 }
 
-// Built-in columns that can be hidden
-type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
   { id: 'assigned_to', label: 'Assigned To' },
   { id: 'due_date', label: 'Due Date' },
@@ -286,20 +292,45 @@ const TaskList = memo(function TaskList({
   projectMapping = {},
   projects = [],
   profiles = [],
-  onTaskEditClick
+  onTaskEditClick,
+  visibleColumnIds: controlledVisibleColumnIds,
+  visibleBuiltInColumns: controlledVisibleBuiltInColumns,
+  onVisibleColumnIdsChange,
+  onVisibleBuiltInColumnsChange
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // State for column visibility - all columns visible by default
-  const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(() =>
+  // State for column visibility - use controlled if provided, otherwise manage locally
+  const [localVisibleColumnIds, setLocalVisibleColumnIds] = useState<Set<string>>(() =>
     new Set(customPropertyDefinitions.map(prop => prop.id))
   );
 
-  // State for built-in column visibility - all visible by default
-  const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<BuiltInColumn>>(() =>
+  const [localVisibleBuiltInColumns, setLocalVisibleBuiltInColumns] = useState<Set<BuiltInColumn>>(() =>
     new Set<BuiltInColumn>(['assigned_to', 'due_date', 'project'])
   );
+
+  // Use controlled state if provided, otherwise use local state
+  const visibleColumnIds = controlledVisibleColumnIds ?? localVisibleColumnIds;
+  const visibleBuiltInColumns = controlledVisibleBuiltInColumns ?? localVisibleBuiltInColumns;
+
+  const setVisibleColumnIds = (value: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+    const newValue = typeof value === 'function' ? value(visibleColumnIds) : value;
+    if (onVisibleColumnIdsChange) {
+      onVisibleColumnIdsChange(newValue);
+    } else {
+      setLocalVisibleColumnIds(newValue);
+    }
+  };
+
+  const setVisibleBuiltInColumns = (value: Set<BuiltInColumn> | ((prev: Set<BuiltInColumn>) => Set<BuiltInColumn>)) => {
+    const newValue = typeof value === 'function' ? value(visibleBuiltInColumns) : value;
+    if (onVisibleBuiltInColumnsChange) {
+      onVisibleBuiltInColumnsChange(newValue);
+    } else {
+      setLocalVisibleBuiltInColumns(newValue);
+    }
+  };
 
   // Update visible columns when custom property definitions change
   useEffect(() => {

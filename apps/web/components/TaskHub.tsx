@@ -24,15 +24,20 @@ import {
   useTaskEditPanel,
   useTasksPropertyValues,
   useSetPropertyValue,
+  useUserViews,
 } from "@perfect-task-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
 import { TaskList } from "./TaskList";
+import { KanbanView } from "./KanbanView";
 import { SavedViews } from "./SavedViews";
 import { TaskItem } from "./TaskItem";
 import { TaskFiltersBar } from "./TaskFiltersBar";
 import { TaskEditPullover } from "./TaskEditPullover";
-import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
+import { CreateViewDialog } from "./CreateViewDialog";
+import { UpdateViewDialog } from "./UpdateViewDialog";
+import { Task, CustomPropertyDefinition, View } from "@perfect-task-app/models";
+import { useCreateView } from "@perfect-task-app/data";
 import { FilterState, createEmptyFilterState, filterTasks } from "@perfect-task-app/ui/lib/taskFiltering";
 import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping";
 
@@ -46,10 +51,30 @@ interface TaskHubProps {
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
+
+  // View dialog state
+  const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
+  const [isUpdateViewDialogOpen, setIsUpdateViewDialogOpen] = useState(false);
+  const [viewToEdit, setViewToEdit] = useState<View | null>(null);
+
+  // Fetch all views for user and the active view
+  const { data: userViews = [] } = useUserViews(userId);
+  const activeView = userViews.find(v => v.id === selectedViewId);
+
+
+  // View mutations
+  const createView = useCreateView();
+
   // Filter and grouping state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<FilterState>(createEmptyFilterState());
   const [groupBy, setGroupBy] = useState<GroupByOption | null>(null);
+
+  // Column visibility state
+  const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(() => new Set());
+  const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<'assigned_to' | 'due_date' | 'project'>>(() =>
+    new Set(['assigned_to', 'due_date', 'project'])
+  );
 
   // Task edit panel state
   const {
@@ -62,8 +87,14 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     setHasUnsavedChanges,
   } = useTaskEditPanel();
 
-  // Fallback to original hook until database migration is applied
-  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
+  // Determine which projects to query: use view config if active, otherwise use selectedProjectIds
+  const effectiveProjectIds = activeView?.config.projectIds && activeView.config.projectIds.length > 0
+    ? activeView.config.projectIds
+    : selectedProjectIds;
+
+
+  // Fetch tasks from effective project IDs
+  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
@@ -155,20 +186,45 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     }),
   );
 
-  // Sort server tasks by due date and created date
+  // Sort server tasks based on view config or default sorting
   const sortedServerTasks = useMemo(() => {
-    return [...serverTasks].sort((a, b) => {
-      // Sort by due date first (tasks with due dates come first)
-      if (a.due_date && b.due_date) {
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      }
-      if (a.due_date && !b.due_date) return -1;
-      if (!a.due_date && b.due_date) return 1;
+    const sortBy = activeView?.config.sortBy || 'due_date';
 
-      // Then sort by created date (newest first)
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return [...serverTasks].sort((a, b) => {
+      switch (sortBy) {
+        case 'due_date':
+          // Sort by due date first (tasks with due dates come first)
+          if (a.due_date && b.due_date) {
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          }
+          if (a.due_date && !b.due_date) return -1;
+          if (!a.due_date && b.due_date) return 1;
+          // Fall through to created_at for tasks without due dates
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+        case 'created_at':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+        case 'name':
+          return a.name.localeCompare(b.name);
+
+        case 'status':
+          const statusOrder = { 'To Do': 0, 'In Progress': 1, 'Done': 2 };
+          const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 999;
+          const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 999;
+          return aOrder - bOrder;
+
+        default:
+          // Default to due date sorting
+          if (a.due_date && b.due_date) {
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          }
+          if (a.due_date && !b.due_date) return -1;
+          if (!a.due_date && b.due_date) return 1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
     });
-  }, [serverTasks]);
+  }, [serverTasks, activeView?.config.sortBy]);
 
   // Use sorted server tasks as the base
   const baseTasks = sortedServerTasks;
@@ -249,12 +305,78 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     return rectIntersection(args);
   };
 
-  // Reset filters when projects change
+  // Initialize visibleColumnIds when custom properties load
   React.useEffect(() => {
-    setSearchQuery("");
-    setSelectedFilters(createEmptyFilterState());
-    setGroupBy(null);
-  }, [selectedProjectIds.join(",")]);
+    if (allCustomProperties.length > 0 && visibleColumnIds.size === 0) {
+      // Initialize with all custom properties visible
+      setVisibleColumnIds(new Set(allCustomProperties.map(p => p.id)));
+    }
+  }, [allCustomProperties, visibleColumnIds.size]);
+
+  // Sync groupBy and column visibility with active view config
+  React.useEffect(() => {
+    if (!activeView) {
+      return;
+    }
+
+    console.log('🔄 [VIEW SWITCH] Switching to view:', activeView.name, {
+      visibleProperties: activeView.config.visibleProperties,
+      visibleBuiltInColumns: activeView.config.visibleBuiltInColumns,
+    });
+
+    // Sync groupBy
+    if (activeView.config.groupBy) {
+      setGroupBy(activeView.config.groupBy as GroupByOption);
+    } else {
+      setGroupBy(null);
+    }
+
+    // Sync visible custom property columns
+    if (activeView.config.visibleProperties) {
+      setVisibleColumnIds(new Set(activeView.config.visibleProperties));
+    }
+
+    // Sync visible built-in columns
+    if (activeView.config.visibleBuiltInColumns) {
+      setVisibleBuiltInColumns(new Set(activeView.config.visibleBuiltInColumns));
+    }
+  }, [activeView?.id]);
+
+  // Reset filters when projects change (but not when view changes)
+  React.useEffect(() => {
+    if (!activeView) {
+      setSearchQuery("");
+      setSelectedFilters(createEmptyFilterState());
+      setGroupBy(null);
+    }
+  }, [selectedProjectIds.join(","), activeView]);
+
+  // View handlers
+  const handleEditView = (view: View) => {
+    setViewToEdit(view);
+    setIsUpdateViewDialogOpen(true);
+  };
+
+  const handleDuplicateView = async (view: View) => {
+    try {
+      const newView = await createView.mutateAsync({
+        name: `${view.name} (Copy)`,
+        type: view.type,
+        config: view.config,
+      });
+      // Switch to the newly created view
+      onViewChange(newView.id);
+    } catch (error) {
+      console.error('Failed to duplicate view:', error);
+    }
+  };
+
+  const handleViewDeleted = () => {
+    // If the deleted view was active, switch to null (no view)
+    if (viewToEdit && viewToEdit.id === selectedViewId) {
+      onViewChange(null);
+    }
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = displayTasks.find((t: Task) => t.id === event.active.id);
@@ -378,52 +500,103 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           filteredTasks={filteredTasks.length}
         />
 
-        {/* Task List */}
+        {/* Task List or Kanban View */}
         <div className="flex-1 overflow-hidden">
-          <TaskList
-            tasks={displayTasks}
-            selectedProjectIds={selectedProjectIds}
-            customPropertyDefinitions={allCustomProperties}
-            userId={userId}
-            isLoading={isLoading}
-            isDraggingActive={!!draggedTask}
-            groupedTasks={groupedTasks}
-            showGroupHeaders={groupBy !== null && groupBy !== "none"}
-            groupBy={groupBy}
-            userMapping={userMapping}
-            projectMapping={projectMapping}
-            projects={allProjects}
-            profiles={allProfiles}
-            onTaskEditClick={(taskId) => {
-              if (isEditPanelOpen && selectedTaskId === taskId) {
-                // If same task is clicked, close the panel
-                closeEditPanel();
-              } else if (isEditPanelOpen) {
-                // If panel is open but different task, switch task
-                // Pre-populate the cache with the task data from the list
-                const taskData = displayTasks.find((t) => t.id === taskId);
-                if (taskData) {
-                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+          {activeView?.type === 'kanban' ? (
+            <KanbanView
+              tasks={displayTasks}
+              userId={userId}
+              projects={allProjects}
+              profiles={allProfiles}
+              customPropertyDefinitions={allCustomProperties}
+            />
+          ) : (
+            <TaskList
+              tasks={displayTasks}
+              selectedProjectIds={selectedProjectIds}
+              customPropertyDefinitions={allCustomProperties}
+              userId={userId}
+              isLoading={isLoading}
+              isDraggingActive={!!draggedTask}
+              groupedTasks={groupedTasks}
+              showGroupHeaders={groupBy !== null && groupBy !== "none"}
+              groupBy={groupBy}
+              userMapping={userMapping}
+              projectMapping={projectMapping}
+              projects={allProjects}
+              profiles={allProfiles}
+              visibleColumnIds={visibleColumnIds}
+              visibleBuiltInColumns={visibleBuiltInColumns}
+              onVisibleColumnIdsChange={setVisibleColumnIds}
+              onVisibleBuiltInColumnsChange={setVisibleBuiltInColumns}
+              onTaskEditClick={(taskId) => {
+                if (isEditPanelOpen && selectedTaskId === taskId) {
+                  // If same task is clicked, close the panel
+                  closeEditPanel();
+                } else if (isEditPanelOpen) {
+                  // If panel is open but different task, switch task
+                  // Pre-populate the cache with the task data from the list
+                  const taskData = displayTasks.find((t) => t.id === taskId);
+                  if (taskData) {
+                    queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                  }
+                  switchEditTask(taskId);
+                } else {
+                  // Pre-populate the cache with the task data from the list
+                  const taskData = displayTasks.find((t) => t.id === taskId);
+                  if (taskData) {
+                    queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                  }
+                  // Open panel with new task
+                  openEditPanel(taskId);
                 }
-                switchEditTask(taskId);
-              } else {
-                // Pre-populate the cache with the task data from the list
-                const taskData = displayTasks.find((t) => t.id === taskId);
-                if (taskData) {
-                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
-                }
-                // Open panel with new task
-                openEditPanel(taskId);
-              }
-            }}
-          />
+              }}
+            />
+          )}
         </div>
 
         {/* Saved Views */}
         <div className="border-t border-gray-200 bg-white">
-          <SavedViews userId={userId} selectedViewId={selectedViewId} onViewChange={onViewChange} />
+          <SavedViews
+            userId={userId}
+            selectedViewId={selectedViewId}
+            onViewChange={onViewChange}
+            onCreateView={() => setIsCreateViewDialogOpen(true)}
+            onEditView={handleEditView}
+            onDuplicateView={handleDuplicateView}
+          />
         </div>
       </div>
+
+      {/* Create View Dialog */}
+      <CreateViewDialog
+        isOpen={isCreateViewDialogOpen}
+        onClose={() => setIsCreateViewDialogOpen(false)}
+        userId={userId}
+        currentProjectIds={selectedProjectIds}
+        currentGroupBy={groupBy || undefined}
+        currentSortBy={activeView?.config.sortBy || 'due_date'}
+        currentViewType={activeView?.type || 'list'}
+        currentVisibleProperties={Array.from(visibleColumnIds)}
+        currentVisibleBuiltInColumns={Array.from(visibleBuiltInColumns)}
+        onViewCreated={(viewId) => {
+          // Switch to the newly created view
+          onViewChange(viewId);
+        }}
+      />
+
+      {/* Update View Dialog */}
+      {viewToEdit && (
+        <UpdateViewDialog
+          isOpen={isUpdateViewDialogOpen}
+          onClose={() => {
+            setIsUpdateViewDialogOpen(false);
+            setViewToEdit(null);
+          }}
+          view={viewToEdit}
+          onViewDeleted={handleViewDeleted}
+        />
+      )}
 
       {/* Drag Overlay */}
       <DragOverlay>
