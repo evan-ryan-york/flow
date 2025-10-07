@@ -1,9 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useUserViews } from '@perfect-task-app/data';
-import { Button, Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
-import { ViewGrid, NavArrowDown, Plus, MoreVert, EditPencil, Copy, Trash } from 'iconoir-react';
+import { useUserViews, useDeleteView } from '@perfect-task-app/data';
+import {
+  Button,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@perfect-task-app/ui';
+import { ViewGrid, Plus, Trash } from 'iconoir-react';
 import type { View } from '@perfect-task-app/models';
 
 /**
@@ -18,18 +28,13 @@ interface SavedViewsProps {
   onViewChange: (viewId: string) => void;
   /** Callback fired when the user clicks the create view button */
   onCreateView: () => void;
-  /** Callback fired when the user clicks edit on a view */
-  onEditView: (view: View) => void;
-  /** Callback fired when the user clicks duplicate on a view */
-  onDuplicateView: (view: View) => void;
 }
 
 /**
  * SavedViews Component
  *
- * Displays a horizontal tab bar showing all user views with context menus for
- * managing views (edit, duplicate, delete). Users can click tabs to switch between
- * views or create new ones.
+ * Displays a horizontal tab bar showing all user views with delete buttons.
+ * Users can click tabs to switch between views or create new ones.
  *
  * @example
  * ```tsx
@@ -38,15 +43,14 @@ interface SavedViewsProps {
  *   selectedViewId="view-456"
  *   onViewChange={(viewId) => setSelectedView(viewId)}
  *   onCreateView={() => setShowCreateDialog(true)}
- *   onEditView={(view) => openEditDialog(view)}
- *   onDuplicateView={(view) => duplicateView(view)}
  * />
  * ```
  */
 
-export function SavedViews({ userId, selectedViewId, onViewChange, onCreateView, onEditView, onDuplicateView }: SavedViewsProps) {
+export function SavedViews({ userId, selectedViewId, onViewChange, onCreateView }: SavedViewsProps) {
   const { data: views, isLoading, isError, error } = useUserViews(userId);
-  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+  const deleteViewMutation = useDeleteView();
+  const [viewToDelete, setViewToDelete] = useState<View | null>(null);
 
   // Loading state
   if (isLoading) {
@@ -122,13 +126,19 @@ export function SavedViews({ userId, selectedViewId, onViewChange, onCreateView,
       <div className="flex gap-1 overflow-x-auto pb-1" role="tablist">
         {views.map((view) => {
           const isActive = selectedViewId === view.id;
-          const isKanban = view.type === 'kanban';
 
           return (
-            <div key={view.id} className="flex items-center gap-0.5">
+            <div
+              key={view.id}
+              role="tab"
+              aria-selected={isActive}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition-colors ${
+                isActive
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
+              }`}
+            >
               <button
-                role="tab"
-                aria-selected={isActive}
                 onClick={() => {
                   console.log('[SavedViews] View tab clicked:', {
                     viewId: view.id,
@@ -139,70 +149,51 @@ export function SavedViews({ userId, selectedViewId, onViewChange, onCreateView,
                   });
                   onViewChange(view.id);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-l-md whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'bg-blue-100 text-blue-800 border border-blue-300 border-r-0'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent border-r-0'
-                }`}
+                className="flex items-center gap-1.5 flex-1"
               >
                 <ViewGrid className="h-3.5 w-3.5" />
                 <span>{view.name}</span>
               </button>
 
-              <Popover open={openPopoverId === view.id} onOpenChange={(open) => setOpenPopoverId(open ? view.id : null)}>
-                <PopoverTrigger asChild>
-                  <button
-                    className={`px-1 py-1.5 rounded-r-md transition-colors ${
-                      isActive
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300 border-l-0 hover:bg-blue-200'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent border-l-0'
-                    }`}
-                    aria-label={`View options for ${view.name}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreVert className="h-3.5 w-3.5" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-1" align="start">
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => {
-                        onEditView(view);
-                        setOpenPopoverId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-left"
-                    >
-                      <EditPencil className="h-4 w-4" />
-                      <span>Edit view</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        onDuplicateView(view);
-                        setOpenPopoverId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-left"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Duplicate view</span>
-                    </button>
-                    <div className="h-px bg-gray-200 my-1" />
-                    <button
-                      onClick={() => {
-                        onEditView(view); // Opens the edit dialog which now has delete button
-                        setOpenPopoverId(null);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors text-left"
-                    >
-                      <Trash className="h-4 w-4" />
-                      <span>Delete view</span>
-                    </button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <button
+                className="flex items-center hover:opacity-70 transition-opacity"
+                aria-label={`Delete ${view.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewToDelete(view);
+                }}
+              >
+                <Trash className="h-3.5 w-3.5" />
+              </button>
             </div>
           );
         })}
       </div>
+
+      <AlertDialog open={!!viewToDelete} onOpenChange={(open) => !open && setViewToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete View</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{viewToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (viewToDelete) {
+                  deleteViewMutation.mutate(viewToDelete.id);
+                  setViewToDelete(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

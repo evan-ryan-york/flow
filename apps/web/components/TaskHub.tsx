@@ -35,9 +35,7 @@ import { TaskItem } from "./TaskItem";
 import { TaskFiltersBar } from "./TaskFiltersBar";
 import { TaskEditPullover } from "./TaskEditPullover";
 import { CreateViewDialog } from "./CreateViewDialog";
-import { UpdateViewDialog } from "./UpdateViewDialog";
-import { Task, CustomPropertyDefinition, View } from "@perfect-task-app/models";
-import { useCreateView } from "@perfect-task-app/data";
+import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
 import { FilterState, createEmptyFilterState, filterTasks } from "@perfect-task-app/ui/lib/taskFiltering";
 import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping";
 
@@ -54,16 +52,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // View dialog state
   const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
-  const [isUpdateViewDialogOpen, setIsUpdateViewDialogOpen] = useState(false);
-  const [viewToEdit, setViewToEdit] = useState<View | null>(null);
 
   // Fetch all views for user and the active view
   const { data: userViews = [] } = useUserViews(userId);
   const activeView = userViews.find(v => v.id === selectedViewId);
-
-
-  // View mutations
-  const createView = useCreateView();
 
   // Filter and grouping state
   const [searchQuery, setSearchQuery] = useState("");
@@ -351,32 +343,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     }
   }, [selectedProjectIds.join(","), activeView]);
 
-  // View handlers
-  const handleEditView = (view: View) => {
-    setViewToEdit(view);
-    setIsUpdateViewDialogOpen(true);
-  };
-
-  const handleDuplicateView = async (view: View) => {
-    try {
-      const newView = await createView.mutateAsync({
-        name: `${view.name} (Copy)`,
-        type: view.type,
-        config: view.config,
-      });
-      // Switch to the newly created view
-      onViewChange(newView.id);
-    } catch (error) {
-      console.error('Failed to duplicate view:', error);
-    }
-  };
-
-  const handleViewDeleted = () => {
-    // If the deleted view was active, switch to null (no view)
-    if (viewToEdit && viewToEdit.id === selectedViewId) {
-      onViewChange(null);
-    }
-  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = displayTasks.find((t: Task) => t.id === event.active.id);
@@ -562,8 +528,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             selectedViewId={selectedViewId}
             onViewChange={onViewChange}
             onCreateView={() => setIsCreateViewDialogOpen(true)}
-            onEditView={handleEditView}
-            onDuplicateView={handleDuplicateView}
           />
         </div>
       </div>
@@ -585,18 +549,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         }}
       />
 
-      {/* Update View Dialog */}
-      {viewToEdit && (
-        <UpdateViewDialog
-          isOpen={isUpdateViewDialogOpen}
-          onClose={() => {
-            setIsUpdateViewDialogOpen(false);
-            setViewToEdit(null);
-          }}
-          view={viewToEdit}
-          onViewDeleted={handleViewDeleted}
-        />
-      )}
 
       {/* Drag Overlay */}
       <DragOverlay>
