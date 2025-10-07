@@ -256,25 +256,42 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     let filtered = [...baseTasks];
 
     // By default, hide completed tasks unless a completion filter is active
+    // Set default completion filter to 'incomplete' if none is set
+    const effectiveFilters = {
+      ...selectedFilters,
+      completion: selectedFilters.completion || { status: 'incomplete' as const }
+    };
+
     // BUT keep tasks that are currently completing visible for 2 seconds
-    if (!selectedFilters.completion) {
-      filtered = filtered.filter(task => !task.is_completed || completingTaskIds.has(task.id));
-    }
+    const tasksWithCompletingVisible = filtered.map(task => {
+      if (completingTaskIds.has(task.id)) {
+        // Temporarily show completing tasks even if they would be filtered out
+        return task;
+      }
+      return task;
+    });
 
     // Apply search
     if (searchQuery.trim()) {
       const searchTerm = searchQuery.toLowerCase();
-      filtered = filtered.filter(
+      filtered = tasksWithCompletingVisible.filter(
         (task) =>
           task.name.toLowerCase().includes(searchTerm) ||
           (task.description && task.description.toLowerCase().includes(searchTerm)),
       );
+    } else {
+      filtered = tasksWithCompletingVisible;
     }
 
-    // Apply other filters
-    filtered = filterTasks(filtered, selectedFilters);
+    // Apply other filters (including the effective completion filter)
+    filtered = filterTasks(filtered, effectiveFilters);
 
-    return filtered;
+    // Re-add completing tasks if they were filtered out
+    const completingTasks = baseTasks.filter(task =>
+      completingTaskIds.has(task.id) && !filtered.some(t => t.id === task.id)
+    );
+
+    return [...filtered, ...completingTasks];
   }, [baseTasks, searchQuery, selectedFilters, completingTaskIds]);
 
   // Apply grouping to filtered tasks

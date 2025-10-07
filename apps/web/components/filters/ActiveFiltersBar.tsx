@@ -64,12 +64,22 @@ export function ActiveFiltersBar({
     }
   };
 
-  const getCompletionLabel = (completion: { type: string }) => {
-    switch (completion.type) {
-      case 'all-completed': return 'All Completed';
-      case 'completed-last-week': return 'Completed Last Week';
-      default: return 'Completed';
+  const getCompletionLabel = (completion: { status: string; timeframe?: string }) => {
+    let statusLabel = '';
+    switch (completion.status) {
+      case 'incomplete': statusLabel = 'Incomplete only'; break;
+      case 'completed': statusLabel = 'Completed only'; break;
+      case 'all': statusLabel = 'All tasks'; break;
+      default: statusLabel = 'Unknown';
     }
+
+    if (completion.timeframe && completion.timeframe !== 'all-time') {
+      const timeframeLabel = completion.timeframe === 'last-week' ? 'Last week' :
+                             completion.timeframe === 'last-month' ? 'Last month' : '';
+      return `${statusLabel} (${timeframeLabel})`;
+    }
+
+    return statusLabel;
   };
 
   const getGroupByLabel = (groupByValue: GroupByOption) => {
@@ -145,8 +155,8 @@ export function ActiveFiltersBar({
             </div>
           ))}
 
-          {/* Completion filter */}
-          {selectedFilters.completion && (
+          {/* Completion filter - only show if not the default 'incomplete' */}
+          {selectedFilters.completion && selectedFilters.completion.status !== 'incomplete' && (
             <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
               <Filter className="h-3 w-3 text-blue-600" />
               <span className="text-gray-700">{getCompletionLabel(selectedFilters.completion)}</span>
