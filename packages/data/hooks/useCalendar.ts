@@ -405,7 +405,7 @@ export function useTriggerEventSync() {
 
       // eslint-disable-next-line no-undef
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = setTimeout(() => controller?.abort(), 120000); // 2 minute timeout
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 120000) : null; // 2 minute timeout
 
       try {
         const response = await fetch(
@@ -421,7 +421,7 @@ export function useTriggerEventSync() {
           }
         );
 
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
 
         console.log('🔄 Event sync response status:', response.status);
 
@@ -435,7 +435,7 @@ export function useTriggerEventSync() {
         console.log('🔄 Event sync result:', result);
         return result;
       } catch (error) {
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
         console.error('🔄 Event sync error:', error);
         throw error;
       }
