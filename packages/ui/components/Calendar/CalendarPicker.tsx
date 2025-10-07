@@ -16,7 +16,6 @@ export function CalendarPicker({ connectionId, onSelectionChange, className }: C
   const { data: subscriptions, isLoading: subscriptionsLoading } = useCalendarSubscriptions(connectionId)
   const toggleVisibility = useToggleCalendarVisibility()
   const updateColor = useUpdateCalendarColor()
-  const [editingColorId, setEditingColorId] = React.useState<string | null>(null)
 
   // Group subscriptions by connection
   const subscriptionsByConnection = React.useMemo(() => {

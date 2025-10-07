@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { NavArrowDown, NavArrowRight } from 'iconoir-react';
 import { TaskItem } from './TaskItem';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
@@ -221,8 +221,8 @@ function SortableTaskItem({
         customPropertyDefinitions={customPropertyDefinitions}
         userId={userId}
         isDragging={isDragging}
-        dragAttributes={attributes}
-        dragListeners={listeners}
+        dragAttributes={attributes as unknown as Record<string, unknown> & { [key: string]: unknown }}
+        dragListeners={listeners as unknown as Record<string, unknown> & { [key: string]: unknown }}
         userMapping={userMapping}
       />
     </div>

@@ -5,14 +5,13 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Plus, EditPencil, Bin } from "iconoir-react";
 import {
-  useProjectDefinitions,
   useAllUserDefinitions,
   useCreateDefinition,
   useUpdateDefinition,
   useDeleteDefinition,
   useProjectsForUser,
 } from "@perfect-task-app/data";
-import type { CustomPropertyDefinition, CustomPropertyDefinitionWithProjects } from "@perfect-task-app/models";
+import type { CustomPropertyDefinitionWithProjects } from "@perfect-task-app/models";
 
 interface CustomPropertyManagerProps {
   projectId: string; // Still used for initial context, but now supports multi-select
@@ -33,7 +32,7 @@ interface PropertyFormData {
 
 export function CustomPropertyManager({
   projectId,
-  projectName,
+  projectName: _projectName,
   userId,
   open,
   onOpenChange,
@@ -125,7 +124,7 @@ export function CustomPropertyManager({
           updates: {
             name: trimmedName,
             type: formData.type,
-            options: formData.type === "select" ? formData.options : null,
+            options: formData.type === "select" ? formData.options : undefined,
             project_ids: formData.selectedProjectIds,
           },
         });
@@ -136,7 +135,7 @@ export function CustomPropertyManager({
           // Don't send created_by - the database will set it automatically
           name: trimmedName,
           type: formData.type,
-          options: formData.type === "select" ? formData.options : null,
+          options: formData.type === "select" ? formData.options : undefined,
           display_order: allUserProperties.length,
         });
       }

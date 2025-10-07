@@ -6,10 +6,7 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverlay,
-  closestCenter,
-  pointerWithin,
   rectIntersection,
-  getFirstCollision,
   PointerSensor,
   useSensor,
   useSensors,
@@ -123,12 +120,14 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const queryClient = useQueryClient();
 
   // Real-time synchronization
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isConnected } = useRealtimeTaskSync(userId, selectedProjectIds);
 
   // Listen for task completions to delay hiding them
   React.useEffect(() => {
-    const handleTaskComplete = (event: CustomEvent) => {
-      const taskId = event.detail.taskId;
+    const handleTaskComplete = (event: Event) => {
+      const customEvent = event as CustomEvent<{ taskId: string }>;
+      const taskId = customEvent.detail.taskId;
       setCompletingTaskIds(prev => new Set(prev).add(taskId));
 
       // Remove from completing set after 2 seconds
@@ -141,8 +140,8 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       }, 2000);
     };
 
-    window.addEventListener('task-completed' as any, handleTaskComplete);
-    return () => window.removeEventListener('task-completed' as any, handleTaskComplete);
+    window.addEventListener('task-completed', handleTaskComplete);
+    return () => window.removeEventListener('task-completed', handleTaskComplete);
   }, []);
 
   // Get custom property definitions for all selected projects
@@ -183,11 +182,11 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       return a.display_order - b.display_order;
     });
   }, [
-    project1Definitions.data,
-    project2Definitions.data,
-    project3Definitions.data,
-    project4Definitions.data,
-    project5Definitions.data,
+    project1Definitions,
+    project2Definitions,
+    project3Definitions,
+    project4Definitions,
+    project5Definitions,
     selectedProjectIds.length,
   ]);
 
@@ -222,11 +221,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         case 'name':
           return a.name.localeCompare(b.name);
 
-        case 'status':
-          const statusOrder = { 'To Do': 0, 'In Progress': 1, 'Done': 2 };
-          const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 999;
-          const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 999;
-          return aOrder - bOrder;
+        case 'completion':
+          // Sort by completion status (incomplete first, then completed)
+          if (a.is_completed === b.is_completed) return 0;
+          return a.is_completed ? 1 : -1;
 
         default:
           // Default to due date sorting
@@ -282,7 +280,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           label: "All Tasks",
           tasks: filteredTasks,
           count: filteredTasks.length,
-          completedCount: filteredTasks.filter((t) => t.status === "Done").length,
+          completedCount: filteredTasks.filter((t) => t.is_completed).length,
           sortOrder: 0,
         },
       ];
@@ -308,11 +306,11 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const displayTasks = filteredTasks;
 
   // Custom collision detection that prioritizes group drops
-  const customCollisionDetection = (args: any) => {
+  const customCollisionDetection = (args: Parameters<typeof rectIntersection>[0]) => {
     // First check for group collisions using rectIntersection
     const groupCollisions = rectIntersection({
       ...args,
-      droppableContainers: args.droppableContainers.filter((container: any) =>
+      droppableContainers: args.droppableContainers.filter((container) =>
         container.id.toString().startsWith("group-"),
       ),
     });
@@ -360,6 +358,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     if (activeView.config.visibleBuiltInColumns) {
       setVisibleBuiltInColumns(new Set(activeView.config.visibleBuiltInColumns));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView?.id]);
 
   // Reset filters when projects change (but not when view changes)
@@ -369,7 +368,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       setSelectedFilters(createEmptyFilterState());
       setGroupBy(null);
     }
-  }, [selectedProjectIds.join(","), activeView]);
+  }, [selectedProjectIds, activeView]);
 
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -394,12 +393,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
     // Check if dropping on a group (cross-group drop)
     // This handles both dropping on group headers and within group areas
-    const droppedOnTask = displayTasks.find((task) => task.id === over.id);
     const isGroupDrop = over.data?.current?.type === "group";
 
     if (isGroupDrop) {
       const groupKey = over.data.current?.groupKey;
-      const groupLabel = over.data.current?.groupLabel;
 
       // Check if grouping by custom property
       if (groupBy && typeof groupBy === 'object' && groupBy.type === 'customProperty') {
@@ -418,14 +415,15 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
       // TanStack Query will handle updates automatically
 
       // Determine what property to update based on current grouping
-      let updates: any = {};
+      const updates: Record<string, string | boolean | null> = {};
 
       switch (groupBy) {
         case "project":
           updates.project_id = groupKey;
           break;
-        case "status":
-          updates.status = groupKey;
+        case "completion":
+          updates.is_completed = groupKey === "completed";
+          updates.completed_at = groupKey === "completed" ? new Date().toISOString() : null;
           break;
         case "assignee":
           updates.assigned_to = groupKey === "unassigned" ? null : groupKey;
@@ -486,7 +484,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           onGroupByChange={setGroupBy}
           tasks={baseTasks}
           selectedProjectIds={selectedProjectIds}
-          userId={userId}
           profiles={allProfiles}
           projects={allProjects}
           customPropertyDefinitions={allCustomProperties}
@@ -566,7 +563,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         onClose={() => setIsCreateViewDialogOpen(false)}
         userId={userId}
         currentProjectIds={selectedProjectIds}
-        currentGroupBy={groupBy || undefined}
+        currentGroupBy={typeof groupBy === 'string' ? groupBy : undefined}
         currentSortBy={activeView?.config.sortBy || 'due_date'}
         currentViewType={activeView?.type || 'list'}
         currentVisibleProperties={Array.from(visibleColumnIds)}

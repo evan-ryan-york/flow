@@ -95,8 +95,9 @@ export const createView = async (viewData: CreateViewData): Promise<View> => {
 export const updateView = async (viewId: string, updates: UpdateViewData): Promise<View> => {
   try {
     // Prepare the update object
-    const updateData: any = {
-      ...updates,
+    const updateData: { name?: string; type?: 'list' | 'kanban'; config?: string; is_active?: boolean; updated_at: string } = {
+      name: updates.name,
+      type: updates.type,
       updated_at: new Date().toISOString(),
     };
 

@@ -7,7 +7,7 @@ import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
 import { Button } from '@perfect-task-app/ui';
-import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useUpdateView, useEnsureDefaultView, useProjectsForUser } from '@perfect-task-app/data';
+import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useUpdateView, useProjectsForUser } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;
@@ -43,7 +43,8 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   useEffect(() => {
     if (!hasInitialized && !isLoadingVisibleProjects) {
       // Restore selected view from localStorage
-      const savedViewId = localStorage.getItem(`selectedViewId_${userId}`);
+      // eslint-disable-next-line no-undef
+      const savedViewId = typeof localStorage !== 'undefined' ? localStorage.getItem(`selectedViewId_${userId}`) : null;
       if (savedViewId && userViews.some(v => v.id === savedViewId)) {
         setSelectedViewId(savedViewId);
       }
@@ -59,10 +60,14 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
 
   // Persist selected view to localStorage whenever it changes
   useEffect(() => {
-    if (selectedViewId) {
-      localStorage.setItem(`selectedViewId_${userId}`, selectedViewId);
-    } else {
-      localStorage.removeItem(`selectedViewId_${userId}`);
+    if (typeof localStorage !== 'undefined') {
+      if (selectedViewId) {
+        // eslint-disable-next-line no-undef
+        localStorage.setItem(`selectedViewId_${userId}`, selectedViewId);
+      } else {
+        // eslint-disable-next-line no-undef
+        localStorage.removeItem(`selectedViewId_${userId}`);
+      }
     }
   }, [selectedViewId, userId]);
 
@@ -83,6 +88,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         updateVisibleProjectsMutation.mutate({ projectIds: cleanedProjectIds, userId });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProjects, selectedProjectIds, userId]);
 
   // Sync project selection when active view changes
@@ -92,6 +98,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
       setHasManualChanges(false);
       updateVisibleProjectsMutation.mutate({ projectIds: activeView.config.projectIds, userId });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView?.id, activeView?.config.projectIds, userId]);
 
   // Save project selection changes to the database

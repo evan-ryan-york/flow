@@ -1,7 +1,7 @@
 import * as React from "react"
 
-interface IconProps extends React.SVGProps<SVGSVGElement> {
-  className?: string
+interface IconProps {
+  className?: string;
 }
 
 export const ChevronLeft: React.FC<IconProps> = ({ className, ...props }) => (

@@ -16,8 +16,8 @@ interface ActiveFiltersBarProps {
   onFilterClear: (filterType: keyof FilterState) => void;
   onGroupByClear: () => void;
   onClearAll: () => void;
-  profiles?: any[];
-  projects?: any[];
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  projects?: Array<{ id: string; name: string }>;
 }
 
 export function ActiveFiltersBar({
@@ -53,7 +53,7 @@ export function ActiveFiltersBar({
     return project?.name || `Project ${projectId}`;
   };
 
-  const getDueDateLabel = (dueDate: any) => {
+  const getDueDateLabel = (dueDate: { type: string }) => {
     switch (dueDate.type) {
       case 'overdue': return 'Overdue';
       case 'today': return 'Today';
@@ -64,7 +64,7 @@ export function ActiveFiltersBar({
     }
   };
 
-  const getCompletionLabel = (completion: any) => {
+  const getCompletionLabel = (completion: { type: string }) => {
     switch (completion.type) {
       case 'all-completed': return 'All Completed';
       case 'completed-last-week': return 'Completed Last Week';

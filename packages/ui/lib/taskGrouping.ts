@@ -6,6 +6,7 @@ export type GroupByOption =
   | 'project'
   | 'dueDate'
   | 'assignee'
+  | 'completion'
   | { type: 'customProperty'; definitionId: string };
 
 export interface TaskGroup {
@@ -21,8 +22,8 @@ export interface TaskGroup {
 export function groupTasks(
   tasks: Task[],
   groupBy: GroupByOption,
-  projects: any[] = [],
-  profiles: any[] = [],
+  projects: { id: string; name: string }[] = [],
+  profiles: { id: string; first_name?: string | null; last_name?: string | null }[] = [],
   customPropertyDefinition?: CustomPropertyDefinition,
   customPropertyValues?: CustomPropertyValue[]
 ): TaskGroup[] {
@@ -50,6 +51,8 @@ export function groupTasks(
       return groupTasksByDueDate(tasks);
     case 'assignee':
       return groupTasksByAssignee(tasks, profiles);
+    case 'completion':
+      return groupTasksByCompletion(tasks);
     case 'none':
     default:
       return [{
@@ -64,7 +67,7 @@ export function groupTasks(
 }
 
 // Group tasks by project
-export function groupTasksByProject(tasks: Task[], projects: any[] = []): TaskGroup[] {
+export function groupTasksByProject(tasks: Task[], projects: { id: string; name: string }[] = []): TaskGroup[] {
   const projectGroups = new Map<string, Task[]>();
 
   // Initialize groups for each project
@@ -159,7 +162,7 @@ export function groupTasksByDueDate(tasks: Task[]): TaskGroup[] {
 }
 
 // Group tasks by assignee
-export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskGroup[] {
+export function groupTasksByAssignee(tasks: Task[], profiles: { id: string; first_name?: string | null; last_name?: string | null }[] = []): TaskGroup[] {
   const assigneeGroups = new Map<string, Task[]>();
 
   // Initialize groups for all profiles and unassigned
@@ -186,7 +189,7 @@ export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskG
     if (assigneeId !== 'unassigned') {
       const profile = profiles.find(p => p.id === assigneeId);
       if (profile) {
-        label = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User';
+        label = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || 'Unknown User';
         sortOrder = label.charCodeAt(0);
       } else {
         label = 'Unknown User';
@@ -204,6 +207,39 @@ export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskG
   });
 
   return groups.sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+// Group tasks by completion status
+export function groupTasksByCompletion(tasks: Task[]): TaskGroup[] {
+  const incomplete: Task[] = [];
+  const completed: Task[] = [];
+
+  tasks.forEach(task => {
+    if (task.is_completed) {
+      completed.push(task);
+    } else {
+      incomplete.push(task);
+    }
+  });
+
+  return [
+    {
+      key: 'incomplete',
+      label: 'Not Completed',
+      tasks: incomplete,
+      count: incomplete.length,
+      completedCount: 0,
+      sortOrder: 0
+    },
+    {
+      key: 'completed',
+      label: 'Completed',
+      tasks: completed,
+      count: completed.length,
+      completedCount: completed.length,
+      sortOrder: 1
+    }
+  ];
 }
 
 // Group tasks by custom property value

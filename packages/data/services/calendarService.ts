@@ -203,7 +203,7 @@ export async function getCalendarEvents(
 
     // Map to remove the joined subscription data
     return data?.map(row => {
-      const { calendar_subscriptions, ...event } = row as any;
+      const { calendar_subscriptions: _calendar_subscriptions, ...event } = row as { calendar_subscriptions?: unknown; [key: string]: unknown };
       return CalendarEventSchema.parse(event);
     }) || [];
   }
