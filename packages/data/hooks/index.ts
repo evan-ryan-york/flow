@@ -6,5 +6,6 @@ export * from './useProfile';
 export * from './useProject';
 export * from './useTask';
 export * from './useTaskEditPanel';
-export * from './useTimeBlock'; // Already exports useTimeBlockTasks
+export * from './useTimeBlock';
+export * from './useTimeBlockTasks';
 export * from './useView';

@@ -12,6 +12,14 @@
   },
   "aliases": {
     "components": "./components/ui",
-    "utils": "./lib/utils"
+    "utils": "./lib/utils",
+    "ui": "./components/ui"
+  },
+  "resolvedPaths": {
+    "tailwindConfig": "tailwind.config.js",
+    "tailwindCss": "styles/globals.css",
+    "utils": "./lib/utils",
+    "components": "./components/ui",
+    "ui": "./components/ui"
   }
 }
