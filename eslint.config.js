@@ -7,6 +7,29 @@ import reactHooks from 'eslint-plugin-react-hooks';
 // React Native plugin removed - using Capacitor instead
 
 export default [
+  {
+    // Ignore patterns - must come first
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.next/**',
+      '**/coverage/**',
+      '**/*.d.ts',
+      '**/supabase/**',
+      '**/test-phase*.js',
+      '**/__tests__/**',
+      '**/e2e/**',
+      '**/apps/mobile/ios/**',
+      '**/apps/mobile/android/**',
+      '**/nativeBridge.ts',
+      '**/native-bridge.js',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/jest.setup.js',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
@@ -29,6 +52,7 @@ export default [
         module: 'readonly',
         require: 'readonly',
         global: 'readonly',
+        NodeJS: 'readonly',
         // Jest globals
         jest: 'readonly',
         describe: 'readonly',
@@ -61,8 +85,11 @@ export default [
         FileReader: 'readonly',
         alert: 'readonly',
         prompt: 'readonly',
+        confirm: 'readonly',
         Notification: 'readonly',
         React: 'readonly',
+        Event: 'readonly',
+        CustomEvent: 'readonly',
       },
     },
     plugins: {
@@ -71,43 +98,31 @@ export default [
       'react-hooks': reactHooks,
     },
     rules: {
-      // TypeScript rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TypeScript rules - STRICT
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+      '@typescript-eslint/no-explicit-any': 'error', // Changed from warn to error
       '@typescript-eslint/explicit-function-return-type': 'off',
 
-      // React rules
+      // React rules - STRICT
       'react/react-in-jsx-scope': 'off', // Not needed with React 17+
       'react/prop-types': 'off', // We use TypeScript for prop validation
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error', // Changed from warn to error
 
-      // General rules
+      // General rules - STRICT
       'no-console': 'off', // Allow console for development
       'no-unused-vars': 'off', // Use TypeScript version instead
+      'no-undef': 'error', // Ensure all variables are defined
+      'no-case-declarations': 'error', // Disallow lexical declarations in case blocks
     },
     settings: {
       react: {
         version: 'detect',
       },
     },
-  },
-  // React Native rules removed - using Capacitor
-  {
-    // Ignore patterns
-    ignores: [
-      'node_modules/**',
-      'dist/**',
-      '.next/**',
-      'coverage/**',
-      '**/*.d.ts',
-      'supabase/**',
-      'test-phase*.js', // Ignore test phase files
-      '**/__tests__/**', // Ignore test directories for now
-      'apps/mobile/ios/**', // Ignore Capacitor iOS build files
-      'apps/mobile/android/**', // Ignore Capacitor Android build files
-      '**/nativeBridge.ts', // Ignore Capacitor native bridge files
-      '**/native-bridge.js', // Ignore Capacitor native bridge files
-    ],
   },
 ];

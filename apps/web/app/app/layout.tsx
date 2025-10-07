@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { AppHeader } from './components/AppHeader';
 
 export default async function AppLayout({
   children,

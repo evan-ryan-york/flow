@@ -21,7 +21,7 @@ interface RenameProjectDialogProps {
 
 export function RenameProjectDialog({
   project,
-  userId,
+  userId: _userId,
   open,
   onOpenChange
 }: RenameProjectDialogProps) {
@@ -54,7 +54,7 @@ export function RenameProjectDialog({
       });
       onOpenChange(false);
       setError(null);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to rename project');
     }
   };

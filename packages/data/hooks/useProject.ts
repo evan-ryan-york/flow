@@ -135,9 +135,9 @@ export const useAddProjectMember = () => {
       // Add the new member to the project members cache
       queryClient.setQueryData(
         PROJECT_KEYS.members(newMember.project_id),
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return [newMember];
-          return [...old, newMember];
+          return [...(old as unknown[]), newMember];
         }
       );
 
@@ -158,9 +158,9 @@ export const useRemoveProjectMember = () => {
       // Remove the member from the project members cache
       queryClient.setQueryData(
         PROJECT_KEYS.members(projectId),
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return [];
-          return old.filter((member: any) => member.user_id !== userId);
+          return (old as { user_id: string }[]).filter((member: { user_id: string }) => member.user_id !== userId);
         }
       );
 
@@ -188,9 +188,9 @@ export const useUpdateMemberRole = () => {
       // Update the specific member in the project members cache
       queryClient.setQueryData(
         PROJECT_KEYS.members(updatedMember.project_id),
-        (old: any) => {
+        (old: unknown) => {
           if (!old) return [updatedMember];
-          return old.map((member: any) =>
+          return (old as { user_id: string }[]).map((member: { user_id: string }) =>
             member.user_id === updatedMember.user_id ? updatedMember : member
           );
         }

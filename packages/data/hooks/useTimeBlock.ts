@@ -32,7 +32,7 @@ export const useUserTimeBlocks = (userId: string, dateRange: DateRange) => {
   });
 };
 
-export const useTimeBlockTasks = (blockId: string) => {
+export const useBlockTasks = (blockId: string) => {
   return useQuery({
     queryKey: TIME_BLOCK_KEYS.blockTasks(blockId),
     queryFn: () => getTasksForTimeBlock(blockId),

@@ -48,7 +48,7 @@ export const useAssignTaskToTimeBlock = () => {
   return useMutation({
     mutationFn: ({ taskId, timeBlockId }: { taskId: string; timeBlockId: string }) =>
       assignTaskToTimeBlock(taskId, timeBlockId),
-    onSuccess: async (_, { timeBlockId, taskId }) => {
+    onSuccess: async (_, { timeBlockId, taskId: _taskId }) => {
       console.log('🔄 Mutation success, invalidating queries for:', timeBlockId);
 
       // Use the CORRECT query key from useTimeBlock.ts
@@ -84,7 +84,7 @@ export const useUnassignTaskFromTimeBlock = () => {
   return useMutation({
     mutationFn: ({ taskId, timeBlockId }: { taskId: string; timeBlockId: string }) =>
       unassignTaskFromTimeBlock(taskId, timeBlockId),
-    onSuccess: async (_, { timeBlockId, taskId }) => {
+    onSuccess: async (_, { timeBlockId, taskId: _taskId }) => {
       console.log('🔄 Mutation success, removing task from block:', timeBlockId);
 
       // Use the CORRECT query key from useTimeBlock.ts

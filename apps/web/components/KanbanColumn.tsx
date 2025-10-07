@@ -25,7 +25,7 @@ export function KanbanColumn({
   userId,
   projects = [],
   profiles = [],
-  customPropertyDefinitions = [],
+  customPropertyDefinitions: _customPropertyDefinitions = [],
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,

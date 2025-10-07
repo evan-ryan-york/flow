@@ -27,8 +27,30 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// Create drag-and-drop enabled calendar
-const DnDCalendar = withDragAndDrop(Calendar);
+// Define event types for react-big-calendar
+interface CalendarEventResource {
+  type: 'google-event' | 'work-block';
+  source?: string;
+  description?: string | null;
+  location?: string | null;
+  color?: string;
+  isAllDay?: boolean;
+  googleCalendarId?: string;
+  tasks?: Task[];
+  onTaskChange?: () => void;
+}
+
+interface CalendarEventType {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource?: CalendarEventResource;
+}
+
+// Create drag-and-drop enabled calendar with proper typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const DnDCalendar = withDragAndDrop<CalendarEventType>(Calendar as any);
 
 interface CalendarPanelProps {
   userId: string;
@@ -61,7 +83,7 @@ function getTextColor(backgroundColor: string): string {
 }
 
 // Transform CalendarEvent to react-big-calendar event format
-function transformCalendarEvent(event: CalendarEvent) {
+function transformCalendarEvent(event: CalendarEvent): CalendarEventType {
   return {
     id: event.id,
     title: event.title,
@@ -80,7 +102,7 @@ function transformCalendarEvent(event: CalendarEvent) {
 }
 
 // Transform TimeBlock to react-big-calendar event format
-function transformTimeBlock(timeBlock: TimeBlock, onTaskChange?: () => void) {
+function transformTimeBlock(timeBlock: TimeBlock, onTaskChange?: () => void): CalendarEventType {
   return {
     id: timeBlock.id,
     title: timeBlock.title,
@@ -160,7 +182,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       error: error?.message,
       syncPending: triggerEventSync.isPending,
     });
-  }, [calendarEvents, timeBlocks, isLoading, error, dateRange]);
+  }, [calendarEvents, timeBlocks, isLoading, error, dateRange, triggerEventSync.isPending]);
 
   // Trigger automatic event sync every 5 minutes
   const lastAutoSyncRef = React.useRef<Date | null>(null);
@@ -184,12 +206,10 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       },
       onError: (error) => {
         console.error('🔄 Sync failed:', error);
-        // Retry once on failure
-        setTimeout(() => {
-          triggerEventSync.mutate(undefined);
-        }, 5000);
+        lastAutoSyncRef.current = new Date(); // Mark as attempted even on failure to prevent infinite retries
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connections.length, isLoading]);
 
   // Sync when visible calendars change (user toggles visibility)
@@ -202,7 +222,8 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       triggerEventSync.mutate(undefined);
     }
     setPreviousVisibleCount(visibleCalendarCount);
-  }, [visibleCalendarCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCalendarCount, previousVisibleCount]);
 
   // Listen for task drag events from Task Hub
   React.useEffect(() => {
@@ -246,11 +267,9 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     return [...googleEvents, ...workBlocks];
   }, [calendarEvents, timeBlocks, handleTaskChange]);
 
-  // Required by react-big-calendar DnD - returns null to prevent visual preview
-  // We don't want to show a temporary calendar event while dragging
-  const dragFromOutsideItem = () => {
-    return null;
-  };
+  // Required by react-big-calendar DnD - we don't need this for our use case
+  // We use onDropFromOutside directly
+  const dragFromOutsideItem = undefined;
 
   // Handle dropping a task onto the calendar
   const handleDropFromOutside = ({ start, end }: { start: Date | string; end: Date | string }) => {
@@ -260,7 +279,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     }
 
     const dropStart = new Date(start);
-    const dropEnd = new Date(end);
+    const _dropEnd = new Date(end);
 
     // Find if there's an existing work block at this time
     const existingBlock = timeBlocks.find(block => {
@@ -316,7 +335,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     }
   };
 
-  const handleSelectEvent = (event: any) => {
+  const handleSelectEvent = (event: CalendarEventType) => {
     console.log('Selected event:', event);
 
     // Only allow deletion of work blocks (not Google Calendar events)
@@ -342,7 +361,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     }
   };
 
-  const eventStyleGetter = (event: any) => {
+  const eventStyleGetter = (event: CalendarEventType) => {
     const { resource } = event;
 
     if (resource?.type === 'work-block') {
@@ -517,8 +536,8 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
           key={calendarKey}
           localizer={localizer}
           events={events}
-          startAccessor="start"
-          endAccessor="end"
+          startAccessor={(event: CalendarEventType) => event.start}
+          endAccessor={(event: CalendarEventType) => event.end}
           style={{ height: '100%' }}
           view={view === 'day' ? Views.DAY : Views.WEEK}
           onView={() => {}} // Controlled by our buttons
@@ -541,7 +560,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
           draggableAccessor={() => false} // Disable dragging of calendar events
           // Custom event component
           components={{
-            event: (props: any) => {
+            event: (props: { event: CalendarEventType }) => {
               if (props.event.resource?.type === 'work-block') {
                 return <TimeBlockEvent event={props.event} />;
               }

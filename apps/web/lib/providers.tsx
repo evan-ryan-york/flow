@@ -19,10 +19,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         gcTime: 5 * 60 * 1000, // 5 minutes
         retry: (failureCount, error) => {
           // Don't retry on 4xx errors or auth errors
-          if ((error as any)?.status >= 400 && (error as any)?.status < 500) {
+          const errorWithStatus = error as unknown as { status?: number };
+          if (errorWithStatus?.status && errorWithStatus.status >= 400 && errorWithStatus.status < 500) {
             return false;
           }
-          if ((error as any)?.message?.includes('JWT')) {
+          if ((error as { message?: string })?.message?.includes('JWT')) {
             return false;
           }
           return failureCount < 3;
@@ -32,7 +33,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       mutations: {
         retry: (failureCount, error) => {
           // Don't retry mutations on client errors
-          if ((error as any)?.status >= 400 && (error as any)?.status < 500) {
+          const errorWithStatus = error as unknown as { status?: number };
+          if (errorWithStatus?.status && errorWithStatus.status >= 400 && errorWithStatus.status < 500) {
             return false;
           }
           return failureCount < 2;

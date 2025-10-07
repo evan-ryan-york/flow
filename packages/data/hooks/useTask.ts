@@ -101,17 +101,17 @@ export const useUpdateTask = () => {
       const previousTask = queryClient.getQueryData(TASK_KEYS.task(taskId));
 
       // Optimistically update the individual task
-      queryClient.setQueryData(TASK_KEYS.task(taskId), (old: any) => {
+      queryClient.setQueryData(TASK_KEYS.task(taskId), (old: unknown) => {
         if (!old) return old;
-        return { ...old, ...updates, updated_at: new Date().toISOString() };
+        return { ...(old as Record<string, unknown>), ...updates, updated_at: new Date().toISOString() };
       });
 
       // Optimistically update tasks in project lists
       queryClient.setQueriesData(
         { queryKey: ['tasks', 'project'] },
-        (old: any) => {
+        (old: unknown) => {
           if (!old || !Array.isArray(old)) return old;
-          return old.map((task: any) =>
+          return old.map((task: Record<string, unknown>) =>
             task.id === taskId
               ? { ...task, ...updates, updated_at: new Date().toISOString() }
               : task
@@ -122,9 +122,9 @@ export const useUpdateTask = () => {
       // Optimistically update tasks in user lists
       queryClient.setQueriesData(
         { queryKey: ['tasks', 'user'] },
-        (old: any) => {
+        (old: unknown) => {
           if (!old || !Array.isArray(old)) return old;
-          return old.map((task: any) =>
+          return old.map((task: Record<string, unknown>) =>
             task.id === taskId
               ? { ...task, ...updates, updated_at: new Date().toISOString() }
               : task
@@ -135,9 +135,9 @@ export const useUpdateTask = () => {
       // Optimistically update tasks in projects lists
       queryClient.setQueriesData(
         { queryKey: ['tasks', 'projects'] },
-        (old: any) => {
+        (old: unknown) => {
           if (!old || !Array.isArray(old)) return old;
-          return old.map((task: any) =>
+          return old.map((task: Record<string, unknown>) =>
             task.id === taskId
               ? { ...task, ...updates, updated_at: new Date().toISOString() }
               : task
@@ -225,15 +225,16 @@ export const useRealtimeTaskSync = (userId: string, projectIds: string[]) => {
 
           // Handle different types of changes
           switch (payload.eventType) {
-            case 'INSERT':
+            case 'INSERT': {
               // Invalidate task lists to refetch with new task
               queryClient.invalidateQueries({
                 queryKey: TASK_KEYS.projects(userId, projectIds)
               });
               break;
+            }
 
-            case 'UPDATE':
-              const updatedTask = payload.new;
+            case 'UPDATE': {
+              const updatedTask = payload.new as Record<string, unknown> & { id: string };
 
               // Update individual task cache
               if (updatedTask) {
@@ -243,19 +244,20 @@ export const useRealtimeTaskSync = (userId: string, projectIds: string[]) => {
               // Update task in lists (with optimistic approach)
               queryClient.setQueriesData(
                 { queryKey: ['tasks', 'projects'] },
-                (old: any) => {
+                (old: unknown) => {
                   if (!old || !Array.isArray(old)) return old;
 
-                  return old.map((task: any) =>
+                  return old.map((task: Record<string, unknown> & { id: string }) =>
                     task.id === updatedTask.id ? { ...task, ...updatedTask } : task
                   );
                 }
               );
 
               break;
+            }
 
-            case 'DELETE':
-              const deletedTaskId = payload.old?.id;
+            case 'DELETE': {
+              const deletedTaskId = (payload.old as { id?: string })?.id;
               if (deletedTaskId) {
                 // Remove from individual cache
                 queryClient.removeQueries({ queryKey: TASK_KEYS.task(deletedTaskId) });
@@ -263,13 +265,14 @@ export const useRealtimeTaskSync = (userId: string, projectIds: string[]) => {
                 // Remove from lists
                 queryClient.setQueriesData(
                   { queryKey: ['tasks'] },
-                  (old: any) => {
+                  (old: unknown) => {
                     if (!old || !Array.isArray(old)) return old;
-                    return old.filter((task: any) => task.id !== deletedTaskId);
+                    return old.filter((task: Record<string, unknown> & { id: string }) => task.id !== deletedTaskId);
                   }
                 );
               }
               break;
+            }
           }
         }
       )
