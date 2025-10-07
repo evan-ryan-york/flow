@@ -64,7 +64,6 @@ export const createTask = async (taskData: CreateTaskData): Promise<Task> => {
         ...taskData,
         created_by: userId,
         assigned_to: taskData.assigned_to || userId,
-        status: 'To Do', // Set default status
         is_completed: false,
       })
       .select()

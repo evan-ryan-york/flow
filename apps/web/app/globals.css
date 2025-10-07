@@ -37,3 +37,15 @@ body {
   border: 2px dashed #3b82f6;
   background-color: rgba(59, 130, 246, 0.1);
 }
+
+/* Task completion animation */
+@keyframes slideInLR {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

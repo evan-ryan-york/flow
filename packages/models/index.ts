@@ -62,8 +62,8 @@ export const TaskSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable(),
   due_date: z.string().nullable(),
-  status: z.string().default("To Do"),
   is_completed: z.boolean().default(false),
+  completed_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });

@@ -4,7 +4,6 @@ import { isToday, isTomorrow, startOfWeek, endOfWeek } from 'date-fns';
 export type GroupByOption =
   | 'none'
   | 'project'
-  | 'status'
   | 'dueDate'
   | 'assignee'
   | { type: 'customProperty'; definitionId: string };
@@ -36,7 +35,7 @@ export function groupTasks(
         label: 'All Tasks',
         tasks,
         count: tasks.length,
-        completedCount: tasks.filter(t => t.status === 'Done').length,
+        completedCount: tasks.filter(t => t.is_completed).length,
         sortOrder: 0
       }];
     }
@@ -47,8 +46,6 @@ export function groupTasks(
   switch (groupBy) {
     case 'project':
       return groupTasksByProject(tasks, projects);
-    case 'status':
-      return groupTasksByStatus(tasks);
     case 'dueDate':
       return groupTasksByDueDate(tasks);
     case 'assignee':
@@ -60,7 +57,7 @@ export function groupTasks(
         label: 'All Tasks',
         tasks,
         count: tasks.length,
-        completedCount: tasks.filter(t => t.status === 'Done').length,
+        completedCount: tasks.filter(t => t.is_completed).length,
         sortOrder: 0
       }];
   }
@@ -84,53 +81,18 @@ export function groupTasksByProject(tasks: Task[], projects: any[] = []): TaskGr
     projectGroups.get(projectId)!.push(task);
   });
 
-  // Convert to TaskGroup array
+  // Convert to TaskGroup array - include empty groups
   const groups: TaskGroup[] = [];
   projectGroups.forEach((projectTasks, projectId) => {
-    if (projectTasks.length > 0) {
-      const project = projects.find(p => p.id === projectId);
-      groups.push({
-        key: projectId,
-        label: project?.name || `Project ${projectId}`,
-        tasks: projectTasks,
-        count: projectTasks.length,
-        completedCount: projectTasks.filter(t => t.status === 'Done').length,
-        sortOrder: project?.name ? project.name.charCodeAt(0) : 999
-      });
-    }
-  });
-
-  return groups.sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
-// Group tasks by status
-export function groupTasksByStatus(tasks: Task[]): TaskGroup[] {
-  const statusGroups = new Map<string, Task[]>();
-  const statusOrder = ['To-Do', 'In Progress', 'Done']; // Define order
-
-  // Group tasks by status
-  tasks.forEach(task => {
-    const status = task.status;
-    if (!statusGroups.has(status)) {
-      statusGroups.set(status, []);
-    }
-    statusGroups.get(status)!.push(task);
-  });
-
-  // Convert to TaskGroup array with proper ordering
-  const groups: TaskGroup[] = [];
-  statusGroups.forEach((statusTasks, status) => {
-    if (statusTasks.length > 0) {
-      const sortOrder = statusOrder.indexOf(status);
-      groups.push({
-        key: status,
-        label: status,
-        tasks: statusTasks,
-        count: statusTasks.length,
-        completedCount: statusTasks.filter(t => t.status === 'Done').length,
-        sortOrder: sortOrder >= 0 ? sortOrder : 999
-      });
-    }
+    const project = projects.find(p => p.id === projectId);
+    groups.push({
+      key: projectId,
+      label: project?.name || `Project ${projectId}`,
+      tasks: projectTasks,
+      count: projectTasks.length,
+      completedCount: projectTasks.filter(t => t.is_completed).length,
+      sortOrder: project?.name ? project.name.charCodeAt(0) : 999
+    });
   });
 
   return groups.sort((a, b) => a.sortOrder - b.sortOrder);
@@ -181,17 +143,16 @@ export function groupTasksByDueDate(tasks: Task[]): TaskGroup[] {
     { key: 'noDate', label: 'No Due Date', tasks: dueDateGroups.noDate, sortOrder: 5 }
   ];
 
+  // Include all groups, even if empty
   groupOrder.forEach(group => {
-    if (group.tasks.length > 0) {
-      groups.push({
-        key: group.key,
-        label: group.label,
-        tasks: group.tasks,
-        count: group.tasks.length,
-        completedCount: group.tasks.filter(t => t.status === 'Done').length,
-        sortOrder: group.sortOrder
-      });
-    }
+    groups.push({
+      key: group.key,
+      label: group.label,
+      tasks: group.tasks,
+      count: group.tasks.length,
+      completedCount: group.tasks.filter(t => t.is_completed).length,
+      sortOrder: group.sortOrder
+    });
   });
 
   return groups;
@@ -200,6 +161,12 @@ export function groupTasksByDueDate(tasks: Task[]): TaskGroup[] {
 // Group tasks by assignee
 export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskGroup[] {
   const assigneeGroups = new Map<string, Task[]>();
+
+  // Initialize groups for all profiles and unassigned
+  assigneeGroups.set('unassigned', []);
+  profiles.forEach(profile => {
+    assigneeGroups.set(profile.id, []);
+  });
 
   // Group tasks by assignee
   tasks.forEach(task => {
@@ -210,32 +177,30 @@ export function groupTasksByAssignee(tasks: Task[], profiles: any[] = []): TaskG
     assigneeGroups.get(assigneeId)!.push(task);
   });
 
-  // Convert to TaskGroup array
+  // Convert to TaskGroup array - include all profiles even if empty
   const groups: TaskGroup[] = [];
   assigneeGroups.forEach((assigneeTasks, assigneeId) => {
-    if (assigneeTasks.length > 0) {
-      let label = 'Unassigned';
-      let sortOrder = 999;
+    let label = 'Unassigned';
+    let sortOrder = 999;
 
-      if (assigneeId !== 'unassigned') {
-        const profile = profiles.find(p => p.id === assigneeId);
-        if (profile) {
-          label = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User';
-          sortOrder = label.charCodeAt(0);
-        } else {
-          label = 'Unknown User';
-        }
+    if (assigneeId !== 'unassigned') {
+      const profile = profiles.find(p => p.id === assigneeId);
+      if (profile) {
+        label = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User';
+        sortOrder = label.charCodeAt(0);
+      } else {
+        label = 'Unknown User';
       }
-
-      groups.push({
-        key: assigneeId,
-        label,
-        tasks: assigneeTasks,
-        count: assigneeTasks.length,
-        completedCount: assigneeTasks.filter(t => t.status === 'Done').length,
-        sortOrder
-      });
     }
+
+    groups.push({
+      key: assigneeId,
+      label,
+      tasks: assigneeTasks,
+      count: assigneeTasks.length,
+      completedCount: assigneeTasks.filter(t => t.is_completed).length,
+      sortOrder
+    });
   });
 
   return groups.sort((a, b) => a.sortOrder - b.sortOrder);
@@ -269,34 +234,30 @@ export function groupTasksByCustomProperty(
   // Convert to TaskGroup array
   const result: TaskGroup[] = [];
 
-  // For 'select' type, use the defined options order
+  // For 'select' type, use the defined options order - include all options even if empty
   if (propertyDefinition.type === 'select' && Array.isArray(propertyDefinition.options)) {
     propertyDefinition.options.forEach((option: string, index: number) => {
       const tasksForOption = groups.get(option) || [];
-      if (tasksForOption.length > 0) {
-        result.push({
-          key: option,
-          label: option,
-          tasks: tasksForOption,
-          count: tasksForOption.length,
-          completedCount: tasksForOption.filter(t => t.status === 'Done').length,
-          sortOrder: index
-        });
-      }
+      result.push({
+        key: option,
+        label: option,
+        tasks: tasksForOption,
+        count: tasksForOption.length,
+        completedCount: tasksForOption.filter(t => t.is_completed).length,
+        sortOrder: index
+      });
     });
 
-    // Add "No Value" group at the end if exists
+    // Always add "No Value" group at the end
     const noValueTasks = groups.get('(No Value)') || [];
-    if (noValueTasks.length > 0) {
-      result.push({
-        key: '(No Value)',
-        label: '(No Value)',
-        tasks: noValueTasks,
-        count: noValueTasks.length,
-        completedCount: noValueTasks.filter(t => t.status === 'Done').length,
-        sortOrder: 9999
-      });
-    }
+    result.push({
+      key: '(No Value)',
+      label: '(No Value)',
+      tasks: noValueTasks,
+      count: noValueTasks.length,
+      completedCount: noValueTasks.filter(t => t.is_completed).length,
+      sortOrder: 9999
+    });
   } else {
     // For text/number/date, sort alphabetically/numerically
     const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
@@ -327,7 +288,7 @@ export function groupTasksByCustomProperty(
         label: key,
         tasks: tasksForKey,
         count: tasksForKey.length,
-        completedCount: tasksForKey.filter(t => t.status === 'Done').length,
+        completedCount: tasksForKey.filter(t => t.is_completed).length,
         sortOrder: index
       });
     });
@@ -343,7 +304,6 @@ export function getAvailableGroupByOptions(
 ): { value: GroupByOption; label: string; disabled?: boolean }[] {
   const options = [
     { value: 'none' as GroupByOption, label: 'No Grouping' },
-    { value: 'status' as GroupByOption, label: 'Group by Status' },
     { value: 'dueDate' as GroupByOption, label: 'Group by Due Date' },
     { value: 'assignee' as GroupByOption, label: 'Group by Assignee' }
   ];
@@ -354,13 +314,11 @@ export function getAvailableGroupByOptions(
   }
 
   // Disable options that would create single groups
-  const uniqueStatuses = new Set(tasks.map(t => t.status));
   const uniqueAssignees = new Set(tasks.map(t => t.assigned_to || 'unassigned'));
 
   return options.map(option => ({
     ...option,
     disabled:
-      (option.value === 'status' && uniqueStatuses.size <= 1) ||
       (option.value === 'assignee' && uniqueAssignees.size <= 1) ||
       (option.value === 'project' && selectedProjectIds.length <= 1)
   }));
@@ -369,14 +327,6 @@ export function getAvailableGroupByOptions(
 // Helper function to get group display color
 export function getGroupDisplayColor(groupKey: string, groupBy: GroupByOption): string {
   switch (groupBy) {
-    case 'status':
-      switch (groupKey) {
-        case 'To-Do': return 'bg-gray-100 text-gray-800';
-        case 'In Progress': return 'bg-blue-100 text-blue-800';
-        case 'Done': return 'bg-green-100 text-green-800';
-        default: return 'bg-gray-100 text-gray-800';
-      }
-
     case 'dueDate':
       switch (groupKey) {
         case 'overdue': return 'bg-red-100 text-red-800';

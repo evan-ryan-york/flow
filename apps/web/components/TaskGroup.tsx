@@ -57,7 +57,6 @@ export function TaskGroup({
   // Check if drag-and-drop should be enabled for this grouping type
   const isDragDropEnabled = groupBy && (
     groupBy === 'project' ||
-    groupBy === 'status' ||
     groupBy === 'assignee' ||
     (typeof groupBy === 'object' && groupBy.type === 'customProperty')
   );
@@ -170,10 +169,13 @@ export function TaskGroup({
 
       {/* Empty State */}
       {!isCollapsed && group.tasks.length === 0 && (
-        <div className={`px-4 py-8 text-center text-gray-500 transition-colors ${
-          isOver ? 'bg-blue-50/50' : 'bg-white'
+        <div className={`mx-4 my-4 px-4 py-8 text-center text-gray-400 transition-colors border-2 border-dashed rounded-lg ${
+          isOver ? 'bg-blue-50/50 border-blue-300' : 'bg-gray-50 border-gray-300'
         }`}>
-          <p className="text-sm">No tasks in this group</p>
+          <p className="text-sm">No Tasks</p>
+          {isDraggingActive && isDragDropEnabled && (
+            <p className="text-xs mt-1">Drop a task here to add it</p>
+          )}
         </div>
       )}
     </div>
