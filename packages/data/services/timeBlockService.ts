@@ -192,7 +192,7 @@ export const getTasksForTimeBlock = async (blockId: string): Promise<Task[]> => 
     }
 
     // Extract the task data from the join result
-    const tasksData = data.map((item: any) => item.tasks).filter(Boolean);
+    const tasksData = data.map((item: { tasks: unknown }) => item.tasks).filter(Boolean);
 
     // Zod validation on the task data
     const validatedTasks = TaskSchema.array().parse(tasksData);

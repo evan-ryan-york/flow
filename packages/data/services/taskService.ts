@@ -18,8 +18,8 @@ export interface UpdateTaskData {
   description?: string;
   due_date?: string;
   assigned_to?: string;
-  status?: string;
   is_completed?: boolean;
+  completed_at?: string | null;
 }
 
 export const getTasksForProject = async (projectId: string): Promise<Task[]> => {

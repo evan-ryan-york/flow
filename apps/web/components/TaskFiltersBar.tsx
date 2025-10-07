@@ -25,9 +25,8 @@ interface TaskFiltersBarProps {
   // Data for filter options
   tasks: Task[];
   selectedProjectIds: string[];
-  userId: string;
-  profiles?: any[];
-  projects?: any[];
+  profiles?: { id: string; first_name?: string | null; last_name?: string | null }[];
+  projects?: { id: string; name: string }[];
   customPropertyDefinitions?: CustomPropertyDefinition[];
 
   // Task counts for feedback
@@ -44,7 +43,6 @@ export function TaskFiltersBar({
   onGroupByChange,
   tasks,
   selectedProjectIds,
-  userId,
   profiles = [],
   projects = [],
   customPropertyDefinitions = [],
@@ -79,9 +77,6 @@ export function TaskFiltersBar({
     const clearedFilters = { ...selectedFilters };
 
     switch (filterType) {
-      case 'status':
-        clearedFilters.status = [];
-        break;
       case 'assignee':
         clearedFilters.assignee = [];
         break;
@@ -90,6 +85,9 @@ export function TaskFiltersBar({
         break;
       case 'project':
         clearedFilters.project = [];
+        break;
+      case 'completion':
+        clearedFilters.completion = null;
         break;
       case 'customProperties':
         clearedFilters.customProperties = {};
@@ -107,10 +105,10 @@ export function TaskFiltersBar({
     onSearchChange('');
     onFiltersChange({
       search: '',
-      status: [],
       assignee: [],
       dueDate: null,
       project: [],
+      completion: null,
       customProperties: {}
     });
     onGroupByChange(null);

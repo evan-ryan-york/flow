@@ -11,11 +11,6 @@ import {
   Button,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@perfect-task-app/ui';
 // No special icons needed - using inline spinner
 
@@ -68,7 +63,7 @@ interface CreateViewDialogProps {
 export function CreateViewDialog({
   isOpen,
   onClose,
-  userId,
+  userId: _userId,
   currentProjectIds = [],
   currentGroupBy = null,
   currentSortBy = 'due_date',

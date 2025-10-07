@@ -17,7 +17,7 @@ export interface CreateDefinitionData {
   created_by?: string; // Made optional - will use auth.uid() if not provided
   name: string;
   type: "text" | "select" | "date" | "number";
-  options?: any;
+  options?: string[];
   display_order?: number;
 }
 
@@ -27,14 +27,14 @@ export interface CreateDefinitionDataLegacy {
   created_by: string;
   name: string;
   type: "text" | "select" | "date" | "number";
-  options?: any;
+  options?: string[];
   display_order?: number;
 }
 
 export interface UpdateDefinitionData {
   name?: string;
   type?: "text" | "select" | "date" | "number";
-  options?: any;
+  options?: string[];
   display_order?: number;
 }
 
@@ -76,10 +76,10 @@ export const getAllDefinitionsForUser = async (userId: string): Promise<CustomPr
 
     // Transform data to include project_ids array
     const transformedData =
-      data?.map((def: any) => {
+      data?.map((def: { id: string; created_by: string; name: string; type: string; options?: string[]; display_order?: number; created_at: string; updated_at: string; project_id?: string; custom_property_project_assignments?: { project_id: string }[] }) => {
         // Get project assignments from the junction table
         let project_ids =
-          def.custom_property_project_assignments?.map((assignment: any) => assignment.project_id) || [];
+          def.custom_property_project_assignments?.map((assignment: { project_id: string }) => assignment.project_id) || [];
 
         // Fallback to legacy project_id if no assignments exist (for backward compatibility)
         if (project_ids.length === 0 && def.project_id) {
@@ -160,7 +160,7 @@ export const getDefinitionsForProjectWithProjects = async (
 
     // Transform data to include project_ids array
     const transformedData =
-      data?.map((def: any) => ({
+      data?.map((def: { id: string; created_by: string; name: string; type: string; options?: string[]; display_order?: number; created_at: string; updated_at: string }) => ({
         ...def,
         project_ids: [projectId], // For now, just include the requested project
       })) || [];
@@ -199,7 +199,7 @@ export const createDefinition = async (
 ): Promise<CustomPropertyDefinitionWithProjects> => {
   try {
     // First create the definition (without project_ids in the insert)
-    const { project_ids, created_by, ...definitionWithoutCreatedBy } = definitionData;
+    const { project_ids, created_by: _created_by, ...definitionWithoutCreatedBy } = definitionData;
     const { data, error } = await supabase
       .from("custom_property_definitions")
       .insert({
@@ -236,7 +236,7 @@ export const createDefinition = async (
     };
 
     // Remove the legacy project_id from the result for the new type
-    const { project_id, ...resultWithoutProjectId } = result;
+    const { project_id: _project_id, ...resultWithoutProjectId } = result;
 
     // Zod validation
     const validatedDefinition = CustomPropertyDefinitionWithProjectsSchema.parse(resultWithoutProjectId);
@@ -320,7 +320,7 @@ export const updateDefinition = async (
     };
 
     // Remove the legacy project_id from the result for the new type
-    const { project_id, ...resultWithoutProjectId } = result;
+    const { project_id: _project_id2, ...resultWithoutProjectId } = result;
 
     // Zod validation
     const validatedDefinition = CustomPropertyDefinitionWithProjectsSchema.parse(resultWithoutProjectId);

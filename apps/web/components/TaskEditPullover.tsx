@@ -130,7 +130,7 @@ export function TaskEditPullover({
 
       initializedTaskIdRef.current = task.id;
     }
-  }, [task?.id, propertyValues]); // Only re-run when task ID changes or propertyValues updates
+  }, [task, propertyValues]); // Only re-run when task ID changes or propertyValues updates
 
   // Auto-save functions
   const saveTaskName = useCallback(
@@ -219,13 +219,14 @@ export function TaskEditPullover({
     });
   };
 
-  const handleStatusChange = async (status: string) => {
-    if (!taskId) return;
+  const handleProjectChange = async (project: typeof currentProject) => {
+    if (!taskId || !project) return;
     await updateTaskMutation.mutateAsync({
       taskId,
-      updates: { status, is_completed: status === 'Done' },
+      updates: { project_id: project.id },
     });
   };
+
 
   const handleClose = () => {
     if (hasUnsavedChanges) {
@@ -263,7 +264,12 @@ export function TaskEditPullover({
                 />
                 {currentProject && (
                   <div className="mt-2">
-                    <ProjectChip project={currentProject} onRemove={() => {}} />
+                    <ProjectChip
+                      project={currentProject}
+                      onRemove={() => {}}
+                      onProjectSelect={handleProjectChange}
+                      projects={projects}
+                    />
                   </div>
                 )}
               </div>
@@ -324,21 +330,6 @@ export function TaskEditPullover({
               />
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                value={task.status || 'To Do'}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="To Do">To Do</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
-              </select>
-            </div>
 
             {/* Custom Properties */}
             {customProperties.length > 0 && (

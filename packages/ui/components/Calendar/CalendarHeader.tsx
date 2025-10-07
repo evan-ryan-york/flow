@@ -43,9 +43,6 @@ export function CalendarHeader({
     onDateChange(newDate)
   }
 
-  const handleToday = () => {
-    onDateChange(new Date())
-  }
 
   const handleSync = () => {
     syncEvents.mutate(undefined)

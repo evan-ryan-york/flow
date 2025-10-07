@@ -178,7 +178,7 @@ export function CalendarGrid({
                     isToday(day) && "bg-primary/5"
                   )}
                 >
-                  {slotEvents.map((event, index) => {
+                  {slotEvents.map((event) => {
                     const eventStart = new Date(event.start_time)
                     const isFirstHourOfEvent = eventStart.getHours() === hour
 

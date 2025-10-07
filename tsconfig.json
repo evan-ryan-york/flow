@@ -36,6 +36,7 @@
     ".next",
     "coverage",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "**/*.test.skip.tsx"
   ]
 }

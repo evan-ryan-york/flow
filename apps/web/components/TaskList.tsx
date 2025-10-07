@@ -46,20 +46,16 @@ const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
 
 // Column menu component
 function ColumnMenu({
-  columnId,
-  columnName,
   onHide
 }: {
-  columnId: string;
-  columnName: string;
   onHide: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: globalThis.MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
         setIsOpen(false);
       }
     }
@@ -115,8 +111,8 @@ function AddColumnButton({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: globalThis.MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
         setIsOpen(false);
       }
     }
@@ -184,7 +180,6 @@ function AddColumnButton({
 // Reusable table headers component
 function TableHeaders({
   customPropertyDefinitions,
-  isDraggingActive,
   visibleColumnIds,
   visibleBuiltInColumns,
   onHideColumn,
@@ -193,7 +188,6 @@ function TableHeaders({
   onShowBuiltInColumn
 }: {
   customPropertyDefinitions: CustomPropertyDefinition[];
-  isDraggingActive?: boolean;
   visibleColumnIds: Set<string>;
   visibleBuiltInColumns: Set<BuiltInColumn>;
   onHideColumn: (columnId: string) => void;
@@ -219,8 +213,6 @@ function TableHeaders({
           <div className="flex items-center text-right">
             <span>Assigned</span>
             <ColumnMenu
-              columnId="assigned_to"
-              columnName="Assigned To"
               onHide={() => onHideBuiltInColumn('assigned_to')}
             />
           </div>
@@ -232,8 +224,6 @@ function TableHeaders({
           <div className="flex items-center text-right">
             <span>Due Date</span>
             <ColumnMenu
-              columnId="due_date"
-              columnName="Due Date"
               onHide={() => onHideBuiltInColumn('due_date')}
             />
           </div>
@@ -245,8 +235,6 @@ function TableHeaders({
           <div className="flex items-center text-right">
             <span>Project</span>
             <ColumnMenu
-              columnId="project"
-              columnName="Project"
               onHide={() => onHideBuiltInColumn('project')}
             />
           </div>
@@ -258,8 +246,6 @@ function TableHeaders({
           <div className="flex items-center text-right">
             <span>{property.name}</span>
             <ColumnMenu
-              columnId={property.id}
-              columnName={property.name}
               onHide={() => onHideColumn(property.id)}
             />
           </div>
@@ -334,15 +320,21 @@ const TaskList = memo(function TaskList({
 
   // Update visible columns when custom property definitions change
   useEffect(() => {
-    setVisibleColumnIds(prev => {
-      const newSet = new Set(prev);
-      customPropertyDefinitions.forEach(prop => {
-        if (!prev.has(prop.id)) {
-          newSet.add(prop.id); // New columns are visible by default
-        }
+    // Check if there are actually new columns before updating
+    const hasNewColumns = customPropertyDefinitions.some(prop => !visibleColumnIds.has(prop.id));
+
+    if (hasNewColumns) {
+      setVisibleColumnIds(prev => {
+        const newSet = new Set(prev);
+        customPropertyDefinitions.forEach(prop => {
+          if (!prev.has(prop.id)) {
+            newSet.add(prop.id); // New columns are visible by default
+          }
+        });
+        return newSet;
       });
-      return newSet;
-    });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customPropertyDefinitions]);
 
   const handleToggleCollapse = (groupKey: string) => {
@@ -435,7 +427,6 @@ const TaskList = memo(function TaskList({
       <div className="flex flex-col h-full">
         <TableHeaders
           customPropertyDefinitions={customPropertyDefinitions}
-          isDraggingActive={isDraggingActive}
           visibleColumnIds={visibleColumnIds}
           visibleBuiltInColumns={visibleBuiltInColumns}
           onHideColumn={handleHideColumn}
@@ -469,7 +460,6 @@ const TaskList = memo(function TaskList({
     <div className="flex flex-col h-full">
       <TableHeaders
         customPropertyDefinitions={customPropertyDefinitions}
-        isDraggingActive={isDraggingActive}
         visibleColumnIds={visibleColumnIds}
         visibleBuiltInColumns={visibleBuiltInColumns}
         onHideColumn={handleHideColumn}
@@ -525,8 +515,8 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
         customPropertyDefinitions={customPropertyDefinitions}
         userId={userId}
         isDragging={isDragging}
-        dragAttributes={attributes}
-        dragListeners={listeners}
+        dragAttributes={attributes as unknown as Record<string, unknown> & { [key: string]: unknown }}
+        dragListeners={listeners as unknown as Record<string, unknown> & { [key: string]: unknown }}
         userMapping={userMapping}
         projectMapping={projectMapping}
         projects={projects}

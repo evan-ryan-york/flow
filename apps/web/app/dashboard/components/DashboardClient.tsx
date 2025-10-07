@@ -11,15 +11,9 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ user }: DashboardClientProps) {
-  const supabase = useSupabase();
-  const router = useRouter();
+  const _supabase = useSupabase();
+  const _router = useRouter();
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
-
-  const handleSignOut = async () => {
-    console.log('👋 Signing out...');
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
 
   return (
     <div className="min-h-screen bg-white">

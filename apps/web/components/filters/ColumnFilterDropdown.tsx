@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
 import { Filter, Check, Xmark } from 'iconoir-react';
-import { FilterState, FilterOption, getActiveFilterCount } from '@perfect-task-app/ui/lib/taskFiltering';
+import { FilterState, FilterOption, getActiveFilterCount, DateRange, CompletionFilter } from '@perfect-task-app/ui/lib/taskFiltering';
 
 interface ColumnFilterDropdownProps {
   availableFilters: {
@@ -29,7 +29,9 @@ export function ColumnFilterDropdown({
   const activeFilterCount = getActiveFilterCount(selectedFilters);
   const hasActiveFilters = activeFilterCount > 0;
 
-  const handleAssigneeToggle = (assignee: string) => {
+  const handleAssigneeToggle = (value: string | DateRange | CompletionFilter) => {
+    if (typeof value !== 'string') return;
+    const assignee = value;
     const newAssignees = selectedFilters.assignee.includes(assignee)
       ? selectedFilters.assignee.filter(a => a !== assignee)
       : [...selectedFilters.assignee, assignee];
@@ -40,7 +42,9 @@ export function ColumnFilterDropdown({
     });
   };
 
-  const handleDueDateToggle = (dateRange: any) => {
+  const handleDueDateToggle = (value: string | DateRange | CompletionFilter) => {
+    if (typeof value === 'string' || !('type' in value) || (value.type !== 'overdue' && value.type !== 'today' && value.type !== 'thisWeek' && value.type !== 'nextWeek' && value.type !== 'noDate' && value.type !== 'custom')) return;
+    const dateRange = value as DateRange;
     const isSelected = selectedFilters.dueDate &&
                       selectedFilters.dueDate.type === dateRange.type;
 
@@ -50,7 +54,9 @@ export function ColumnFilterDropdown({
     });
   };
 
-  const handleProjectToggle = (projectId: string) => {
+  const handleProjectToggle = (value: string | DateRange | CompletionFilter) => {
+    if (typeof value !== 'string') return;
+    const projectId = value;
     const newProjects = selectedFilters.project.includes(projectId)
       ? selectedFilters.project.filter(p => p !== projectId)
       : [...selectedFilters.project, projectId];
@@ -61,7 +67,9 @@ export function ColumnFilterDropdown({
     });
   };
 
-  const handleCompletionToggle = (completionFilter: any) => {
+  const handleCompletionToggle = (value: string | DateRange | CompletionFilter) => {
+    if (typeof value === 'string' || !('type' in value) || (value.type !== 'all-completed' && value.type !== 'completed-last-week')) return;
+    const completionFilter = value as CompletionFilter;
     const isSelected = selectedFilters.completion &&
                       selectedFilters.completion.type === completionFilter.type;
 
@@ -90,8 +98,8 @@ export function ColumnFilterDropdown({
   }: {
     title: string;
     options: FilterOption[];
-    selectedValues: any[];
-    onToggle: (value: any) => void;
+    selectedValues: Array<string | DateRange | CompletionFilter>;
+    onToggle: (value: FilterOption['value']) => void;
     renderValue?: (option: FilterOption) => string;
   }) => {
     if (options.length === 0) return null;
@@ -101,10 +109,15 @@ export function ColumnFilterDropdown({
         <h4 className="text-sm font-medium text-gray-900 px-3">{title}</h4>
         <div className="space-y-1">
           {options.map((option) => {
-            const isSelected = selectedValues.some(val =>
-              typeof val === 'string' ? val === option.value :
-              val?.type === option.value?.type
-            );
+            const isSelected = selectedValues.some(val => {
+              if (typeof val === 'string' && typeof option.value === 'string') {
+                return val === option.value;
+              }
+              if (typeof val === 'object' && val !== null && typeof option.value === 'object' && option.value !== null) {
+                return (val as { type?: string }).type === (option.value as { type?: string }).type;
+              }
+              return false;
+            });
 
             return (
               <button

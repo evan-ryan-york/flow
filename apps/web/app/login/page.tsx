@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { LoginForm } from './components/LoginForm';
 
 export default function LoginPage() {
@@ -16,7 +17,9 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <LoginForm />
+          <Suspense fallback={<div className="text-center">Loading...</div>}>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </div>
