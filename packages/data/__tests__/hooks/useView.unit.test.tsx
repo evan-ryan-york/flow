@@ -1,11 +1,12 @@
 import React from 'react';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useUserViews,
   useCreateView,
   useUpdateView,
-  useDeleteView
+  useDeleteView,
+  useEnsureDefaultView
 } from '../../hooks/useView';
 import * as viewService from '../../services/viewService';
 
@@ -216,6 +217,70 @@ describe('useView hooks unit tests', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       expect(result.current.error).toBeTruthy();
+    });
+  });
+
+  describe('useEnsureDefaultView', () => {
+    it('should create default view when user has no views', async () => {
+      const mockDefaultView = {
+        id: 'default-view-1',
+        user_id: 'user-1',
+        name: 'All Tasks',
+        type: 'list' as const,
+        config: { projectIds: [], groupBy: 'project', sortBy: 'due_date' },
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
+
+      // First call returns empty array (no views)
+      mockedViewService.getViewsForUser.mockResolvedValue([]);
+      mockedViewService.createView.mockResolvedValue(mockDefaultView);
+
+      const { result } = renderHook(
+        () => useEnsureDefaultView('user-1'),
+        { wrapper: createWrapper() }
+      );
+
+      // Wait for the hook to create the default view
+      await waitFor(() => expect(mockedViewService.createView).toHaveBeenCalled());
+
+      expect(mockedViewService.createView).toHaveBeenCalledWith({
+        name: 'All Tasks',
+        type: 'list',
+        config: {
+          projectIds: [],
+          groupBy: 'project',
+          sortBy: 'due_date',
+        },
+      });
+
+      await waitFor(() => expect(result.current.isCreatingDefault).toBe(false));
+    });
+
+    it('should not create default view when user already has views', async () => {
+      const mockViews = [
+        {
+          id: 'existing-view-1',
+          user_id: 'user-1',
+          name: 'My View',
+          type: 'list' as const,
+          config: { projectIds: ['project-1'] },
+          created_at: '2025-01-01T00:00:00Z',
+          updated_at: '2025-01-01T00:00:00Z',
+        },
+      ];
+
+      mockedViewService.getViewsForUser.mockResolvedValue(mockViews);
+
+      const { result } = renderHook(
+        () => useEnsureDefaultView('user-1'),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => expect(result.current.hasDefaultView).toBe(true));
+
+      // Should not attempt to create a view
+      expect(mockedViewService.createView).not.toHaveBeenCalled();
     });
   });
 });

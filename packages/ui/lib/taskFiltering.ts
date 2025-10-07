@@ -1,12 +1,12 @@
 import { Task } from '@perfect-task-app/models';
-import { isAfter, isBefore, isToday, isThisWeek, startOfToday, endOfWeek } from 'date-fns';
+import { isAfter, isBefore, isToday, isThisWeek, startOfToday, endOfWeek, subDays } from 'date-fns';
 
 export interface FilterState {
   search: string;
-  status: string[];
   assignee: string[];
   dueDate: DateRange | null;
   project: string[];
+  completion: CompletionFilter | null;
   customProperties: Record<string, any>;
 }
 
@@ -16,10 +16,14 @@ export interface DateRange {
   customEnd?: Date;
 }
 
+export interface CompletionFilter {
+  type: 'all-completed' | 'completed-last-week';
+}
+
 export interface FilterOption {
   key: string;
   label: string;
-  type: 'status' | 'assignee' | 'dueDate' | 'project';
+  type: 'assignee' | 'dueDate' | 'project' | 'completion';
   value: any;
   count?: number;
 }
@@ -31,11 +35,6 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
   // Apply text search
   if (filters.search.trim()) {
     filtered = applyTextSearch(filtered, filters.search);
-  }
-
-  // Apply status filter
-  if (filters.status.length > 0) {
-    filtered = applyStatusFilter(filtered, filters.status);
   }
 
   // Apply assignee filter
@@ -51,6 +50,11 @@ export function filterTasks(tasks: Task[], filters: FilterState): Task[] {
   // Apply project filter
   if (filters.project.length > 0) {
     filtered = applyProjectFilter(filtered, filters.project);
+  }
+
+  // Apply completion filter
+  if (filters.completion) {
+    filtered = applyCompletionFilter(filtered, filters.completion);
   }
 
   // Apply custom property filters
@@ -71,11 +75,6 @@ export function applyTextSearch(tasks: Task[], query: string): Task[] {
     const descriptionMatch = task.description?.toLowerCase().includes(searchTerm) || false;
     return nameMatch || descriptionMatch;
   });
-}
-
-// Filter by task status
-export function applyStatusFilter(tasks: Task[], statuses: string[]): Task[] {
-  return tasks.filter(task => statuses.includes(task.status));
 }
 
 // Filter by assignee
@@ -133,6 +132,29 @@ export function applyDueDateFilter(tasks: Task[], dateRange: DateRange): Task[] 
   });
 }
 
+// Filter by completion status
+export function applyCompletionFilter(tasks: Task[], completionFilter: CompletionFilter): Task[] {
+  const today = startOfToday();
+  const oneWeekAgo = subDays(today, 7);
+
+  return tasks.filter(task => {
+    switch (completionFilter.type) {
+      case 'all-completed':
+        return task.is_completed;
+
+      case 'completed-last-week':
+        if (!task.is_completed || !task.completed_at) {
+          return false;
+        }
+        const completedDate = new Date(task.completed_at);
+        return completedDate >= oneWeekAgo && completedDate <= today;
+
+      default:
+        return true;
+    }
+  });
+}
+
 // Filter by custom properties
 export function applyCustomPropertyFilter(tasks: Task[], customFilters: Record<string, any>): Task[] {
   return tasks.filter(task => {
@@ -156,24 +178,11 @@ export function applyCustomPropertyFilter(tasks: Task[], customFilters: Record<s
 
 // Get available filter options from tasks
 export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
-  status: FilterOption[];
   assignee: FilterOption[];
   dueDate: FilterOption[];
   project: FilterOption[];
+  completion: FilterOption[];
 } {
-  // Get unique statuses
-  const statusCounts = tasks.reduce((acc, task) => {
-    acc[task.status] = (acc[task.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const statusOptions: FilterOption[] = Object.entries(statusCounts).map(([status, count]) => ({
-    key: status,
-    label: status,
-    type: 'status',
-    value: status,
-    count
-  }));
 
   // Get unique assignees
   const assigneeCounts = tasks.reduce((acc, task) => {
@@ -249,11 +258,26 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
     count
   }));
 
+  // Completion filter options with counts (reuse 'today' from above)
+  const oneWeekAgo = subDays(today, 7);
+
+  const allCompletedCount = tasks.filter(t => t.is_completed).length;
+  const completedLastWeekCount = tasks.filter(t => {
+    if (!t.is_completed || !t.completed_at) return false;
+    const completedDate = new Date(t.completed_at);
+    return completedDate >= oneWeekAgo && completedDate <= today;
+  }).length;
+
+  const completionOptions: FilterOption[] = [
+    { key: 'all-completed', label: 'All Completed', type: 'completion', value: { type: 'all-completed' }, count: allCompletedCount },
+    { key: 'completed-last-week', label: 'Completed Last Week', type: 'completion', value: { type: 'completed-last-week' }, count: completedLastWeekCount },
+  ].filter(option => option.count > 0);
+
   return {
-    status: statusOptions,
     assignee: assigneeOptions,
     dueDate: dueDateOptions,
-    project: projectOptions
+    project: projectOptions,
+    completion: completionOptions
   };
 }
 
@@ -261,10 +285,10 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
 export function createEmptyFilterState(): FilterState {
   return {
     search: '',
-    status: [],
     assignee: [],
     dueDate: null,
     project: [],
+    completion: null,
     customProperties: {}
   };
 }
@@ -273,10 +297,10 @@ export function createEmptyFilterState(): FilterState {
 export function hasActiveFilters(filters: FilterState): boolean {
   return (
     filters.search.trim() !== '' ||
-    filters.status.length > 0 ||
     filters.assignee.length > 0 ||
     filters.dueDate !== null ||
     filters.project.length > 0 ||
+    filters.completion !== null ||
     Object.keys(filters.customProperties).length > 0
   );
 }
@@ -286,10 +310,10 @@ export function getActiveFilterCount(filters: FilterState): number {
   let count = 0;
 
   if (filters.search.trim()) count++;
-  if (filters.status.length > 0) count++;
   if (filters.assignee.length > 0) count++;
   if (filters.dueDate) count++;
   if (filters.project.length > 0) count++;
+  if (filters.completion) count++;
   if (Object.keys(filters.customProperties).length > 0) count++;
 
   return count;

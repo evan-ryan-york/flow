@@ -37,6 +37,7 @@ export function ProjectsPanel({
     const newSelection = selectedProjectIds.includes(projectId)
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
+    console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection);
     onProjectSelectionChange(newSelection);
   };
 

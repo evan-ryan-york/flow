@@ -84,7 +84,8 @@ UI Component → Custom Hook → Service Layer → Supabase → Zod Validation �
 - **clsx** - Conditional class name utility
 - **lucide-react** - Beautiful SVG icon library
 - **@dnd-kit/core** - Drag and drop functionality for task scheduling
-- **react-big-calendar** - Calendar component for time-blocking
+- **react-big-calendar** - Calendar component for time-blocking and event display
+- **react-resizable-panels** - Resizable split-pane layouts with drag-to-resize
 
 ### Testing Infrastructure
 - **Jest** - Test runner with TypeScript support
