@@ -219,6 +219,14 @@ export function TaskEditPullover({
     });
   };
 
+  const handleProjectChange = async (project: typeof currentProject) => {
+    if (!taskId || !project) return;
+    await updateTaskMutation.mutateAsync({
+      taskId,
+      updates: { project_id: project.id },
+    });
+  };
+
 
   const handleClose = () => {
     if (hasUnsavedChanges) {
@@ -256,7 +264,12 @@ export function TaskEditPullover({
                 />
                 {currentProject && (
                   <div className="mt-2">
-                    <ProjectChip project={currentProject} onRemove={() => {}} />
+                    <ProjectChip
+                      project={currentProject}
+                      onRemove={() => {}}
+                      onProjectSelect={handleProjectChange}
+                      projects={projects}
+                    />
                   </div>
                 )}
               </div>
