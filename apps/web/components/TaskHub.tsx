@@ -85,7 +85,13 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
 
   // Fetch tasks from effective project IDs
-  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
+  const { data: serverTasks = [], isLoading, error, isFetching } = useProjectsTasks(userId, effectiveProjectIds);
+
+  // Use isFetching instead of isLoading to prevent showing loader when we already have data
+  // isLoading is true when there's no cached data, isFetching is true during any fetch
+  // We only want to show the loader when we have no data at all
+  const hasNoProjects = effectiveProjectIds.length === 0;
+  const effectiveIsLoading = hasNoProjects ? false : (isLoading && !serverTasks.length);
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
@@ -507,7 +513,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
               selectedProjectIds={selectedProjectIds}
               customPropertyDefinitions={allCustomProperties}
               userId={userId}
-              isLoading={isLoading}
+              isLoading={effectiveIsLoading}
               isDraggingActive={!!draggedTask}
               groupedTasks={groupedTasks}
               showGroupHeaders={groupBy !== null && groupBy !== "none"}
