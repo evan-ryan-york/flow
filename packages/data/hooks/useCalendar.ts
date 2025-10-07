@@ -373,11 +373,18 @@ export function useCalendarEvents(
       options?.visibleOnly
     ),
     queryFn: async () => {
-      return getCalendarEvents({
+      console.log('🔍 useCalendarEvents queryFn called', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        visibleOnly: options?.visibleOnly,
+      });
+      const events = await getCalendarEvents({
         startDate,
         endDate,
         visibleOnly: options?.visibleOnly,
       });
+      console.log('🔍 useCalendarEvents queryFn result:', events.length, 'events');
+      return events;
     },
     refetchOnWindowFocus: true, // Refresh when user returns to tab
     staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
@@ -395,26 +402,50 @@ export function useTriggerEventSync() {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
-      const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(connectionId ? { connectionId } : {}),
+      console.log('🔄 Triggering event sync...', { connectionId, url: `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events` });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+      try {
+        const response = await fetch(
+          `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(connectionId ? { connectionId } : {}),
+            signal: controller.signal,
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        console.log('🔄 Event sync response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🔄 Event sync failed:', errorText);
+          throw new Error('Event sync failed');
         }
-      );
 
-      if (!response.ok) {
-        throw new Error('Event sync failed');
+        const result = await response.json();
+        console.log('🔄 Event sync result:', result);
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('🔄 Event sync error:', error);
+        throw error;
       }
-
-      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('🔄 Event sync successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
+    },
+    onError: (error) => {
+      console.error('🔄 Event sync mutation error:', error);
     },
   });
 }

@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
 import { TimeBlockEvent } from '@perfect-task-app/ui/components/Calendar/TimeBlockEvent';
 import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
-import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock, useAssignTaskToTimeBlock } from '@perfect-task-app/data';
+import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
+import { useAssignTaskToTimeBlock } from '@perfect-task-app/data/hooks/useTimeBlockTasks';
 import type { CalendarEvent, TimeBlock, Task } from '@perfect-task-app/models';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -161,8 +162,8 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     });
   }, [calendarEvents, timeBlocks, isLoading, error, dateRange]);
 
-  // Trigger automatic event sync when needed
-  const [lastAutoSync, setLastAutoSync] = React.useState<Date | null>(null);
+  // Trigger automatic event sync every 5 minutes
+  const lastAutoSyncRef = React.useRef<Date | null>(null);
   const [previousVisibleCount, setPreviousVisibleCount] = React.useState(0);
 
   // Count visible calendars
@@ -170,30 +171,26 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     return subscriptions.filter(sub => sub.is_visible).length;
   }, [subscriptions]);
 
+  // Automatic sync on mount only (syncs visible subscriptions only to avoid timeout)
   React.useEffect(() => {
-    // Auto-sync conditions:
-    // 1. Not currently loading
-    // 2. Have at least one connection
-    // 3. Haven't auto-synced in the last 5 minutes (or never synced)
-    const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    const needsSync = !isLoading &&
-                     connections.length > 0 &&
-                     (!lastAutoSync || lastAutoSync < fiveMinutesAgo);
+    if (connections.length === 0 || isLoading) return;
+    if (lastAutoSyncRef.current) return; // Only sync once
 
-    if (needsSync) {
-      console.log('🔄 Triggering automatic event sync...', {
-        connectionsCount: connections.length,
-        eventsCount: calendarEvents.length,
-        lastSync: lastAutoSync
-      });
-      triggerEventSync.mutate(undefined, {
-        onSuccess: () => {
-          setLastAutoSync(new Date());
-        }
-      });
-    }
-  }, [isLoading, connections.length]); // Only depend on loading state and connection count
+    console.log('🔄 Initial automatic event sync (visible calendars only)...');
+    triggerEventSync.mutate(undefined, {
+      onSuccess: (result) => {
+        console.log('🔄 Sync completed:', result);
+        lastAutoSyncRef.current = new Date();
+      },
+      onError: (error) => {
+        console.error('🔄 Sync failed:', error);
+        // Retry once on failure
+        setTimeout(() => {
+          triggerEventSync.mutate(undefined);
+        }, 5000);
+      }
+    });
+  }, [connections.length, isLoading]);
 
   // Sync when visible calendars change (user toggles visibility)
   React.useEffect(() => {

@@ -177,16 +177,44 @@ export interface CalendarEventFilters {
 export async function getCalendarEvents(
   filters: CalendarEventFilters
 ): Promise<CalendarEvent[]> {
+  console.log('🔍 getCalendarEvents called with filters:', {
+    startDate: filters.startDate.toISOString(),
+    endDate: filters.endDate.toISOString(),
+    visibleOnly: filters.visibleOnly,
+  });
+
+  // If we need to filter by visibility, we need to join with subscriptions
+  if (filters.visibleOnly) {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .select('*, calendar_subscriptions!inner(is_visible)')
+      .lte('start_time', filters.endDate.toISOString())
+      .gte('end_time', filters.startDate.toISOString())
+      .eq('calendar_subscriptions.is_visible', true)
+      .order('start_time', { ascending: true });
+
+    console.log('🔍 Query result (visibleOnly):', {
+      count: data?.length || 0,
+      error: error?.message,
+      sampleEvent: data?.[0]
+    });
+
+    if (error) throw error;
+
+    // Map to remove the joined subscription data
+    return data?.map(row => {
+      const { calendar_subscriptions, ...event } = row as any;
+      return CalendarEventSchema.parse(event);
+    }) || [];
+  }
+
+  // Otherwise, simple query without join
   let query = supabase
     .from('calendar_events')
     .select('*')
-    .gte('start_time', filters.startDate.toISOString())
-    .lte('end_time', filters.endDate.toISOString())
+    .lt('start_time', filters.endDate.toISOString())
+    .gt('end_time', filters.startDate.toISOString())
     .order('start_time', { ascending: true });
-
-  if (filters.visibleOnly) {
-    query = query.eq('calendar_subscriptions.is_visible', true);
-  }
 
   if (filters.connectionId) {
     query = query.eq('connection_id', filters.connectionId);
@@ -197,6 +225,12 @@ export async function getCalendarEvents(
   }
 
   const { data, error } = await query;
+
+  console.log('🔍 Query result (all):', {
+    count: data?.length || 0,
+    error: error?.message,
+    sampleEvent: data?.[0]
+  });
 
   if (error) throw error;
 

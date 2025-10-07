@@ -99,6 +99,32 @@ async function syncCalendarEvents(
     const data = await response.json();
     const events = data.items || [];
 
+    console.log(`📊 Google API returned ${events.length} events for subscription ${subscription.id} (${subscription.calendar_name})`);
+    console.log(`   Connection: ${connection.label || connection.email}`);
+    console.log(`   Calendar ID: ${subscription.google_calendar_id}`);
+    console.log(`   Query params:`, JSON.stringify(params));
+
+    // Log today's events specifically
+    const today = new Date().toISOString().split('T')[0];
+    const todayEvents = events.filter((e: any) => {
+      const start = e.start?.dateTime || e.start?.date;
+      return start && start.startsWith(today);
+    });
+
+    if (todayEvents.length > 0) {
+      console.log(`   📅 Events for ${today}:`, todayEvents.map((e: any) => ({
+        id: e.id,
+        summary: e.summary,
+        start: e.start?.dateTime || e.start?.date
+      })));
+    } else {
+      console.log(`   ⚠️ No events found for ${today}`);
+    }
+
+    if (events.length > 0) {
+      console.log(`   Sample event IDs:`, events.slice(0, 5).map((e: any) => e.id));
+    }
+
     let insertedCount = 0;
     let updatedCount = 0;
     let deletedCount = 0;
@@ -106,11 +132,11 @@ async function syncCalendarEvents(
     // Process events
     for (const event of events) {
       if (event.status === "cancelled") {
-        // Delete from our DB
+        // Delete from our DB for THIS subscription
         const { error: deleteError } = await supabaseClient
           .from("calendar_events")
           .delete()
-          .eq("connection_id", connection.id)
+          .eq("subscription_id", subscription.id)
           .eq("google_calendar_event_id", event.id);
 
         if (!deleteError) deletedCount++;
@@ -129,11 +155,12 @@ async function syncCalendarEvents(
         continue;
       }
 
-      // Check if event already exists
+      // Check if event already exists for THIS subscription
+      // Note: Same Google event can appear in multiple calendars, so we key by subscription_id
       const { data: existingEvent } = await supabaseClient
         .from("calendar_events")
         .select("id")
-        .eq("connection_id", connection.id)
+        .eq("subscription_id", subscription.id)
         .eq("google_calendar_event_id", event.id)
         .single();
 
@@ -315,12 +342,13 @@ serve(async (req) => {
 
       if (!updatedConnection) continue;
 
-      // Get enabled subscriptions for this connection
+      // Get enabled AND visible subscriptions only to reduce sync time
       const { data: subscriptions } = await supabaseClient
         .from("calendar_subscriptions")
         .select("*")
         .eq("connection_id", connection.id)
-        .eq("sync_enabled", true);
+        .eq("sync_enabled", true)
+        .eq("is_visible", true);
 
       if (!subscriptions || subscriptions.length === 0) {
         continue;

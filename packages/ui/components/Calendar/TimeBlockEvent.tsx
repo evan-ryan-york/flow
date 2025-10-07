@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTimeBlockTasks, useUnassignTaskFromTimeBlock } from '@perfect-task-app/data';
+import { useTimeBlockTasks, useUnassignTaskFromTimeBlock } from '@perfect-task-app/data/hooks/useTimeBlockTasks';
 import type { Task } from '@perfect-task-app/models';
 
 interface TimeBlockEventProps {
