@@ -64,10 +64,17 @@ export function ActiveFiltersBar({
     }
   };
 
+  const getCompletionLabel = (completion: any) => {
+    switch (completion.type) {
+      case 'all-completed': return 'All Completed';
+      case 'completed-last-week': return 'Completed Last Week';
+      default: return 'Completed';
+    }
+  };
+
   const getGroupByLabel = (groupByValue: GroupByOption) => {
     switch (groupByValue) {
       case 'project': return 'Project';
-      case 'status': return 'Status';
       case 'dueDate': return 'Due Date';
       case 'assignee': return 'Assignee';
       default: return 'Unknown';
@@ -92,21 +99,6 @@ export function ActiveFiltersBar({
               </button>
             </div>
           )}
-
-          {/* Status filters */}
-          {selectedFilters.status.map((status) => (
-            <div key={status} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Filter className="h-3 w-3 text-blue-600" />
-              <span className="text-gray-700">Status: {status}</span>
-              <button
-                onClick={() => onFilterClear('status')}
-                className="text-gray-500 hover:text-gray-700 ml-1"
-                title="Clear status filter"
-              >
-                <Xmark className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
 
           {/* Assignee filters */}
           {selectedFilters.assignee.map((assignee) => (
@@ -152,6 +144,21 @@ export function ActiveFiltersBar({
               </button>
             </div>
           ))}
+
+          {/* Completion filter */}
+          {selectedFilters.completion && (
+            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
+              <Filter className="h-3 w-3 text-blue-600" />
+              <span className="text-gray-700">{getCompletionLabel(selectedFilters.completion)}</span>
+              <button
+                onClick={() => onFilterClear('completion')}
+                className="text-gray-500 hover:text-gray-700 ml-1"
+                title="Clear completion filter"
+              >
+                <Xmark className="h-3 w-3" />
+              </button>
+            </div>
+          )}
 
           {/* Group by chip */}
           {hasGrouping && (

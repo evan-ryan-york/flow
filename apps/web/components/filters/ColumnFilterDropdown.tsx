@@ -8,10 +8,10 @@ import { FilterState, FilterOption, getActiveFilterCount } from '@perfect-task-a
 
 interface ColumnFilterDropdownProps {
   availableFilters: {
-    status: FilterOption[];
     assignee: FilterOption[];
     dueDate: FilterOption[];
     project: FilterOption[];
+    completion: FilterOption[];
   };
   selectedFilters: FilterState;
   onChange: (filters: FilterState) => void;
@@ -28,17 +28,6 @@ export function ColumnFilterDropdown({
 
   const activeFilterCount = getActiveFilterCount(selectedFilters);
   const hasActiveFilters = activeFilterCount > 0;
-
-  const handleStatusToggle = (status: string) => {
-    const newStatuses = selectedFilters.status.includes(status)
-      ? selectedFilters.status.filter(s => s !== status)
-      : [...selectedFilters.status, status];
-
-    onChange({
-      ...selectedFilters,
-      status: newStatuses
-    });
-  };
 
   const handleAssigneeToggle = (assignee: string) => {
     const newAssignees = selectedFilters.assignee.includes(assignee)
@@ -72,13 +61,23 @@ export function ColumnFilterDropdown({
     });
   };
 
+  const handleCompletionToggle = (completionFilter: any) => {
+    const isSelected = selectedFilters.completion &&
+                      selectedFilters.completion.type === completionFilter.type;
+
+    onChange({
+      ...selectedFilters,
+      completion: isSelected ? null : completionFilter
+    });
+  };
+
   const clearAllFilters = () => {
     onChange({
       ...selectedFilters,
-      status: [],
       assignee: [],
       dueDate: null,
-      project: []
+      project: [],
+      completion: null
     });
   };
 
@@ -175,13 +174,6 @@ export function ColumnFilterDropdown({
         <div className="max-h-96 overflow-y-auto">
           <div className="p-3 space-y-6">
             <FilterSection
-              title="Status"
-              options={availableFilters.status}
-              selectedValues={selectedFilters.status}
-              onToggle={handleStatusToggle}
-            />
-
-            <FilterSection
               title="Assigned To"
               options={availableFilters.assignee}
               selectedValues={selectedFilters.assignee}
@@ -203,6 +195,13 @@ export function ColumnFilterDropdown({
                 onToggle={handleProjectToggle}
               />
             )}
+
+            <FilterSection
+              title="Completion"
+              options={availableFilters.completion}
+              selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
+              onToggle={handleCompletionToggle}
+            />
 
             {Object.values(availableFilters).every(arr => arr.length === 0) && (
               <div className="text-center py-8 text-gray-500">

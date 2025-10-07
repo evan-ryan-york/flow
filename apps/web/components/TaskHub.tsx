@@ -49,6 +49,8 @@ interface TaskHubProps {
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
+  // Track tasks that are currently completing (to show them for 2 seconds)
+  const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
 
   // View dialog state
   const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
@@ -122,6 +124,26 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // Real-time synchronization
   const { isConnected } = useRealtimeTaskSync(userId, selectedProjectIds);
+
+  // Listen for task completions to delay hiding them
+  React.useEffect(() => {
+    const handleTaskComplete = (event: CustomEvent) => {
+      const taskId = event.detail.taskId;
+      setCompletingTaskIds(prev => new Set(prev).add(taskId));
+
+      // Remove from completing set after 2 seconds
+      setTimeout(() => {
+        setCompletingTaskIds(prev => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, 2000);
+    };
+
+    window.addEventListener('task-completed' as any, handleTaskComplete);
+    return () => window.removeEventListener('task-completed' as any, handleTaskComplete);
+  }, []);
 
   // Get custom property definitions for all selected projects
   // We need to call hooks for a fixed maximum number of projects to follow Rules of Hooks
@@ -229,6 +251,12 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const filteredTasks = useMemo(() => {
     let filtered = [...baseTasks];
 
+    // By default, hide completed tasks unless a completion filter is active
+    // BUT keep tasks that are currently completing visible for 2 seconds
+    if (!selectedFilters.completion) {
+      filtered = filtered.filter(task => !task.is_completed || completingTaskIds.has(task.id));
+    }
+
     // Apply search
     if (searchQuery.trim()) {
       const searchTerm = searchQuery.toLowerCase();
@@ -243,7 +271,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     filtered = filterTasks(filtered, selectedFilters);
 
     return filtered;
-  }, [baseTasks, searchQuery, selectedFilters]);
+  }, [baseTasks, searchQuery, selectedFilters, completingTaskIds]);
 
   // Apply grouping to filtered tasks
   const groupedTasks = useMemo(() => {

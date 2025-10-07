@@ -21,8 +21,8 @@ export function KanbanCard({
   profiles = [],
 }: KanbanCardProps) {
   const updateTaskMutation = useUpdateTask();
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
-  const isDone = task.status === 'Done';
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.is_completed;
+  const isDone = task.is_completed;
 
   // Get project info
   const project = projects.find(p => p.id === task.project_id);
@@ -37,14 +37,13 @@ export function KanbanCard({
 
   const handleStatusToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = isDone ? 'To Do' : 'Done';
     const newCompletedState = !isDone;
 
     updateTaskMutation.mutate({
       taskId: task.id,
       updates: {
-        status: newStatus,
         is_completed: newCompletedState,
+        completed_at: newCompletedState ? new Date().toISOString() : null,
       },
     });
   };

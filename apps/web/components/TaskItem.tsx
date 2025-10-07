@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
-import { EditPencil } from 'iconoir-react';
+import { EditPencil, Trash } from 'iconoir-react';
+import { DeleteTaskDialog } from './DeleteTaskDialog';
 
 type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 
@@ -26,12 +27,27 @@ interface TaskItemProps {
 
 const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
-  const isDone = task.status === 'Done';
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.is_completed;
+  const isDone = task.is_completed;
   const updateTaskMutation = useUpdateTask();
   const { data: propertyValues = [] } = useTaskPropertyValues(task.id);
   const setPropertyValueMutation = useSetPropertyValue();
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+
+  // Handle fade-out animation before task disappears
+  useEffect(() => {
+    if (isDone && justCompleted) {
+      // Start fade out after 1.5 seconds (leaves 0.5s for fade animation)
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 1500);
+
+      return () => clearTimeout(fadeTimer);
+    }
+  }, [isDone, justCompleted]);
 
   // Helper function to get property value for a given definition
   const getPropertyValue = (definitionId: string) => {
@@ -55,19 +71,32 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
   };
 
   const handleStatusToggle = () => {
-    const newStatus = isDone ? 'To Do' : 'Done';
     const newCompletedState = !isDone;
+
+    // If marking as complete, dispatch event to parent to keep it visible
+    if (newCompletedState) {
+      setJustCompleted(true);
+      window.dispatchEvent(new CustomEvent('task-completed', {
+        detail: { taskId: task.id }
+      }));
+    } else {
+      // Reset animation states when uncompleting
+      setJustCompleted(false);
+      setIsFadingOut(false);
+    }
 
     updateTaskMutation.mutate({
       taskId: task.id,
       updates: {
-        status: newStatus,
         is_completed: newCompletedState,
+        completed_at: newCompletedState ? new Date().toISOString() : null,
       }
     }, {
       onError: (error) => {
-        console.error('Failed to update task status:', error);
-        // TODO: Add proper error handling/notification
+        console.error('Failed to update task completion status:', error);
+        // Reset animation states on error
+        setJustCompleted(false);
+        setIsFadingOut(false);
       }
     });
   };
@@ -97,14 +126,23 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
   return (
     <div
-      className={`bg-white border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-        isDragging ? 'bg-blue-50 shadow-lg' : ''
-      } ${isDone ? 'opacity-75' : ''}`}
+      className={`relative overflow-hidden border-b border-gray-200 transition-all duration-500 ${
+        isDragging ? 'bg-blue-50 shadow-lg' : 'bg-white'
+      } ${!isDragging && !isDone ? 'hover:bg-gray-50' : ''} ${isFadingOut ? 'opacity-0' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Animated background overlay for completion */}
+      {justCompleted && isDone && (
+        <div
+          className="absolute inset-0 bg-green-50 pointer-events-none"
+          style={{
+            animation: 'slideInLR 0.6s ease-out forwards'
+          }}
+        />
+      )}
       {/* Table Row Layout */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="relative flex items-center gap-3 px-4 py-3">
         {/* Drag Handle */}
         <button
           {...dragListeners}
@@ -158,19 +196,34 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           }`}>
             {task.name}
           </span>
-          {/* Edit Icon - appears on hover */}
-          {isHovered && onEditClick && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditClick(task.id);
-              }}
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="Edit task"
-              draggable={false}
-            >
-              <EditPencil className="w-4 h-4" />
-            </button>
+          {/* Action Icons - appear on hover */}
+          {isHovered && (
+            <div className="flex items-center gap-1">
+              {onEditClick && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditClick(task.id);
+                  }}
+                  className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  title="Edit task"
+                  draggable={false}
+                >
+                  <EditPencil className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDeleteDialogOpen(true);
+                }}
+                className="flex-shrink-0 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete task"
+                draggable={false}
+              >
+                <Trash className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
 
@@ -349,6 +402,13 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           );
         })}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteTaskDialog
+        task={task}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      />
     </div>
   );
 });

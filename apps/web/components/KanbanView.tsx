@@ -24,11 +24,10 @@ interface KanbanViewProps {
   customPropertyDefinitions?: CustomPropertyDefinition[];
 }
 
-// Default status columns for Kanban view
+// Default columns for Kanban view (using completion status)
 const DEFAULT_COLUMNS = [
-  { id: 'To Do', label: 'To Do', color: 'bg-gray-100' },
-  { id: 'In Progress', label: 'In Progress', color: 'bg-blue-100' },
-  { id: 'Done', label: 'Done', color: 'bg-green-100' },
+  { id: 'incomplete', label: 'To Do', color: 'bg-gray-100' },
+  { id: 'completed', label: 'Done', color: 'bg-green-100' },
 ];
 
 export function KanbanView({
@@ -50,9 +49,13 @@ export function KanbanView({
     }),
   );
 
-  // Group tasks by status
+  // Group tasks by completion status
   const tasksByStatus = DEFAULT_COLUMNS.reduce((acc, column) => {
-    acc[column.id] = tasks.filter(task => task.status === column.id);
+    if (column.id === 'completed') {
+      acc[column.id] = tasks.filter(task => task.is_completed);
+    } else {
+      acc[column.id] = tasks.filter(task => !task.is_completed);
+    }
     return acc;
   }, {} as Record<string, Task[]>);
 
@@ -72,7 +75,7 @@ export function KanbanView({
     }
 
     const taskId = active.id as string;
-    const newStatus = over.id as string;
+    const newColumnId = over.id as string;
 
     // Find the task being dragged
     const task = tasks.find(t => t.id === taskId);
@@ -80,13 +83,16 @@ export function KanbanView({
       return;
     }
 
-    // Only update if status actually changed
-    if (task.status !== newStatus) {
+    // Determine new completion status based on column
+    const newCompletedStatus = newColumnId === 'completed';
+
+    // Only update if completion status actually changed
+    if (task.is_completed !== newCompletedStatus) {
       updateTaskMutation.mutate({
         taskId: task.id,
         updates: {
-          status: newStatus,
-          is_completed: newStatus === 'Done',
+          is_completed: newCompletedStatus,
+          completed_at: newCompletedStatus ? new Date().toISOString() : null,
         },
       });
     }
