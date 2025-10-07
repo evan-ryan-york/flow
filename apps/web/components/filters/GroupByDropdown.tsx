@@ -87,7 +87,7 @@ export function GroupByDropdown({
 
         <div className="p-2">
           <div className="space-y-1">
-            {allOptions.map((option, index) => {
+            {allOptions.map((option, _index) => {
               // Determine if this option is selected
               let isSelected = false;
               if (typeof option.value === 'object' && option.value !== null && option.value.type === 'customProperty') {

@@ -22,7 +22,7 @@ export function TaskSearchInput({
   className
 }: TaskSearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
 
   // Debounce the search input
   useEffect(() => {

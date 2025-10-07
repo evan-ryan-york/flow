@@ -99,7 +99,7 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
     });
 
     // Transform the data to include user role and validate
-    const projectsWithRole: ProjectWithRole[] = sortedProjects.map((item: any) => {
+    const projectsWithRole: ProjectWithRole[] = sortedProjects.map((item: { owner_id: string; project_users?: Array<{ role: 'admin' | 'member' | 'viewer' }>; [key: string]: unknown }) => {
       // Validate the base project data
       const project = ProjectSchema.parse(item);
 
@@ -109,7 +109,7 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
         userRole = 'owner';
       } else {
         // User is a member, get their role from the join table
-        userRole = item.project_users[0]?.role || 'member';
+        userRole = (item.project_users && item.project_users.length > 0) ? item.project_users[0].role : 'member';
       }
 
       return {

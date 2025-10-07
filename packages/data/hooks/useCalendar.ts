@@ -2,10 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '../supabase';
 import {
-  CalendarEventSchema,
-  type GoogleCalendarConnection,
   type CalendarSubscription,
-  type CalendarEvent,
 } from '@perfect-task-app/models';
 import {
   getCalendarConnections,
@@ -94,7 +91,9 @@ export function useConnectGoogleCalendar() {
       const { authUrl } = await response.json();
 
       // Store label in localStorage for callback handler
-      if (label && typeof window !== 'undefined') {
+      // eslint-disable-next-line no-undef
+      if (label && typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage) {
+        // eslint-disable-next-line no-undef
         localStorage.setItem('pending_calendar_label', label);
       }
 
@@ -105,7 +104,7 @@ export function useConnectGoogleCalendar() {
         const left = window.screen.width / 2 - width / 2;
         const top = window.screen.height / 2 - height / 2;
 
-        const popup = window.open(
+        const _popup = window.open(
           authUrl,
           'google-oauth',
           `width=${width},height=${height},left=${left},top=${top},popup=yes`
@@ -113,7 +112,7 @@ export function useConnectGoogleCalendar() {
 
         // Listen for the OAuth success message from the popup
         return new Promise((resolve, reject) => {
-          const handleMessage = (event: MessageEvent) => {
+          const handleMessage = (event: { data?: { type?: string; connectionId?: string; error?: string } }) => {
             if (event.data?.type === 'oauth-success') {
               window.removeEventListener('message', handleMessage);
               resolve(event.data.connectionId);
@@ -126,14 +125,14 @@ export function useConnectGoogleCalendar() {
           window.addEventListener('message', handleMessage);
 
           // Check if popup was blocked
-          if (!popup || popup.closed) {
+          if (!_popup || _popup.closed) {
             window.removeEventListener('message', handleMessage);
             reject(new Error('Popup was blocked. Please allow popups for this site.'));
           }
 
           // Monitor popup closure
           const checkClosed = setInterval(() => {
-            if (popup?.closed) {
+            if (_popup?.closed) {
               clearInterval(checkClosed);
               window.removeEventListener('message', handleMessage);
               // Don't reject here - the message might have been sent
@@ -404,8 +403,9 @@ export function useTriggerEventSync() {
 
       console.log('🔄 Triggering event sync...', { connectionId, url: `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events` });
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      // eslint-disable-next-line no-undef
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = setTimeout(() => controller?.abort(), 120000); // 2 minute timeout
 
       try {
         const response = await fetch(
@@ -417,7 +417,7 @@ export function useTriggerEventSync() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(connectionId ? { connectionId } : {}),
-            signal: controller.signal,
+            signal: controller?.signal,
           }
         );
 
@@ -440,7 +440,7 @@ export function useTriggerEventSync() {
         throw error;
       }
     },
-    onSuccess: (result) => {
+    onSuccess: (_result) => {
       console.log('🔄 Event sync successful, invalidating queries');
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
     },
@@ -469,7 +469,7 @@ export function useCalendarEventsRealtime(startDate: Date, endDate: Date) {
           schema: 'public',
           table: 'calendar_events',
         },
-        (payload) => {
+        (_payload) => {
           // Invalidate event queries when changes occur
           queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
         }

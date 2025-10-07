@@ -41,7 +41,7 @@ export function DeleteProjectDialog({
       });
       onOpenChange(false);
       setReassignToProjectId('');
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the mutation
     }
   };

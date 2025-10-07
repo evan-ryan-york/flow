@@ -31,7 +31,7 @@ jest.mock('next/navigation', () => ({
     };
   },
   useSearchParams() {
-    return new URLSearchParams();
+    return new (globalThis.URLSearchParams || URLSearchParams)();
   },
   usePathname() {
     return '/';

@@ -13,8 +13,8 @@ interface TaskItemProps {
   customPropertyDefinitions?: CustomPropertyDefinition[];
   userId: string;
   isDragging?: boolean;
-  dragAttributes?: any;
-  dragListeners?: any;
+  dragAttributes?: Record<string, unknown> & { [key: string]: unknown };
+  dragListeners?: Record<string, unknown> & { [key: string]: unknown };
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
   projects?: Project[];
@@ -25,7 +25,7 @@ interface TaskItemProps {
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);

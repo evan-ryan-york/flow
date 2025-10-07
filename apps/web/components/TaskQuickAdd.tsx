@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@perfect-task-app/ui";
 import { Calendar as CalendarIcon, User, NavArrowDown } from "iconoir-react";
 import { format } from "date-fns";
 import { CustomPropertyManager } from "@perfect-task-app/ui/components/custom/CustomPropertyManager";
-import { parseTaskInput, cleanTaskName } from "@perfect-task-app/ui/lib/textParser";
+import { cleanTaskName } from "@perfect-task-app/ui/lib/textParser";
 
 interface TaskQuickAddProps {
   userId: string;
@@ -68,6 +68,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     } else if (generalProject && (!selectedProject || selectedProject.id !== generalProject.id)) {
       setSelectedProject(generalProject);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastUsedProjectId, projects?.length, generalProject?.id, isManualProjectSelection]);
 
   // Reset manual project selection flag when lastUsedProjectId matches selectedProject
@@ -75,6 +76,7 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     if (isManualProjectSelection && selectedProject && lastUsedProjectId === selectedProject.id) {
       setIsManualProjectSelection(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManualProjectSelection, selectedProject?.id, lastUsedProjectId]);
 
   // Set default assignee to current user
@@ -267,7 +269,9 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
     } else if (e.key === "Enter") {
       // Explicitly handle Enter key when autocomplete is not open
       e.preventDefault();
-      handleSubmit(e as any);
+      // Create a synthetic form event
+      const syntheticEvent = new Event('submit', { bubbles: true, cancelable: true }) as unknown as React.FormEvent<HTMLFormElement>;
+      handleSubmit(syntheticEvent);
     }
   };
 

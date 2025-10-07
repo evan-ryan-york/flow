@@ -7,7 +7,7 @@ export interface FilterState {
   dueDate: DateRange | null;
   project: string[];
   completion: CompletionFilter | null;
-  customProperties: Record<string, any>;
+  customProperties: Record<string, string>;
 }
 
 export interface DateRange {
@@ -24,7 +24,7 @@ export interface FilterOption {
   key: string;
   label: string;
   type: 'assignee' | 'dueDate' | 'project' | 'completion';
-  value: any;
+  value: string | DateRange | CompletionFilter;
   count?: number;
 }
 
@@ -142,12 +142,13 @@ export function applyCompletionFilter(tasks: Task[], completionFilter: Completio
       case 'all-completed':
         return task.is_completed;
 
-      case 'completed-last-week':
+      case 'completed-last-week': {
         if (!task.is_completed || !task.completed_at) {
           return false;
         }
         const completedDate = new Date(task.completed_at);
         return completedDate >= oneWeekAgo && completedDate <= today;
+      }
 
       default:
         return true;
@@ -156,12 +157,12 @@ export function applyCompletionFilter(tasks: Task[], completionFilter: Completio
 }
 
 // Filter by custom properties
-export function applyCustomPropertyFilter(tasks: Task[], customFilters: Record<string, any>): Task[] {
+export function applyCustomPropertyFilter(tasks: Task[], customFilters: Record<string, string>): Task[] {
   return tasks.filter(task => {
     return Object.entries(customFilters).every(([propertyId, filterValue]) => {
       // This would need to be enhanced based on how custom properties are stored
       // For now, assuming task has a custom_properties field
-      const taskValue = (task as any).custom_properties?.[propertyId];
+      const taskValue = (task as Task & { custom_properties?: Record<string, string> }).custom_properties?.[propertyId];
 
       if (filterValue === null || filterValue === undefined || filterValue === '') {
         return true;
@@ -177,7 +178,7 @@ export function applyCustomPropertyFilter(tasks: Task[], customFilters: Record<s
 }
 
 // Get available filter options from tasks
-export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
+export function getAvailableFilters(tasks: Task[], profiles: { id: string; first_name?: string | null; last_name?: string | null }[] = []): {
   assignee: FilterOption[];
   dueDate: FilterOption[];
   project: FilterOption[];
@@ -194,7 +195,7 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
   const assigneeOptions: FilterOption[] = Object.entries(assigneeCounts).map(([assigneeId, count]) => {
     const profile = profiles.find(p => p.id === assigneeId);
     const label = assigneeId === 'unassigned' ? 'Unassigned' :
-                  profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User' :
+                  profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || 'Unknown User' :
                   'Unknown User';
 
     return {
@@ -237,11 +238,11 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
   });
 
   const dueDateOptions: FilterOption[] = [
-    { key: 'overdue', label: 'Overdue', type: 'dueDate' as const, value: { type: 'overdue' }, count: dueDateCounts.overdue },
-    { key: 'today', label: 'Today', type: 'dueDate' as const, value: { type: 'today' }, count: dueDateCounts.today },
-    { key: 'thisWeek', label: 'This Week', type: 'dueDate' as const, value: { type: 'thisWeek' }, count: dueDateCounts.thisWeek },
-    { key: 'nextWeek', label: 'Next Week', type: 'dueDate' as const, value: { type: 'nextWeek' }, count: dueDateCounts.nextWeek },
-    { key: 'noDate', label: 'No Due Date', type: 'dueDate' as const, value: { type: 'noDate' }, count: dueDateCounts.noDate },
+    { key: 'overdue', label: 'Overdue', type: 'dueDate' as const, value: { type: 'overdue' } as DateRange, count: dueDateCounts.overdue },
+    { key: 'today', label: 'Today', type: 'dueDate' as const, value: { type: 'today' } as DateRange, count: dueDateCounts.today },
+    { key: 'thisWeek', label: 'This Week', type: 'dueDate' as const, value: { type: 'thisWeek' } as DateRange, count: dueDateCounts.thisWeek },
+    { key: 'nextWeek', label: 'Next Week', type: 'dueDate' as const, value: { type: 'nextWeek' } as DateRange, count: dueDateCounts.nextWeek },
+    { key: 'noDate', label: 'No Due Date', type: 'dueDate' as const, value: { type: 'noDate' } as DateRange, count: dueDateCounts.noDate },
   ].filter(option => option.count > 0);
 
   // Get unique projects
@@ -269,8 +270,8 @@ export function getAvailableFilters(tasks: Task[], profiles: any[] = []): {
   }).length;
 
   const completionOptions: FilterOption[] = [
-    { key: 'all-completed', label: 'All Completed', type: 'completion', value: { type: 'all-completed' }, count: allCompletedCount },
-    { key: 'completed-last-week', label: 'Completed Last Week', type: 'completion', value: { type: 'completed-last-week' }, count: completedLastWeekCount },
+    { key: 'all-completed', label: 'All Completed', type: 'completion' as const, value: { type: 'all-completed' } as CompletionFilter, count: allCompletedCount },
+    { key: 'completed-last-week', label: 'Completed Last Week', type: 'completion' as const, value: { type: 'completed-last-week' } as CompletionFilter, count: completedLastWeekCount },
   ].filter(option => option.count > 0);
 
   return {

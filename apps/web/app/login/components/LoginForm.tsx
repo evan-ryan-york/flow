@@ -47,9 +47,9 @@ export function LoginForm() {
       }
 
       console.log('✅ OAuth initiated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Google sign-in error:', error);
-      setError(error.message || 'An error occurred during sign-in');
+      setError(error instanceof Error ? error.message : 'An error occurred during sign-in');
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +72,9 @@ export function LoginForm() {
       }
 
       alert('Check your email for a sign-in link!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Magic link sign-in error:', error);
-      setError(error.message || 'An error occurred during sign-in');
+      setError(error instanceof Error ? error.message : 'An error occurred during sign-in');
     } finally {
       setIsLoading(false);
     }
