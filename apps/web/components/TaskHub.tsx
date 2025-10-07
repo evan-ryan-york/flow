@@ -24,14 +24,17 @@ import {
   useTaskEditPanel,
   useTasksPropertyValues,
   useSetPropertyValue,
+  useUserViews,
 } from "@perfect-task-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
 import { TaskList } from "./TaskList";
+import { KanbanView } from "./KanbanView";
 import { SavedViews } from "./SavedViews";
 import { TaskItem } from "./TaskItem";
 import { TaskFiltersBar } from "./TaskFiltersBar";
 import { TaskEditPullover } from "./TaskEditPullover";
+import { CreateViewDialog } from "./CreateViewDialog";
 import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
 import { FilterState, createEmptyFilterState, filterTasks } from "@perfect-task-app/ui/lib/taskFiltering";
 import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping";
@@ -46,10 +49,26 @@ interface TaskHubProps {
 export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
+  // Track tasks that are currently completing (to show them for 2 seconds)
+  const [completingTaskIds, setCompletingTaskIds] = useState<Set<string>>(new Set());
+
+  // View dialog state
+  const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
+
+  // Fetch all views for user and the active view
+  const { data: userViews = [] } = useUserViews(userId);
+  const activeView = userViews.find(v => v.id === selectedViewId);
+
   // Filter and grouping state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<FilterState>(createEmptyFilterState());
   const [groupBy, setGroupBy] = useState<GroupByOption | null>(null);
+
+  // Column visibility state
+  const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(() => new Set());
+  const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<'assigned_to' | 'due_date' | 'project'>>(() =>
+    new Set(['assigned_to', 'due_date', 'project'])
+  );
 
   // Task edit panel state
   const {
@@ -62,18 +81,14 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     setHasUnsavedChanges,
   } = useTaskEditPanel();
 
-  // Fallback to original hook until database migration is applied
-  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, selectedProjectIds);
+  // Determine which projects to query: use view config if active, otherwise use selectedProjectIds
+  const effectiveProjectIds = activeView?.config.projectIds && activeView.config.projectIds.length > 0
+    ? activeView.config.projectIds
+    : selectedProjectIds;
 
-  // DEBUG: Check if TaskHub is rendering properly
-  console.log("🔍 TaskHub RENDER:", {
-    selectedProjectIds,
-    userId,
-    serverTasks: serverTasks.length,
-    isLoading,
-    error: error?.message,
-    hasProjects: selectedProjectIds.length > 0,
-  });
+
+  // Fetch tasks from effective project IDs
+  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
@@ -93,6 +108,15 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     return mapping;
   }, [allProfiles, userId]);
 
+  // Create project mapping for task project display
+  const projectMapping = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    allProjects.forEach((project) => {
+      mapping[project.id] = project.name;
+    });
+    return mapping;
+  }, [allProjects]);
+
   // Task update hook for cross-group drops
   const updateTaskMutation = useUpdateTask();
   const setPropertyValueMutation = useSetPropertyValue();
@@ -100,6 +124,26 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // Real-time synchronization
   const { isConnected } = useRealtimeTaskSync(userId, selectedProjectIds);
+
+  // Listen for task completions to delay hiding them
+  React.useEffect(() => {
+    const handleTaskComplete = (event: CustomEvent) => {
+      const taskId = event.detail.taskId;
+      setCompletingTaskIds(prev => new Set(prev).add(taskId));
+
+      // Remove from completing set after 2 seconds
+      setTimeout(() => {
+        setCompletingTaskIds(prev => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, 2000);
+    };
+
+    window.addEventListener('task-completed' as any, handleTaskComplete);
+    return () => window.removeEventListener('task-completed' as any, handleTaskComplete);
+  }, []);
 
   // Get custom property definitions for all selected projects
   // We need to call hooks for a fixed maximum number of projects to follow Rules of Hooks
@@ -156,20 +200,45 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     }),
   );
 
-  // Sort server tasks by due date and created date
+  // Sort server tasks based on view config or default sorting
   const sortedServerTasks = useMemo(() => {
-    return [...serverTasks].sort((a, b) => {
-      // Sort by due date first (tasks with due dates come first)
-      if (a.due_date && b.due_date) {
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      }
-      if (a.due_date && !b.due_date) return -1;
-      if (!a.due_date && b.due_date) return 1;
+    const sortBy = activeView?.config.sortBy || 'due_date';
 
-      // Then sort by created date (newest first)
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return [...serverTasks].sort((a, b) => {
+      switch (sortBy) {
+        case 'due_date':
+          // Sort by due date first (tasks with due dates come first)
+          if (a.due_date && b.due_date) {
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          }
+          if (a.due_date && !b.due_date) return -1;
+          if (!a.due_date && b.due_date) return 1;
+          // Fall through to created_at for tasks without due dates
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+        case 'created_at':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+        case 'name':
+          return a.name.localeCompare(b.name);
+
+        case 'status':
+          const statusOrder = { 'To Do': 0, 'In Progress': 1, 'Done': 2 };
+          const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 999;
+          const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 999;
+          return aOrder - bOrder;
+
+        default:
+          // Default to due date sorting
+          if (a.due_date && b.due_date) {
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          }
+          if (a.due_date && !b.due_date) return -1;
+          if (!a.due_date && b.due_date) return 1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
     });
-  }, [serverTasks]);
+  }, [serverTasks, activeView?.config.sortBy]);
 
   // Use sorted server tasks as the base
   const baseTasks = sortedServerTasks;
@@ -181,6 +250,12 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Apply filtering to tasks
   const filteredTasks = useMemo(() => {
     let filtered = [...baseTasks];
+
+    // By default, hide completed tasks unless a completion filter is active
+    // BUT keep tasks that are currently completing visible for 2 seconds
+    if (!selectedFilters.completion) {
+      filtered = filtered.filter(task => !task.is_completed || completingTaskIds.has(task.id));
+    }
 
     // Apply search
     if (searchQuery.trim()) {
@@ -196,7 +271,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     filtered = filterTasks(filtered, selectedFilters);
 
     return filtered;
-  }, [baseTasks, searchQuery, selectedFilters]);
+  }, [baseTasks, searchQuery, selectedFilters, completingTaskIds]);
 
   // Apply grouping to filtered tasks
   const groupedTasks = useMemo(() => {
@@ -243,7 +318,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     });
 
     if (groupCollisions.length > 0) {
-      console.log("🎯 Group collision detected:", groupCollisions[0]);
       return groupCollisions;
     }
 
@@ -251,12 +325,52 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     return rectIntersection(args);
   };
 
-  // Reset filters when projects change
+  // Initialize visibleColumnIds when custom properties load
   React.useEffect(() => {
-    setSearchQuery("");
-    setSelectedFilters(createEmptyFilterState());
-    setGroupBy(null);
-  }, [selectedProjectIds.join(",")]);
+    if (allCustomProperties.length > 0 && visibleColumnIds.size === 0) {
+      // Initialize with all custom properties visible
+      setVisibleColumnIds(new Set(allCustomProperties.map(p => p.id)));
+    }
+  }, [allCustomProperties, visibleColumnIds.size]);
+
+  // Sync groupBy and column visibility with active view config
+  React.useEffect(() => {
+    if (!activeView) {
+      return;
+    }
+
+    console.log('🔄 [VIEW SWITCH] Switching to view:', activeView.name, {
+      visibleProperties: activeView.config.visibleProperties,
+      visibleBuiltInColumns: activeView.config.visibleBuiltInColumns,
+    });
+
+    // Sync groupBy
+    if (activeView.config.groupBy) {
+      setGroupBy(activeView.config.groupBy as GroupByOption);
+    } else {
+      setGroupBy(null);
+    }
+
+    // Sync visible custom property columns
+    if (activeView.config.visibleProperties) {
+      setVisibleColumnIds(new Set(activeView.config.visibleProperties));
+    }
+
+    // Sync visible built-in columns
+    if (activeView.config.visibleBuiltInColumns) {
+      setVisibleBuiltInColumns(new Set(activeView.config.visibleBuiltInColumns));
+    }
+  }, [activeView?.id]);
+
+  // Reset filters when projects change (but not when view changes)
+  React.useEffect(() => {
+    if (!activeView) {
+      setSearchQuery("");
+      setSelectedFilters(createEmptyFilterState());
+      setGroupBy(null);
+    }
+  }, [selectedProjectIds.join(","), activeView]);
+
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = displayTasks.find((t: Task) => t.id === event.active.id);
@@ -269,22 +383,12 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     const { active, over } = event;
     setDraggedTask(null);
 
-    console.log("🔍 DRAG END DEBUG:", {
-      activeId: active.id,
-      overId: over?.id,
-      overData: over?.data?.current,
-      overType: over?.data?.current?.type,
-      hasOver: !!over,
-    });
-
     if (!over || active.id === over.id) {
-      console.log("🚫 Early return: no over or same id");
       return;
     }
 
     const draggedTask = displayTasks.find((task) => task.id === active.id);
     if (!draggedTask) {
-      console.log("🚫 No dragged task found");
       return;
     }
 
@@ -293,22 +397,12 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     const droppedOnTask = displayTasks.find((task) => task.id === over.id);
     const isGroupDrop = over.data?.current?.type === "group";
 
-    console.log("🔍 Drop target analysis:", {
-      droppedOnTask: !!droppedOnTask,
-      overType: over.data?.current?.type,
-      groupKey: over.data?.current?.groupKey,
-      groupBy: groupBy,
-      isGroupDrop: isGroupDrop,
-    });
-
     if (isGroupDrop) {
       const groupKey = over.data.current?.groupKey;
       const groupLabel = over.data.current?.groupLabel;
 
-      console.log("🔄 Cross-group drop:", draggedTask.name, "to group:", groupLabel);
-
       // Check if grouping by custom property
-      if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+      if (groupBy && typeof groupBy === 'object' && groupBy.type === 'customProperty') {
         // Update custom property value
         setPropertyValueMutation.mutate(
           {
@@ -316,14 +410,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             definitionId: groupBy.definitionId,
             value: groupKey === '(No Value)' ? '' : groupKey,
             userId,
-          },
-          {
-            onSuccess: () => {
-              console.log("✅ Custom property updated successfully to group:", groupLabel);
-            },
-            onError: (error) => {
-              console.error("❌ Failed to update custom property:", error);
-            },
           }
         );
         return;
@@ -347,7 +433,6 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         case "dueDate":
           // Due date grouping is more complex - we can't directly assign a date from group key
           // For now, we'll skip due date group drops
-          console.warn("Due date group drops not yet supported");
           return;
         default:
           return;
@@ -358,22 +443,13 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
         {
           taskId: draggedTask.id,
           updates,
-        },
-        {
-          onSuccess: () => {
-            console.log("✅ Task moved successfully to group:", groupLabel);
-          },
-          onError: (error) => {
-            console.error("❌ Failed to move task:", error);
-          },
-        },
+        }
       );
 
       return;
     }
 
     // Task reordering within the same list - currently no persistence
-    console.log("🔄 Task reorder (visual only):", draggedTask.name, "moved within list");
   };
 
   if (error) {
@@ -418,49 +494,89 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           filteredTasks={filteredTasks.length}
         />
 
-        {/* Task List */}
+        {/* Task List or Kanban View */}
         <div className="flex-1 overflow-hidden">
-          <TaskList
-            tasks={displayTasks}
-            selectedProjectIds={selectedProjectIds}
-            customPropertyDefinitions={allCustomProperties}
-            userId={userId}
-            isLoading={isLoading}
-            isDraggingActive={!!draggedTask}
-            groupedTasks={groupedTasks}
-            showGroupHeaders={groupBy !== null && groupBy !== "none"}
-            groupBy={groupBy}
-            userMapping={userMapping}
-            onTaskEditClick={(taskId) => {
-              if (isEditPanelOpen && selectedTaskId === taskId) {
-                // If same task is clicked, close the panel
-                closeEditPanel();
-              } else if (isEditPanelOpen) {
-                // If panel is open but different task, switch task
-                // Pre-populate the cache with the task data from the list
-                const taskData = displayTasks.find((t) => t.id === taskId);
-                if (taskData) {
-                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+          {activeView?.type === 'kanban' ? (
+            <KanbanView
+              tasks={displayTasks}
+              userId={userId}
+              projects={allProjects}
+              profiles={allProfiles}
+              customPropertyDefinitions={allCustomProperties}
+            />
+          ) : (
+            <TaskList
+              tasks={displayTasks}
+              selectedProjectIds={selectedProjectIds}
+              customPropertyDefinitions={allCustomProperties}
+              userId={userId}
+              isLoading={isLoading}
+              isDraggingActive={!!draggedTask}
+              groupedTasks={groupedTasks}
+              showGroupHeaders={groupBy !== null && groupBy !== "none"}
+              groupBy={groupBy}
+              userMapping={userMapping}
+              projectMapping={projectMapping}
+              projects={allProjects}
+              profiles={allProfiles}
+              visibleColumnIds={visibleColumnIds}
+              visibleBuiltInColumns={visibleBuiltInColumns}
+              onVisibleColumnIdsChange={setVisibleColumnIds}
+              onVisibleBuiltInColumnsChange={setVisibleBuiltInColumns}
+              onTaskEditClick={(taskId) => {
+                if (isEditPanelOpen && selectedTaskId === taskId) {
+                  // If same task is clicked, close the panel
+                  closeEditPanel();
+                } else if (isEditPanelOpen) {
+                  // If panel is open but different task, switch task
+                  // Pre-populate the cache with the task data from the list
+                  const taskData = displayTasks.find((t) => t.id === taskId);
+                  if (taskData) {
+                    queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                  }
+                  switchEditTask(taskId);
+                } else {
+                  // Pre-populate the cache with the task data from the list
+                  const taskData = displayTasks.find((t) => t.id === taskId);
+                  if (taskData) {
+                    queryClient.setQueryData(['tasks', 'task', taskId], taskData);
+                  }
+                  // Open panel with new task
+                  openEditPanel(taskId);
                 }
-                switchEditTask(taskId);
-              } else {
-                // Pre-populate the cache with the task data from the list
-                const taskData = displayTasks.find((t) => t.id === taskId);
-                if (taskData) {
-                  queryClient.setQueryData(['tasks', 'task', taskId], taskData);
-                }
-                // Open panel with new task
-                openEditPanel(taskId);
-              }
-            }}
-          />
+              }}
+            />
+          )}
         </div>
 
         {/* Saved Views */}
         <div className="border-t border-gray-200 bg-white">
-          <SavedViews userId={userId} selectedViewId={selectedViewId} onViewChange={onViewChange} />
+          <SavedViews
+            userId={userId}
+            selectedViewId={selectedViewId}
+            onViewChange={onViewChange}
+            onCreateView={() => setIsCreateViewDialogOpen(true)}
+          />
         </div>
       </div>
+
+      {/* Create View Dialog */}
+      <CreateViewDialog
+        isOpen={isCreateViewDialogOpen}
+        onClose={() => setIsCreateViewDialogOpen(false)}
+        userId={userId}
+        currentProjectIds={selectedProjectIds}
+        currentGroupBy={groupBy || undefined}
+        currentSortBy={activeView?.config.sortBy || 'due_date'}
+        currentViewType={activeView?.type || 'list'}
+        currentVisibleProperties={Array.from(visibleColumnIds)}
+        currentVisibleBuiltInColumns={Array.from(visibleBuiltInColumns)}
+        onViewCreated={(viewId) => {
+          // Switch to the newly created view
+          onViewChange(viewId);
+        }}
+      />
+
 
       {/* Drag Overlay */}
       <DragOverlay>

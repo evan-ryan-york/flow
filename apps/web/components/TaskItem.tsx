@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { EditPencil } from 'iconoir-react';
+import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
+import { EditPencil, Trash } from 'iconoir-react';
+import { DeleteTaskDialog } from './DeleteTaskDialog';
 
-type BuiltInColumn = 'assigned_to' | 'due_date';
+type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 
 interface TaskItemProps {
   task: Task;
@@ -15,20 +16,38 @@ interface TaskItemProps {
   dragAttributes?: any;
   dragListeners?: any;
   userMapping?: Record<string, string>;
+  projectMapping?: Record<string, string>;
+  projects?: Project[];
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
   visibleBuiltInColumns?: Set<BuiltInColumn>;
   onEditClick?: (taskId: string) => void;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, visibleBuiltInColumns = new Set(['assigned_to', 'due_date']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done';
-  const isDone = task.status === 'Done';
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.is_completed;
+  const isDone = task.is_completed;
   const updateTaskMutation = useUpdateTask();
   const { data: propertyValues = [] } = useTaskPropertyValues(task.id);
   const setPropertyValueMutation = useSetPropertyValue();
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+
+  // Handle fade-out animation before task disappears
+  useEffect(() => {
+    if (isDone && justCompleted) {
+      // Start fade out after 1.5 seconds (leaves 0.5s for fade animation)
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 1500);
+
+      return () => clearTimeout(fadeTimer);
+    }
+  }, [isDone, justCompleted]);
 
   // Helper function to get property value for a given definition
   const getPropertyValue = (definitionId: string) => {
@@ -52,38 +71,78 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
   };
 
   const handleStatusToggle = () => {
-    const newStatus = isDone ? 'To Do' : 'Done';
     const newCompletedState = !isDone;
+
+    // If marking as complete, dispatch event to parent to keep it visible
+    if (newCompletedState) {
+      setJustCompleted(true);
+      window.dispatchEvent(new CustomEvent('task-completed', {
+        detail: { taskId: task.id }
+      }));
+    } else {
+      // Reset animation states when uncompleting
+      setJustCompleted(false);
+      setIsFadingOut(false);
+    }
 
     updateTaskMutation.mutate({
       taskId: task.id,
       updates: {
-        status: newStatus,
         is_completed: newCompletedState,
+        completed_at: newCompletedState ? new Date().toISOString() : null,
       }
     }, {
       onError: (error) => {
-        console.error('Failed to update task status:', error);
-        // TODO: Add proper error handling/notification
+        console.error('Failed to update task completion status:', error);
+        // Reset animation states on error
+        setJustCompleted(false);
+        setIsFadingOut(false);
       }
     });
   };
 
   const handleDragHandleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Drag functionality handled by parent DraggableTaskItem
+    // Drag handle for @dnd-kit sorting is passed via dragListeners
+  };
+
+  // HTML5 drag handlers for dragging to calendar
+  const handleCalendarDragStart = (e: React.DragEvent) => {
+    // Set data for calendar drop
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('application/json', JSON.stringify(task));
+
+    // Dispatch custom event for calendar to listen to
+    window.dispatchEvent(new CustomEvent('task-drag-start', { detail: task }));
+
+    console.log('🎯 Task drag to calendar started:', task.name);
+  };
+
+  const handleCalendarDragEnd = () => {
+    // Notify calendar that drag ended
+    window.dispatchEvent(new CustomEvent('task-drag-end'));
+    console.log('🎯 Task drag to calendar ended');
   };
 
   return (
     <div
-      className={`bg-white border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-        isDragging ? 'bg-blue-50 shadow-lg' : ''
-      } ${isDone ? 'opacity-75' : ''}`}
+      className={`relative overflow-hidden border-b border-gray-200 transition-all duration-500 ${
+        isDragging ? 'bg-blue-50 shadow-lg' : 'bg-white'
+      } ${!isDragging && !isDone ? 'hover:bg-gray-50' : ''} ${isFadingOut ? 'opacity-0' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Animated background overlay for completion */}
+      {justCompleted && isDone && (
+        <div
+          className="absolute inset-0 bg-green-50 pointer-events-none"
+          style={{
+            animation: 'slideInLR 0.6s ease-out forwards'
+          }}
+        />
+      )}
       {/* Table Row Layout */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="relative flex items-center gap-3 px-4 py-3">
         {/* Drag Handle */}
         <button
           {...dragListeners}
@@ -124,34 +183,80 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           )}
         </button>
 
-        {/* Name Column */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
+        {/* Name Column - draggable to calendar */}
+        <div
+          draggable
+          onDragStart={handleCalendarDragStart}
+          onDragEnd={handleCalendarDragEnd}
+          className="flex-1 min-w-0 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+          title="Drag to calendar to schedule"
+        >
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
             {task.name}
           </span>
-          {/* Edit Icon - appears on hover */}
-          {isHovered && onEditClick && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditClick(task.id);
-              }}
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="Edit task"
-            >
-              <EditPencil className="w-4 h-4" />
-            </button>
+          {/* Action Icons - appear on hover */}
+          {isHovered && (
+            <div className="flex items-center gap-1">
+              {onEditClick && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditClick(task.id);
+                  }}
+                  className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  title="Edit task"
+                  draggable={false}
+                >
+                  <EditPencil className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDeleteDialogOpen(true);
+                }}
+                className="flex-shrink-0 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete task"
+                draggable={false}
+              >
+                <Trash className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
 
         {/* Assigned To Column - Fixed width */}
         {visibleBuiltInColumns.has('assigned_to') && (
-          <div className="flex-shrink-0 w-24 text-right">
-            <span className="text-sm text-gray-600 truncate block">
-              {task.assigned_to ? (userMapping[task.assigned_to] || 'Unknown User') : 'Unassigned'}
-            </span>
+          <div className="flex-shrink-0 w-24 flex justify-end">
+            {task.assigned_to ? (
+              <div
+                className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium"
+                title={userMapping[task.assigned_to] || 'Unknown User'}
+              >
+                {(() => {
+                  const profile = profiles.find(p => p.id === task.assigned_to);
+                  if (!profile) {
+                    return 'U';
+                  }
+
+                  const firstInitial = profile.first_name?.[0]?.toUpperCase() || '';
+                  const lastInitial = profile.last_name?.[0]?.toUpperCase() || '';
+
+                  if (firstInitial && lastInitial) {
+                    return firstInitial + lastInitial;
+                  } else if (firstInitial) {
+                    return firstInitial;
+                  } else if (lastInitial) {
+                    return lastInitial;
+                  }
+                  return 'U';
+                })()}
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400">—</span>
+            )}
           </div>
         )}
 
@@ -170,6 +275,53 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
             ) : (
               <span className="text-sm text-gray-400">—</span>
             )}
+          </div>
+        )}
+
+        {/* Project Column - Fixed width */}
+        {visibleBuiltInColumns.has('project') && (
+          <div className="flex-shrink-0 w-28 flex justify-end">
+            {(() => {
+              const project = projects.find(p => p.id === task.project_id);
+              if (!project) {
+                return <span className="text-sm text-gray-400">Unknown</span>;
+              }
+
+              const getColorClasses = (color: string) => {
+                switch (color) {
+                  case 'rose': return 'bg-rose-100 text-rose-800 border-rose-200';
+                  case 'amber': return 'bg-amber-100 text-amber-800 border-amber-200';
+                  case 'mint': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                  case 'sky': return 'bg-sky-100 text-sky-800 border-sky-200';
+                  case 'violet': return 'bg-violet-100 text-violet-800 border-violet-200';
+                  case 'lime': return 'bg-lime-100 text-lime-800 border-lime-200';
+                  case 'teal': return 'bg-teal-100 text-teal-800 border-teal-200';
+                  case 'crimson': return 'bg-red-100 text-red-800 border-red-200';
+                  default: return 'bg-gray-100 text-gray-800 border-gray-200';
+                }
+              };
+
+              const getColorDot = (color: string) => {
+                switch (color) {
+                  case 'rose': return 'bg-rose-500';
+                  case 'amber': return 'bg-amber-500';
+                  case 'mint': return 'bg-emerald-500';
+                  case 'sky': return 'bg-sky-500';
+                  case 'violet': return 'bg-violet-500';
+                  case 'lime': return 'bg-lime-500';
+                  case 'teal': return 'bg-teal-500';
+                  case 'crimson': return 'bg-red-600';
+                  default: return 'bg-gray-500';
+                }
+              };
+
+              return (
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${getColorClasses(project.color)}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${getColorDot(project.color)}`} />
+                  <span className="truncate max-w-[80px]">{project.name}</span>
+                </span>
+              );
+            })()}
           </div>
         )}
 
@@ -250,6 +402,13 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           );
         })}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteTaskDialog
+        task={task}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      />
     </div>
   );
 });

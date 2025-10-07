@@ -2,31 +2,37 @@
 import * as taskService from '../../services/taskService';
 import { TaskSchema } from '@perfect-task-app/models';
 
-// Mock supabase client
-const mockSupabase = {
-  auth: {
-    getUser: jest.fn(),
-  },
-  from: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis(),
-  single: jest.fn(),
-};
+// Mock the supabase module - must be at top before imports
+jest.mock('../../supabase', () => {
+  const mockSupabase = {
+    auth: {
+      getUser: jest.fn(),
+    },
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+  };
 
-jest.mock('../../supabase', () => ({
-  supabase: mockSupabase,
-}));
+  return {
+    getSupabaseClient: () => mockSupabase,
+  };
+});
 
-// Mock task data
+// Get the mocked supabase instance
+import { getSupabaseClient } from '../../supabase';
+const mockSupabase = getSupabaseClient() as any;
+
+// Mock task data with valid UUIDs
 const mockTask = {
-  id: 'task-1',
-  project_id: 'project-1',
-  created_by: 'user-1',
-  assigned_to: 'user-1',
+  id: '550e8400-e29b-41d4-a716-446655440000',
+  project_id: '550e8400-e29b-41d4-a716-446655440001',
+  created_by: '550e8400-e29b-41d4-a716-446655440002',
+  assigned_to: '550e8400-e29b-41d4-a716-446655440002',
   name: 'Test Task',
   description: 'Test Description',
   due_date: '2024-12-31',
@@ -38,7 +44,7 @@ const mockTask = {
 
 const mockUser = {
   user: {
-    id: 'user-1',
+    id: '550e8400-e29b-41d4-a716-446655440002',
     email: 'test@example.com',
   },
 };
@@ -114,7 +120,7 @@ describe('taskService Unit Tests', () => {
 
   describe('createTask', () => {
     it('should create task with authenticated user', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue(mockUser);
+      mockSupabase.auth.getUser.mockResolvedValue({ data: mockUser, error: null });
 
       mockSupabase.from.mockReturnValue({
         insert: jest.fn().mockReturnValue({
@@ -141,7 +147,7 @@ describe('taskService Unit Tests', () => {
     });
 
     it('should throw error when user is not authenticated', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({ user: null });
+      mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
 
       const taskData = {
         project_id: 'project-1',
@@ -154,7 +160,7 @@ describe('taskService Unit Tests', () => {
     });
 
     it('should handle database insertion errors', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue(mockUser);
+      mockSupabase.auth.getUser.mockResolvedValue({ data: mockUser, error: null });
 
       const error = { message: 'Insertion failed' };
       mockSupabase.from.mockReturnValue({
