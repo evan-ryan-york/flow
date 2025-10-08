@@ -57,7 +57,10 @@ export function TaskFiltersBar({
 
   // Enhanced project filter options with actual project names
   const enhancedAvailableFilters = useMemo(() => {
-    const enhanced = { ...availableFilters };
+    const enhanced = {
+      ...availableFilters,
+      completionTimeframe: availableFilters.completionTimeframe || []
+    };
 
     // Enhance project options with actual project names
     enhanced.project = enhanced.project.map(option => ({

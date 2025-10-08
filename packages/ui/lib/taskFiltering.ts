@@ -192,6 +192,7 @@ export function getAvailableFilters(tasks: Task[], profiles: { id: string; first
   dueDate: FilterOption[];
   project: FilterOption[];
   completion: FilterOption[];
+  completionTimeframe: FilterOption[];
 } {
 
   // Get unique assignees

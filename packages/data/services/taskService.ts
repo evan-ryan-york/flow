@@ -20,6 +20,7 @@ export interface UpdateTaskData {
   assigned_to?: string;
   is_completed?: boolean;
   completed_at?: string | null;
+  project_id?: string;
 }
 
 export const getTasksForProject = async (projectId: string): Promise<Task[]> => {
