@@ -85,7 +85,13 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
 
   // Fetch tasks from effective project IDs
-  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
+  const { data: serverTasks = [], isLoading, error, isFetching } = useProjectsTasks(userId, effectiveProjectIds);
+
+  // Use isFetching instead of isLoading to prevent showing loader when we already have data
+  // isLoading is true when there's no cached data, isFetching is true during any fetch
+  // We only want to show the loader when we have no data at all
+  const hasNoProjects = effectiveProjectIds.length === 0;
+  const effectiveIsLoading = hasNoProjects ? false : (isLoading && !serverTasks.length);
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
@@ -250,25 +256,42 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     let filtered = [...baseTasks];
 
     // By default, hide completed tasks unless a completion filter is active
+    // Set default completion filter to 'incomplete' if none is set
+    const effectiveFilters = {
+      ...selectedFilters,
+      completion: selectedFilters.completion || { status: 'incomplete' as const }
+    };
+
     // BUT keep tasks that are currently completing visible for 2 seconds
-    if (!selectedFilters.completion) {
-      filtered = filtered.filter(task => !task.is_completed || completingTaskIds.has(task.id));
-    }
+    const tasksWithCompletingVisible = filtered.map(task => {
+      if (completingTaskIds.has(task.id)) {
+        // Temporarily show completing tasks even if they would be filtered out
+        return task;
+      }
+      return task;
+    });
 
     // Apply search
     if (searchQuery.trim()) {
       const searchTerm = searchQuery.toLowerCase();
-      filtered = filtered.filter(
+      filtered = tasksWithCompletingVisible.filter(
         (task) =>
           task.name.toLowerCase().includes(searchTerm) ||
           (task.description && task.description.toLowerCase().includes(searchTerm)),
       );
+    } else {
+      filtered = tasksWithCompletingVisible;
     }
 
-    // Apply other filters
-    filtered = filterTasks(filtered, selectedFilters);
+    // Apply other filters (including the effective completion filter)
+    filtered = filterTasks(filtered, effectiveFilters);
 
-    return filtered;
+    // Re-add completing tasks if they were filtered out
+    const completingTasks = baseTasks.filter(task =>
+      completingTaskIds.has(task.id) && !filtered.some(t => t.id === task.id)
+    );
+
+    return [...filtered, ...completingTasks];
   }, [baseTasks, searchQuery, selectedFilters, completingTaskIds]);
 
   // Apply grouping to filtered tasks
@@ -507,7 +530,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
               selectedProjectIds={selectedProjectIds}
               customPropertyDefinitions={allCustomProperties}
               userId={userId}
-              isLoading={isLoading}
+              isLoading={effectiveIsLoading}
               isDraggingActive={!!draggedTask}
               groupedTasks={groupedTasks}
               showGroupHeaders={groupBy !== null && groupBy !== "none"}

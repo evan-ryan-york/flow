@@ -46,6 +46,7 @@ export const useProjectsTasks = (userId: string, projectIds: string[]) => {
     queryFn: () => getTasksForProjects(userId, projectIds),
     enabled: !!userId && projectIds.length > 0,
     staleTime: 1000 * 30, // 30 seconds
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
   });
 };
 

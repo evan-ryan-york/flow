@@ -12,6 +12,7 @@ interface ColumnFilterDropdownProps {
     dueDate: FilterOption[];
     project: FilterOption[];
     completion: FilterOption[];
+    completionTimeframe: FilterOption[];
   };
   selectedFilters: FilterState;
   onChange: (filters: FilterState) => void;
@@ -68,10 +69,11 @@ export function ColumnFilterDropdown({
   };
 
   const handleCompletionToggle = (value: string | DateRange | CompletionFilter) => {
-    if (typeof value === 'string' || !('type' in value) || (value.type !== 'all-completed' && value.type !== 'completed-last-week')) return;
+    if (typeof value === 'string' || !('status' in value)) return;
     const completionFilter = value as CompletionFilter;
     const isSelected = selectedFilters.completion &&
-                      selectedFilters.completion.type === completionFilter.type;
+                      selectedFilters.completion.status === completionFilter.status &&
+                      selectedFilters.completion.timeframe === completionFilter.timeframe;
 
     onChange({
       ...selectedFilters,
@@ -114,7 +116,17 @@ export function ColumnFilterDropdown({
                 return val === option.value;
               }
               if (typeof val === 'object' && val !== null && typeof option.value === 'object' && option.value !== null) {
-                return (val as { type?: string }).type === (option.value as { type?: string }).type;
+                // Handle DateRange comparison
+                if ('type' in val && 'type' in option.value && !('status' in val) && !('status' in option.value)) {
+                  return (val as { type?: string }).type === (option.value as { type?: string }).type;
+                }
+                // Handle CompletionFilter comparison
+                if ('status' in val && 'status' in option.value) {
+                  const valFilter = val as CompletionFilter;
+                  const optionFilter = option.value as CompletionFilter;
+                  return valFilter.status === optionFilter.status &&
+                         valFilter.timeframe === optionFilter.timeframe;
+                }
               }
               return false;
             });
@@ -210,11 +222,34 @@ export function ColumnFilterDropdown({
             )}
 
             <FilterSection
-              title="Completion"
+              title="Completion Status"
               options={availableFilters.completion}
               selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
               onToggle={handleCompletionToggle}
             />
+
+            {/* Show timeframe options when completed or all tasks are selected */}
+            {selectedFilters.completion &&
+             (selectedFilters.completion.status === 'completed' || selectedFilters.completion.status === 'all') && (() => {
+               // Dynamically generate timeframe options based on selected status
+               const status = selectedFilters.completion.status;
+               const timeframeOptions: FilterOption[] = [
+                 { key: 'all-time', label: 'All time', type: 'completion' as const, value: { status, timeframe: 'all-time' } as CompletionFilter },
+                 { key: 'last-month', label: 'Last month', type: 'completion' as const, value: { status, timeframe: 'last-month' } as CompletionFilter },
+                 { key: 'last-week', label: 'Last week', type: 'completion' as const, value: { status, timeframe: 'last-week' } as CompletionFilter },
+               ];
+
+               return (
+                 <div className="ml-4 pl-4 border-l-2 border-gray-200">
+                   <FilterSection
+                     title="Completed Timeframe"
+                     options={timeframeOptions}
+                     selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
+                     onToggle={handleCompletionToggle}
+                   />
+                 </div>
+               );
+             })()}
 
             {Object.values(availableFilters).every(arr => arr.length === 0) && (
               <div className="text-center py-8 text-gray-500">

@@ -17,7 +17,8 @@ export interface DateRange {
 }
 
 export interface CompletionFilter {
-  type: 'all-completed' | 'completed-last-week';
+  status: 'incomplete' | 'completed' | 'all'; // What to show
+  timeframe?: 'all-time' | 'last-month' | 'last-week'; // When status is 'completed' or 'all'
 }
 
 export interface FilterOption {
@@ -136,23 +137,31 @@ export function applyDueDateFilter(tasks: Task[], dateRange: DateRange): Task[] 
 export function applyCompletionFilter(tasks: Task[], completionFilter: CompletionFilter): Task[] {
   const today = startOfToday();
   const oneWeekAgo = subDays(today, 7);
+  const oneMonthAgo = subDays(today, 30);
 
   return tasks.filter(task => {
-    switch (completionFilter.type) {
-      case 'all-completed':
-        return task.is_completed;
-
-      case 'completed-last-week': {
-        if (!task.is_completed || !task.completed_at) {
-          return false;
-        }
-        const completedDate = new Date(task.completed_at);
-        return completedDate >= oneWeekAgo && completedDate <= today;
-      }
-
-      default:
-        return true;
+    // First, filter by completion status
+    if (completionFilter.status === 'incomplete') {
+      if (task.is_completed) return false;
+    } else if (completionFilter.status === 'completed') {
+      if (!task.is_completed) return false;
     }
+    // 'all' shows both completed and incomplete, so no filter needed here
+
+    // Then, apply timeframe filter if task is completed and timeframe is specified
+    if (task.is_completed && completionFilter.timeframe && completionFilter.timeframe !== 'all-time') {
+      if (!task.completed_at) return false;
+
+      const completedDate = new Date(task.completed_at);
+
+      if (completionFilter.timeframe === 'last-week') {
+        return completedDate >= oneWeekAgo && completedDate <= today;
+      } else if (completionFilter.timeframe === 'last-month') {
+        return completedDate >= oneMonthAgo && completedDate <= today;
+      }
+    }
+
+    return true;
   });
 }
 
@@ -259,26 +268,41 @@ export function getAvailableFilters(tasks: Task[], profiles: { id: string; first
     count
   }));
 
-  // Completion filter options with counts (reuse 'today' from above)
+  // Completion filter options with counts
   const oneWeekAgo = subDays(today, 7);
+  const oneMonthAgo = subDays(today, 30);
 
-  const allCompletedCount = tasks.filter(t => t.is_completed).length;
+  const incompleteCount = tasks.filter(t => !t.is_completed).length;
+  const completedCount = tasks.filter(t => t.is_completed).length;
+  const allTasksCount = tasks.length;
+
   const completedLastWeekCount = tasks.filter(t => {
     if (!t.is_completed || !t.completed_at) return false;
     const completedDate = new Date(t.completed_at);
     return completedDate >= oneWeekAgo && completedDate <= today;
   }).length;
 
+  const completedLastMonthCount = tasks.filter(t => {
+    if (!t.is_completed || !t.completed_at) return false;
+    const completedDate = new Date(t.completed_at);
+    return completedDate >= oneMonthAgo && completedDate <= today;
+  }).length;
+
   const completionOptions: FilterOption[] = [
-    { key: 'all-completed', label: 'All Completed', type: 'completion' as const, value: { type: 'all-completed' } as CompletionFilter, count: allCompletedCount },
-    { key: 'completed-last-week', label: 'Completed Last Week', type: 'completion' as const, value: { type: 'completed-last-week' } as CompletionFilter, count: completedLastWeekCount },
-  ].filter(option => option.count > 0);
+    { key: 'incomplete', label: 'Incomplete only', type: 'completion' as const, value: { status: 'incomplete' } as CompletionFilter, count: incompleteCount },
+    { key: 'completed', label: 'Completed only', type: 'completion' as const, value: { status: 'completed', timeframe: 'all-time' } as CompletionFilter, count: completedCount },
+    { key: 'all', label: 'All tasks', type: 'completion' as const, value: { status: 'all', timeframe: 'all-time' } as CompletionFilter, count: allTasksCount },
+  ].filter(option => (option.count ?? 0) > 0);
+
+  // Timeframe sub-options - will be shown based on the selected completion status
+  const timeframeOptions: FilterOption[] = [];
 
   return {
     assignee: assigneeOptions,
     dueDate: dueDateOptions,
     project: projectOptions,
-    completion: completionOptions
+    completion: completionOptions,
+    completionTimeframe: timeframeOptions
   };
 }
 
