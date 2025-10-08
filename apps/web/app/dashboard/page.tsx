@@ -1,41 +1,54 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSupabase } from '@/lib/providers';
 import { DashboardClient } from './components/DashboardClient';
+import type { User } from '@supabase/supabase-js';
 
-export default async function Dashboard() {
-  const cookieStore = await cookies();
+export default function Dashboard() {
+  const supabase = useSupabase();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch (error) {
-            console.error('Cookie set error:', error);
-          }
-        },
-      },
-    }
-  );
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      console.log('📱 Dashboard: User check result:', {
+        hasUser: !!currentUser,
+        userId: currentUser?.id,
+        email: currentUser?.email
+      });
 
-  console.log('📱 Dashboard: User check result:', { hasUser: !!user, userId: user?.id, email: user?.email });
+      if (!currentUser) {
+        console.log('🔴 No user found, redirecting to login');
+        router.push('/login');
+        return;
+      }
+
+      setUser(currentUser);
+      setLoading(false);
+    };
+
+    checkUser();
+  }, [supabase, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
-    console.log('🔴 No user found, redirecting to login');
-    redirect('/login');
+    return null;
   }
 
   return <DashboardClient user={user} />;

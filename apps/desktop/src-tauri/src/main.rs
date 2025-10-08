@@ -16,6 +16,7 @@ fn main() {
     let system_tray = SystemTray::new().with_menu(tray_menu);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_oauth::init())
         .system_tray(system_tray)
         .on_system_tray_event(|app, event| match event {
             tauri::SystemTrayEvent::LeftClick {

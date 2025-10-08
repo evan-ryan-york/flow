@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "mkdir -p ../web/out && tauri build",
     "preview": "tauri build --debug"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.0"
+    "@tauri-apps/api": "^1.6.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.0"

@@ -1,20 +1,44 @@
-import { createClient } from '@/lib/supabase/server';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSupabase } from '@/lib/providers';
 import { ThreeColumnLayout } from '@/components/ThreeColumnLayout';
 
-export default async function AppPage() {
-  const supabase = await createClient();
+export default function AppPage() {
+  const supabase = useSupabase();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    return null; // This will be caught by the layout redirect
+      if (user) {
+        setUserId(user.id);
+      }
+      setLoading(false);
+    };
+
+    getUser();
+  }, [supabase]);
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return null; // Layout will handle redirect
   }
 
   return (
     <main className="h-screen overflow-hidden">
-      <ThreeColumnLayout userId={user.id} />
+      <ThreeColumnLayout userId={userId} />
     </main>
   );
 }
