@@ -152,7 +152,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   return (
     <div className="flex h-screen bg-white">
       {/* Column 1: Projects/Navigation Panel - Keep Fixed */}
-      <div className="w-64 border-r border-gray-200 flex-shrink-0">
+      <div className="w-48 border-r border-gray-200 flex-shrink-0">
         <ProjectsPanel
           userId={userId}
           selectedProjectIds={selectedProjectIds}
