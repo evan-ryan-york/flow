@@ -1,0 +1,12 @@
+# Tauri + Rust Build Artifacts
+src-tauri/target/
+src-tauri/WixTools/
+
+# Tauri Generated Files
+src-tauri/gen/
+
+# macOS
+.DS_Store
+
+# Bundle outputs
+src-tauri/target/release/bundle/
