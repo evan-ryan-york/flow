@@ -3,7 +3,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, useEffect } from 'react';
-import { getSupabaseClient } from '@perfect-task-app/data';
+import { initializeSupabase, getSupabaseClient } from '@perfect-task-app/data';
+import { env } from './env';
+
+// Initialize Supabase on module load
+initializeSupabase(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 // Re-export useSupabase for components that need direct Supabase access (auth, etc.)
 // This ensures everyone uses the same client instance

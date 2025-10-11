@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@perfect-task-app/data';
+import { getSupabaseClient } from '@perfect-task-app/data';
 
 interface AuthContextType {
   user: User | null;
@@ -20,11 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      console.error('❌ Supabase client not available');
-      setLoading(false);
-      return;
-    }
+    const supabase = getSupabaseClient();
 
     console.log('🔐 Initializing auth state...');
 
@@ -67,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    if (!supabase) throw new Error('Supabase client not available');
+    const supabase = getSupabaseClient();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -80,9 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    if (!supabase) throw new Error('Supabase client not available');
+    const supabase = getSupabaseClient();
 
-    const { error } = await supabase.auth.signOut();
+    const { error} = await supabase.auth.signOut();
     if (error) throw error;
   };
 
