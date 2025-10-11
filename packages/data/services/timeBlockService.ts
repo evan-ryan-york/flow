@@ -1,6 +1,4 @@
 import { getSupabaseClient } from '../supabase';
-
-const supabase = getSupabaseClient();
 import { TimeBlockSchema, TaskSchema, type TimeBlock, type Task } from '@perfect-task-app/models';
 
 export interface CreateTimeBlockData {
@@ -26,6 +24,7 @@ export interface DateRange {
 
 export const getTimeBlocksForUser = async (userId: string, dateRange: DateRange): Promise<TimeBlock[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('time_blocks')
       .select('*')
@@ -49,6 +48,7 @@ export const getTimeBlocksForUser = async (userId: string, dateRange: DateRange)
 
 export const createTimeBlock = async (blockData: CreateTimeBlockData): Promise<TimeBlock> => {
   try {
+    const supabase = getSupabaseClient();
     const { data: user } = await supabase.auth.getUser();
 
     if (!user.user) {
@@ -79,6 +79,7 @@ export const createTimeBlock = async (blockData: CreateTimeBlockData): Promise<T
 
 export const updateTimeBlock = async (blockId: string, updates: UpdateTimeBlockData): Promise<TimeBlock> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('time_blocks')
       .update({
@@ -104,6 +105,7 @@ export const updateTimeBlock = async (blockId: string, updates: UpdateTimeBlockD
 
 export const deleteTimeBlock = async (blockId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('time_blocks')
       .delete()
@@ -122,6 +124,7 @@ export const deleteTimeBlock = async (blockId: string): Promise<void> => {
 
 export const linkTaskToTimeBlock = async (blockId: string, taskId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { data: user } = await supabase.auth.getUser();
 
     if (!user.user) {
@@ -147,6 +150,7 @@ export const linkTaskToTimeBlock = async (blockId: string, taskId: string): Prom
 
 export const unlinkTaskFromTimeBlock = async (blockId: string, taskId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('time_block_tasks')
       .delete()
@@ -164,6 +168,7 @@ export const unlinkTaskFromTimeBlock = async (blockId: string, taskId: string): 
 
 export const getTasksForTimeBlock = async (blockId: string): Promise<Task[]> => {
   try {
+    const supabase = getSupabaseClient();
     // Join time_block_tasks with tasks to get the full task data
     const { data, error } = await supabase
       .from('time_block_tasks')

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@perfect-task-app/data';
+import { useSupabase } from './providers';
 
 interface AuthContextType {
   user: User | null;
@@ -18,9 +18,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = useSupabase();
 
   useEffect(() => {
-    const supabase = getSupabaseClient();
 
     console.log('🔐 Initializing auth state...');
 
@@ -60,10 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const signInWithGoogle = async () => {
-    const supabase = getSupabaseClient();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -76,9 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const supabase = getSupabaseClient();
-
-    const { error} = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 

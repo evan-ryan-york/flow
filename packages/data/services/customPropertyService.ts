@@ -1,6 +1,4 @@
 import { getSupabaseClient } from "../supabase";
-
-const supabase = getSupabaseClient();
 import {
   CustomPropertyDefinitionSchema,
   CustomPropertyDefinitionWithProjectsSchema,
@@ -50,6 +48,7 @@ export interface SetPropertyValueData {
 // Get all custom property definitions for a user across all their projects
 export const getAllDefinitionsForUser = async (userId: string): Promise<CustomPropertyDefinitionWithProjects[]> => {
   try {
+    const supabase = getSupabaseClient();
     // Get all definitions created by this user with their project assignments
     const { data, error } = await supabase
       .from("custom_property_definitions")
@@ -111,6 +110,7 @@ export const getAllDefinitionsForUser = async (userId: string): Promise<CustomPr
 // Legacy version - maintains backward compatibility until migration is applied
 export const getDefinitionsForProject = async (projectId: string): Promise<CustomPropertyDefinition[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("custom_property_definitions")
       .select("*")
@@ -135,6 +135,7 @@ export const getDefinitionsForProjectWithProjects = async (
   projectId: string,
 ): Promise<CustomPropertyDefinitionWithProjects[]> => {
   try {
+    const supabase = getSupabaseClient();
     // Join with assignments table to get definitions for the project
     const { data, error } = await supabase
       .from("custom_property_definitions")
@@ -177,6 +178,7 @@ export const getDefinitionsForProjectWithProjects = async (
 // Get all projects assigned to a custom property definition
 export const getProjectsForDefinition = async (definitionId: string): Promise<CustomPropertyProjectAssignment[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("custom_property_project_assignments")
       .select("*")
@@ -198,6 +200,7 @@ export const createDefinition = async (
   definitionData: CreateDefinitionData,
 ): Promise<CustomPropertyDefinitionWithProjects> => {
   try {
+    const supabase = getSupabaseClient();
     // First create the definition (without project_ids in the insert)
     const { project_ids, created_by: _created_by, ...definitionWithoutCreatedBy } = definitionData;
     const { data, error } = await supabase
@@ -250,6 +253,7 @@ export const createDefinition = async (
 // Update project assignments for a custom property definition
 export const updateDefinitionProjects = async (definitionId: string, projectIds: string[]): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     // First, delete existing assignments
     const { error: deleteError } = await supabase
       .from("custom_property_project_assignments")
@@ -284,6 +288,7 @@ export const updateDefinition = async (
   updates: UpdateDefinitionData & { project_ids?: string[] },
 ): Promise<CustomPropertyDefinitionWithProjects> => {
   try {
+    const supabase = getSupabaseClient();
     // Separate project_ids from other updates
     const { project_ids, ...definitionUpdates } = updates;
 
@@ -333,6 +338,7 @@ export const updateDefinition = async (
 
 export const deleteDefinition = async (definitionId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.from("custom_property_definitions").delete().eq("id", definitionId);
 
     if (error) {
@@ -348,6 +354,7 @@ export const deleteDefinition = async (definitionId: string): Promise<void> => {
 
 export const getValuesForTask = async (taskId: string): Promise<CustomPropertyValue[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.from("custom_property_values").select("*").eq("task_id", taskId);
 
     if (error) {
@@ -365,6 +372,7 @@ export const getValuesForTask = async (taskId: string): Promise<CustomPropertyVa
 
 export const getValuesForTasks = async (taskIds: string[]): Promise<CustomPropertyValue[]> => {
   try {
+    const supabase = getSupabaseClient();
     if (taskIds.length === 0) {
       return [];
     }
@@ -389,6 +397,7 @@ export const getValuesForTasks = async (taskIds: string[]): Promise<CustomProper
 
 export const setPropertyValue = async (data: SetPropertyValueData): Promise<CustomPropertyValue> => {
   try {
+    const supabase = getSupabaseClient();
     console.log("Setting property value:", data);
     // This performs an "upsert" - insert if doesn't exist, update if it does
     const timestamp = new Date().toISOString();
@@ -429,6 +438,7 @@ export const setPropertyValue = async (data: SetPropertyValueData): Promise<Cust
 
 export const deletePropertyValue = async (taskId: string, definitionId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from("custom_property_values")
       .delete()

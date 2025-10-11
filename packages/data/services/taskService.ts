@@ -1,6 +1,4 @@
 import { getSupabaseClient } from '../supabase';
-
-const supabase = getSupabaseClient();
 import { TaskSchema, type Task } from '@perfect-task-app/models';
 import { updateLastUsedProject } from './profileService';
 
@@ -25,6 +23,7 @@ export interface UpdateTaskData {
 
 export const getTasksForProject = async (projectId: string): Promise<Task[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
@@ -46,6 +45,7 @@ export const getTasksForProject = async (projectId: string): Promise<Task[]> => 
 
 export const createTask = async (taskData: CreateTaskData): Promise<Task> => {
   try {
+    const supabase = getSupabaseClient();
     let userId = taskData.created_by;
 
     // If no user ID provided, try to get from auth
@@ -94,6 +94,7 @@ export const createTask = async (taskData: CreateTaskData): Promise<Task> => {
 
 export const updateTask = async (taskId: string, updates: UpdateTaskData): Promise<Task> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('tasks')
       .update({
@@ -119,6 +120,7 @@ export const updateTask = async (taskId: string, updates: UpdateTaskData): Promi
 
 export const deleteTask = async (taskId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('tasks')
       .delete()
@@ -135,6 +137,7 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
 export const getTasksForUser = async (userId: string): Promise<Task[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
@@ -156,6 +159,7 @@ export const getTasksForUser = async (userId: string): Promise<Task[]> => {
 
 export const getTasksForProjects = async (userId: string, projectIds: string[]): Promise<Task[]> => {
   try {
+    const supabase = getSupabaseClient();
     if (projectIds.length === 0) {
       return [];
     }
@@ -182,6 +186,7 @@ export const getTasksForProjects = async (userId: string, projectIds: string[]):
 
 export const getTaskById = async (taskId: string): Promise<Task | null> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('tasks')
       .select('*')

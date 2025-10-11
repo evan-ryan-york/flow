@@ -1,6 +1,4 @@
 import { getSupabaseClient } from '../supabase';
-
-const supabase = getSupabaseClient();
 import { ViewSchema, type View } from '@perfect-task-app/models';
 
 export interface CreateViewData {
@@ -29,6 +27,7 @@ export interface UpdateViewData {
 
 export const getViewsForUser = async (userId: string): Promise<View[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('views')
       .select('*')
@@ -57,6 +56,7 @@ export const getViewsForUser = async (userId: string): Promise<View[]> => {
 
 export const createView = async (viewData: CreateViewData): Promise<View> => {
   try {
+    const supabase = getSupabaseClient();
     const { data: user } = await supabase.auth.getUser();
 
     if (!user.user) {
@@ -94,6 +94,7 @@ export const createView = async (viewData: CreateViewData): Promise<View> => {
 
 export const updateView = async (viewId: string, updates: UpdateViewData): Promise<View> => {
   try {
+    const supabase = getSupabaseClient();
     // Prepare the update object
     const updateData: { name?: string; type?: 'list' | 'kanban'; config?: string; is_active?: boolean; updated_at: string } = {
       name: updates.name,
@@ -134,6 +135,7 @@ export const updateView = async (viewId: string, updates: UpdateViewData): Promi
 
 export const deleteView = async (viewId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('views')
       .delete()

@@ -2,8 +2,6 @@ import { z } from 'zod';
 import { getSupabaseClient } from '../supabase';
 import { ProfileSchema, type Profile } from '@perfect-task-app/models';
 
-const supabase = getSupabaseClient();
-
 export interface ProfileUpdates {
   first_name?: string | null;
   last_name?: string | null;
@@ -14,6 +12,7 @@ export interface ProfileUpdates {
 
 export const getProfile = async (userId: string): Promise<Profile> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -40,6 +39,7 @@ export const getProfile = async (userId: string): Promise<Profile> => {
 
 export const updateProfile = async (updates: ProfileUpdates): Promise<Profile> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -70,6 +70,7 @@ export const updateProfile = async (updates: ProfileUpdates): Promise<Profile> =
 
 export const getCurrentProfile = async (): Promise<Profile> => {
   try {
+    const supabase = getSupabaseClient();
     // Get the current user first
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
@@ -107,6 +108,7 @@ export const getCurrentProfile = async (): Promise<Profile> => {
 
 export const updateLastUsedProject = async (projectId: string, userId?: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     let currentUserId = userId;
 
     // If no user ID provided, try to get from auth
@@ -143,6 +145,7 @@ export const updateLastUsedProject = async (projectId: string, userId?: string):
 
 export const getLastUsedProject = async (userId?: string): Promise<string | null> => {
   try {
+    const supabase = getSupabaseClient();
     let currentUserId = userId;
 
     // If no user ID provided, try to get from auth
@@ -179,6 +182,7 @@ export const getLastUsedProject = async (userId?: string): Promise<string | null
 
 export const getAllProfiles = async (): Promise<Profile[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -202,6 +206,7 @@ export const getAllProfiles = async (): Promise<Profile[]> => {
 
 export const getVisibleProjectIds = async (userId: string): Promise<string[]> => {
   try {
+    const supabase = getSupabaseClient();
     // 1. Supabase API call
     const { data, error } = await supabase
       .from('profiles')
@@ -231,6 +236,7 @@ export const getVisibleProjectIds = async (userId: string): Promise<string[]> =>
 
 export const updateVisibleProjectIds = async (projectIds: string[], userId?: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     let currentUserId = userId;
 
     // If no user ID provided, try to get from auth

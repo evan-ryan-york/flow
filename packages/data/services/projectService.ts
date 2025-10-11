@@ -1,8 +1,6 @@
 import { getSupabaseClient } from '../supabase';
 import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from '@perfect-task-app/models';
 
-const supabase = getSupabaseClient();
-
 export interface CreateProjectData {
   name: string;
 }
@@ -24,6 +22,7 @@ export interface ProjectWithRole extends Project {
 
 export const createProject = async (data: CreateProjectData & { ownerId: string }): Promise<Project> => {
   try {
+    const supabase = getSupabaseClient();
     const { data: newProject, error } = await supabase
       .from('projects')
       .insert({
@@ -54,6 +53,7 @@ export const createProject = async (data: CreateProjectData & { ownerId: string 
 
 export const getProjectsForUser = async (userId: string): Promise<ProjectWithRole[]> => {
   try {
+    const supabase = getSupabaseClient();
     // Get projects where user is owner OR member
     // We need to do this in two separate queries and merge the results
 
@@ -127,6 +127,7 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
 
 export const getProjectById = async (projectId: string): Promise<Project> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -153,6 +154,7 @@ export const getProjectById = async (projectId: string): Promise<Project> => {
 
 export const updateProject = async (projectId: string, updates: UpdateProjectData): Promise<Project> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('projects')
       .update({
@@ -183,6 +185,7 @@ export const updateProject = async (projectId: string, updates: UpdateProjectDat
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     // First check if this is a general project
     const { data: project, error: fetchError } = await supabase
       .from('projects')
@@ -214,6 +217,7 @@ export const deleteProject = async (projectId: string): Promise<void> => {
 
 export const getProjectMembers = async (projectId: string): Promise<ProjectUser[]> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('project_users')
       .select('*')
@@ -243,6 +247,7 @@ export const addProjectMember = async (
   role: 'admin' | 'member' | 'viewer' = 'member'
 ): Promise<ProjectUser> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('project_users')
       .insert({
@@ -273,6 +278,7 @@ export const addProjectMember = async (
 
 export const removeProjectMember = async (projectId: string, userId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('project_users')
       .delete()
@@ -294,6 +300,7 @@ export const updateMemberRole = async (
   newRole: 'admin' | 'member' | 'viewer'
 ): Promise<ProjectUser> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('project_users')
       .update({ role: newRole })
@@ -325,6 +332,7 @@ export const updateMemberRole = async (
  */
 export const reassignProjectTasks = async (fromProjectId: string, toProjectId: string): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('tasks')
       .update({ project_id: toProjectId })
@@ -344,6 +352,7 @@ export const reassignProjectTasks = async (fromProjectId: string, toProjectId: s
  */
 export const getGeneralProject = async (userId: string): Promise<Project | null> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -371,6 +380,7 @@ export const getGeneralProject = async (userId: string): Promise<Project | null>
  */
 export const searchProjects = async (userId: string, query: string): Promise<Project[]> => {
   try {
+    const supabase = getSupabaseClient();
     if (!query || query.trim() === '') {
       return [];
     }

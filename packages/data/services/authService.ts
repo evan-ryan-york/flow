@@ -1,8 +1,6 @@
 import { getSupabaseClient } from '../supabase';
 import type { User } from '@supabase/supabase-js';
 
-const supabase = getSupabaseClient();
-
 export interface SignUpCredentials {
   email: string;
   password: string;
@@ -15,6 +13,7 @@ export interface SignInCredentials {
 
 export const signUp = async (credentials: SignUpCredentials): Promise<User> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
       email: credentials.email,
       password: credentials.password,
@@ -37,6 +36,7 @@ export const signUp = async (credentials: SignUpCredentials): Promise<User> => {
 
 export const signIn = async (credentials: SignInCredentials): Promise<User> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signInWithPassword({
       email: credentials.email,
       password: credentials.password,
@@ -59,6 +59,7 @@ export const signIn = async (credentials: SignInCredentials): Promise<User> => {
 
 export const signOut = async (): Promise<void> => {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -72,6 +73,7 @@ export const signOut = async (): Promise<void> => {
 
 export const getSession = async () => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.getSession();
 
     console.log('AuthService.getSession debug:', {
@@ -94,6 +96,7 @@ export const getSession = async () => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.getUser();
 
     if (error) {
@@ -109,6 +112,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 export const signInWithGoogleIdToken = async (idToken: string): Promise<User> => {
   try {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
       token: idToken,
