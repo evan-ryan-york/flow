@@ -3,16 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
 
 // Get Supabase config from environment variables
-// Support both browser and server environments
-const supabaseUrl =
-  (typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL : process.env.SUPABASE_URL) ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  '';
-
-const supabaseAnonKey =
-  (typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : process.env.SUPABASE_ANON_KEY) ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
+// In Next.js, NEXT_PUBLIC_* vars are embedded at build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase environment variables. Please check your .env.local file.');
