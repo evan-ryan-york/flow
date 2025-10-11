@@ -1,29 +1,25 @@
 // Environment variables for client-side use
 // These must be prefixed with NEXT_PUBLIC_ to be available in the browser
 
-// In Next.js, NEXT_PUBLIC_ variables are embedded at BUILD time
-// They should be available via process.env during build and runtime
+// CRITICAL: Next.js replaces process.env.NEXT_PUBLIC_* at BUILD time
+// If these are empty strings in production, the build didn't have the env vars
 const NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Only validate in browser (not during build)
+// Always log in browser to debug what actually got embedded
 if (typeof window !== 'undefined') {
-  if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error('❌ Missing Supabase environment variables!', {
-      hasUrl: !!NEXT_PUBLIC_SUPABASE_URL,
-      hasKey: !!NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      url: NEXT_PUBLIC_SUPABASE_URL,
-    });
-    throw new Error('Missing required Supabase environment variables');
-  }
+  console.log('🔍 Client-side env check:', {
+    url: NEXT_PUBLIC_SUPABASE_URL,
+    urlLength: NEXT_PUBLIC_SUPABASE_URL.length,
+    hasKey: !!NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    keyLength: NEXT_PUBLIC_SUPABASE_ANON_KEY.length,
+  });
 
-  // Debug logging (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('✅ Environment variables loaded:', {
-      hasUrl: !!NEXT_PUBLIC_SUPABASE_URL,
-      hasKey: !!NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      urlValue: NEXT_PUBLIC_SUPABASE_URL,
-    });
+  if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('❌ CRITICAL: Supabase env vars are EMPTY in client bundle!');
+    console.error('This means Next.js did not embed them during build.');
+    console.error('Check Vercel build logs for environment variable availability.');
+    throw new Error('Supabase environment variables not embedded in build');
   }
 }
 
