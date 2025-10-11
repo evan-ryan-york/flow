@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 
 // Debug: Log environment variables during build
-console.log('🔍 Next.js Config - Environment Variables Check:');
+console.log('🔍 Next.js Config - Environment Variables Check (Fresh Build):');
 console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing');
 console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
 console.log('All NEXT_PUBLIC_ vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')));
+console.log('Build timestamp:', new Date().toISOString());
 
 const nextConfig = {
   experimental: {
