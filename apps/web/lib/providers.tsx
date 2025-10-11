@@ -6,12 +6,21 @@ import { useState, useEffect } from 'react';
 import { initializeSupabase, getSupabaseClient } from '@perfect-task-app/data';
 import { env } from './env';
 
-// Initialize Supabase on module load
-initializeSupabase(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+// Lazy initialization flag
+let isInitialized = false;
+
+// Initialize Supabase lazily (only in browser)
+function ensureSupabaseInitialized() {
+  if (!isInitialized && typeof window !== 'undefined') {
+    initializeSupabase(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    isInitialized = true;
+  }
+}
 
 // Re-export useSupabase for components that need direct Supabase access (auth, etc.)
 // This ensures everyone uses the same client instance
 export function useSupabase() {
+  ensureSupabaseInitialized();
   return getSupabaseClient();
 }
 
@@ -47,11 +56,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
   }));
 
-  // Use the shared Supabase client from the data package
-  const supabase = getSupabaseClient();
-
   // Handle auth state changes and invalidate queries
   useEffect(() => {
+    // Only set up auth listener in browser
+    if (typeof window === 'undefined') return;
+
+    // Ensure Supabase is initialized before accessing it
+    ensureSupabaseInitialized();
+    const supabase = getSupabaseClient();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, _session) => {
@@ -62,7 +75,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, queryClient]);
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

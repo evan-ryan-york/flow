@@ -8,6 +8,11 @@ let supabaseInstance: SupabaseClient<any, 'public', any> | null = null;
 
 // Initialize Supabase with config from the app
 export function initializeSupabase(url: string, anonKey: string) {
+  // Validate inputs
+  if (!url || !anonKey || url === 'undefined' || anonKey === 'undefined') {
+    throw new Error(`Invalid Supabase configuration: url=${url}, anonKey=${anonKey ? '[REDACTED]' : 'missing'}`);
+  }
+
   if (!supabaseInstance) {
     if (typeof window !== 'undefined') {
       supabaseInstance = createBrowserClient(url, anonKey);
@@ -25,6 +30,11 @@ export function initializeSupabase(url: string, anonKey: string) {
 
 // Helper function to get the current Supabase client
 export function getSupabaseClient() {
+  // During SSR/build, return a dummy client that will be properly initialized in browser
+  if (!supabaseInstance && typeof window === 'undefined') {
+    throw new Error('Supabase client accessed during SSR. This should only be called in client components.');
+  }
+
   if (!supabaseInstance) {
     throw new Error('Supabase client not initialized. Call initializeSupabase() first.');
   }
