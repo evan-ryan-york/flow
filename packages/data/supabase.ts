@@ -1,6 +1,5 @@
 // packages/data/supabase.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createBrowserClient } from '@supabase/ssr';
 
 // Supabase client instance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,30 +13,16 @@ export function initializeSupabase(url: string, anonKey: string) {
   }
 
   if (!supabaseInstance) {
-    if (typeof window !== 'undefined') {
-      // For browser, use createBrowserClient with proper cookie handling
-      supabaseInstance = createBrowserClient(url, anonKey, {
-        cookies: {
-          get(name: string) {
-            const value = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop() || '';
-            return value;
-          },
-          set(name: string, value: string, options: any) {
-            document.cookie = `${name}=${value}; path=/; ${options.maxAge ? `max-age=${options.maxAge};` : ''} SameSite=Lax`;
-          },
-          remove(name: string) {
-            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-          },
-        },
-      });
-    } else {
-      supabaseInstance = createClient(url, anonKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: false, // Server-side doesn't persist
-        },
-      });
-    }
+    // Use standard createClient for both browser and server
+    // This handles auth persistence automatically via localStorage in browser
+    supabaseInstance = createClient(url, anonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: typeof window !== 'undefined', // Only persist in browser
+        detectSessionInUrl: false, // Don't auto-detect - we handle manually in callback page
+        flowType: 'pkce', // Use PKCE flow for OAuth
+      },
+    });
   }
   return supabaseInstance;
 }
