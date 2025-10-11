@@ -277,13 +277,14 @@ export function getAvailableFilters(tasks: Task[], profiles: { id: string; first
   const completedCount = tasks.filter(t => t.is_completed).length;
   const allTasksCount = tasks.length;
 
-  const completedLastWeekCount = tasks.filter(t => {
+  // Timeframe counts - keeping for potential future use
+  const _completedLastWeekCount = tasks.filter(t => {
     if (!t.is_completed || !t.completed_at) return false;
     const completedDate = new Date(t.completed_at);
     return completedDate >= oneWeekAgo && completedDate <= today;
   }).length;
 
-  const completedLastMonthCount = tasks.filter(t => {
+  const _completedLastMonthCount = tasks.filter(t => {
     if (!t.is_completed || !t.completed_at) return false;
     const completedDate = new Date(t.completed_at);
     return completedDate >= oneMonthAgo && completedDate <= today;

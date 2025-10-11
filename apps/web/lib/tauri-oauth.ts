@@ -7,7 +7,7 @@
  * Based on: https://github.com/JeaneC/tauri-oauth-supabase
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Dynamically import Tauri modules only when in Tauri context
 let tauriOAuth: typeof import('@fabianlars/tauri-plugin-oauth') | null = null;

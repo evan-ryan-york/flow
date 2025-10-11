@@ -85,7 +85,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
 
   // Fetch tasks from effective project IDs
-  const { data: serverTasks = [], isLoading, error, isFetching } = useProjectsTasks(userId, effectiveProjectIds);
+  const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
 
   // Use isFetching instead of isLoading to prevent showing loader when we already have data
   // isLoading is true when there's no cached data, isFetching is true during any fetch
