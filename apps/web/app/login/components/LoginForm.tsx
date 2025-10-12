@@ -112,19 +112,36 @@ export function LoginForm() {
 
       // Web browser OAuth flow
       console.log('🌐 Using web OAuth flow...');
+      console.log('Origin:', window.location.origin);
+      console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
+
+      // Log localStorage state BEFORE OAuth initiation
+      console.log('📦 LocalStorage BEFORE OAuth:', {
+        keys: Object.keys(localStorage),
+        supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
+      });
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: false, // Explicitly set this
         },
       });
 
       if (error) {
+        console.error('❌ OAuth initiation error:', error);
         throw error;
       }
 
+      // Log localStorage state AFTER OAuth initiation (before redirect)
+      console.log('📦 LocalStorage AFTER OAuth:', {
+        keys: Object.keys(localStorage),
+        supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
+      });
+
       // Browser will automatically redirect to Google
-      console.log('OAuth initiated:', data);
+      console.log('✅ OAuth initiated:', data);
     } catch (error: unknown) {
       console.error('❌ Google sign-in error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in with Google');
