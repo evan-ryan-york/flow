@@ -64,63 +64,14 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Check for OAuth code in query params
+        // With detectSessionInUrl: true, Supabase automatically handles the code exchange
+        // We just need to wait a moment for it to process, then check for session
         const code = searchParams.get('code');
         if (code) {
-          console.log('🔑 Exchanging OAuth code for session...');
-          console.log('Code value:', code);
-          console.log('Code type:', typeof code);
-          console.log('Code length:', code.length);
+          console.log('🔑 OAuth code detected, waiting for Supabase to process...');
 
-          // Check for PKCE code verifier in localStorage
-          const storageKeys = Object.keys(localStorage);
-          console.log('LocalStorage keys:', storageKeys);
-          const supabaseKeys = storageKeys.filter(k => k.includes('supabase') || k.includes('pkce') || k.includes('code'));
-          console.log('Supabase-related keys:', supabaseKeys);
-          supabaseKeys.forEach(key => {
-            console.log(`${key}:`, localStorage.getItem(key)?.substring(0, 100));
-          });
-
-          try {
-            console.log('🔄 About to call exchangeCodeForSession...');
-            console.log('Code to exchange:', code);
-            console.log('Code type:', typeof code);
-            console.log('Code length:', code.length);
-
-            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-            if (exchangeError) {
-              console.error('❌ Code exchange error:', {
-                message: exchangeError.message,
-                name: exchangeError.name,
-                status: exchangeError.status,
-                stack: exchangeError.stack,
-                fullError: JSON.stringify(exchangeError, null, 2)
-              });
-              router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(exchangeError.message)}`);
-              return;
-            }
-
-            console.log('✅ OAuth code exchange successful:', data);
-
-            // Don't close window - just redirect
-            router.push('/dashboard');
-            return;
-          } catch (err) {
-            console.error('❌ Exchange error (caught):', {
-              error: err,
-              message: err instanceof Error ? err.message : 'Unknown',
-              stack: err instanceof Error ? err.stack : 'No stack',
-              type: typeof err,
-              stringified: JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
-            });
-
-            // Try to get more details from the error
-            if (err instanceof Error) {
-              console.error('Error name:', err.name);
-              console.error('Error cause:', (err as any).cause);
-            }
-          }
+          // Give Supabase a moment to automatically exchange the code
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         // Fallback: check if we already have a session
