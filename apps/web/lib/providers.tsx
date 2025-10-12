@@ -19,6 +19,7 @@ function ensureSupabaseInitialized() {
 
 // Re-export useSupabase for components that need direct Supabase access (auth, etc.)
 // This ensures everyone uses the same client instance
+// IMPORTANT: Don't call this during component render - only in useEffect or event handlers
 export function useSupabase() {
   ensureSupabaseInitialized();
   return getSupabaseClient();
