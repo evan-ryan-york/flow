@@ -10,10 +10,16 @@ export const dynamic = 'force-dynamic';
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = useSupabase();
 
   useEffect(() => {
+    // Only run in browser, not during SSR
+    if (typeof window === 'undefined') return;
+
     const handleCallback = async () => {
+      // Import supabase hook inside useEffect to avoid SSR execution
+      const { useSupabase } = await import('@/lib/providers');
+      const { getSupabaseClient } = await import('@perfect-task-app/data');
+      const supabase = getSupabaseClient();
       try {
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
@@ -65,8 +71,6 @@ function AuthCallbackContent() {
           console.log('Code value:', code);
           console.log('Code type:', typeof code);
           console.log('Code length:', code.length);
-          console.log('Supabase client URL:', supabase.supabaseUrl);
-          console.log('Supabase client key (first 20 chars):', supabase.supabaseKey.substring(0, 20));
 
           try {
             const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -110,7 +114,7 @@ function AuthCallbackContent() {
     };
 
     handleCallback();
-  }, [searchParams, supabase, router]);
+  }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
