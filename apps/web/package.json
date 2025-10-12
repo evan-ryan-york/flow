@@ -21,7 +21,6 @@
     "@perfect-task-app/data": "workspace:*",
     "@perfect-task-app/models": "workspace:*",
     "@perfect-task-app/ui": "workspace:*",
-    "@supabase/ssr": "^0.5.1",
     "@tanstack/react-query": "^5.89.0",
     "@tauri-apps/api": "^1.6.0",
     "date-fns": "^3.6.0",

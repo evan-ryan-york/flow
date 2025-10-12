@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import {
   type CalendarSubscription,
 } from '@perfect-task-app/models';
@@ -42,7 +42,7 @@ const getSupabaseFunctionsUrl = () => {
 
 // Helper to get current user session token
 const getSessionToken = async () => {
-  if (!supabase) throw new Error('Supabase client not initialized');
+  const supabase = getSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('No active session');
   return session.access_token;
@@ -458,7 +458,7 @@ export function useCalendarEventsRealtime(startDate: Date, endDate: Date) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!supabase) return;
+    const supabase = getSupabaseClient();
 
     const subscription = supabase
       .channel('calendar_events_realtime')

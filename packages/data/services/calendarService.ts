@@ -1,4 +1,4 @@
-import { supabase as supabaseClient } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import {
   GoogleCalendarConnectionSchema,
   CalendarSubscriptionSchema,
@@ -8,12 +8,6 @@ import {
   type CalendarEvent,
 } from '@perfect-task-app/models';
 
-// Ensure supabase client is initialized
-if (!supabaseClient) {
-  throw new Error('Supabase client not initialized');
-}
-const supabase = supabaseClient;
-
 // ---------------------------------
 // Calendar Connections
 // ---------------------------------
@@ -22,6 +16,7 @@ const supabase = supabaseClient;
  * Get all calendar connections for the current user
  */
 export async function getCalendarConnections(): Promise<GoogleCalendarConnection[]> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('google_calendar_connections')
     .select('*')
@@ -38,6 +33,7 @@ export async function getCalendarConnections(): Promise<GoogleCalendarConnection
 export async function getCalendarConnectionById(
   connectionId: string
 ): Promise<GoogleCalendarConnection | null> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('google_calendar_connections')
     .select('*')
@@ -56,6 +52,7 @@ export async function getCalendarConnectionById(
  * Delete a calendar connection (cascades to subscriptions and events)
  */
 export async function deleteCalendarConnection(connectionId: string): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('google_calendar_connections')
     .delete()
@@ -71,6 +68,7 @@ export async function updateCalendarConnectionLabel(
   connectionId: string,
   label: string
 ): Promise<GoogleCalendarConnection> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('google_calendar_connections')
     .update({ label, updated_at: new Date().toISOString() })
@@ -93,6 +91,7 @@ export async function updateCalendarConnectionLabel(
 export async function getCalendarSubscriptions(
   connectionId?: string
 ): Promise<CalendarSubscription[]> {
+  const supabase = getSupabaseClient();
   let query = supabase
     .from('calendar_subscriptions')
     .select('*')
@@ -115,6 +114,7 @@ export async function getCalendarSubscriptions(
 export async function getCalendarSubscriptionById(
   subscriptionId: string
 ): Promise<CalendarSubscription | null> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('calendar_subscriptions')
     .select('*')
@@ -136,6 +136,7 @@ export async function toggleCalendarVisibility(
   subscriptionId: string,
   isVisible: boolean
 ): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('calendar_subscriptions')
     .update({ is_visible: isVisible, updated_at: new Date().toISOString() })
@@ -151,6 +152,7 @@ export async function updateCalendarColor(
   subscriptionId: string,
   color: string
 ): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('calendar_subscriptions')
     .update({ background_color: color, updated_at: new Date().toISOString() })
@@ -177,6 +179,8 @@ export interface CalendarEventFilters {
 export async function getCalendarEvents(
   filters: CalendarEventFilters
 ): Promise<CalendarEvent[]> {
+  const supabase = getSupabaseClient();
+
   console.log('🔍 getCalendarEvents called with filters:', {
     startDate: filters.startDate.toISOString(),
     endDate: filters.endDate.toISOString(),
@@ -243,6 +247,7 @@ export async function getCalendarEvents(
 export async function getCalendarEventById(
   eventId: string
 ): Promise<CalendarEvent | null> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('calendar_events')
     .select('*')
@@ -264,6 +269,7 @@ export async function getCalendarEventByGoogleId(
   googleEventId: string,
   subscriptionId: string
 ): Promise<CalendarEvent | null> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('calendar_events')
     .select('*')

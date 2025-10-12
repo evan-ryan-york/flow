@@ -16,41 +16,9 @@ export function initializeSupabase(url: string, anonKey: string) {
     throw new Error(`Invalid Supabase configuration: url=${url}, anonKey=${anonKey ? '[REDACTED]' : 'missing'}`);
   }
 
-  // Log the actual values being used (in browser only)
-  if (typeof window !== 'undefined') {
-    console.log('🔧 Initializing Supabase with:', {
-      url,
-      urlValid: url.startsWith('https://'),
-      keyLength: anonKey.length,
-      keyValid: anonKey.length > 100, // Supabase keys are long
-    });
-  }
-
   if (!supabaseInstance) {
-    // Intercept fetch to see what's failing
-    if (typeof window !== 'undefined') {
-      const originalFetch = window.fetch;
-      window.fetch = async (...args) => {
-        try {
-          console.log('🌐 Fetch called with:', {
-            url: args[0],
-            options: args[1]
-          });
-          return await originalFetch(...args);
-        } catch (err) {
-          console.error('❌ Fetch failed:', err);
-          throw err;
-        }
-      };
-    }
-
-    // Use createBrowserClient from @supabase/ssr - this is the official Next.js pattern
-    // It automatically handles PKCE, cookies, and session management correctly
+    // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
     supabaseInstance = createBrowserClient(url, anonKey);
-
-    if (typeof window !== 'undefined') {
-      console.log('✅ Supabase client created with createBrowserClient');
-    }
   }
   return supabaseInstance;
 }

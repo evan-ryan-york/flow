@@ -13,9 +13,7 @@ export function LoginForm() {
   const [isTauriEnv, setIsTauriEnv] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Get supabase client lazily - don't call useSupabase() during render to avoid SSR issues
-  const getSupabase = () => useSupabase();
+  const supabase = useSupabase();
 
   // Detect Tauri environment on mount
   useEffect(() => {
@@ -38,7 +36,6 @@ export function LoginForm() {
   useEffect(() => {
     console.log('Starting session polling...');
     const pollInterval = setInterval(async () => {
-      const supabase = getSupabase();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('✅ Session detected! Redirecting to dashboard...');
@@ -48,7 +45,7 @@ export function LoginForm() {
     }, 1000); // Check every second
 
     return () => clearInterval(pollInterval);
-  }, [router]);
+  }, [router, supabase]);
 
   const handleMagicLink = async (email: string) => {
     try {
@@ -69,7 +66,6 @@ export function LoginForm() {
       console.log('Sending magic link to:', email);
       console.log('Redirect URL:', redirectTo);
 
-      const supabase = getSupabase();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -99,8 +95,6 @@ export function LoginForm() {
 
       console.log('🚀 Starting Google sign-in...');
 
-      const supabase = getSupabase();
-
       // Use Tauri-specific OAuth flow if in Tauri environment
       if (isTauriEnv) {
         console.log('📱 Using Tauri OAuth flow...');
@@ -122,10 +116,12 @@ export function LoginForm() {
       console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
 
       // Log localStorage state BEFORE OAuth initiation
-      console.log('📦 LocalStorage BEFORE OAuth:', {
+      console.log('📦 LocalStorage BEFORE OAuth:', typeof window !== 'undefined' ? {
+        // eslint-disable-next-line no-undef
         keys: Object.keys(localStorage),
+        // eslint-disable-next-line no-undef
         supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
-      });
+      } : {});
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -141,10 +137,12 @@ export function LoginForm() {
       }
 
       // Log localStorage state AFTER OAuth initiation (before redirect)
-      console.log('📦 LocalStorage AFTER OAuth:', {
+      console.log('📦 LocalStorage AFTER OAuth:', typeof window !== 'undefined' ? {
+        // eslint-disable-next-line no-undef
         keys: Object.keys(localStorage),
+        // eslint-disable-next-line no-undef
         supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
-      });
+      } : {});
 
       // Browser will automatically redirect to Google
       console.log('✅ OAuth initiated:', data);

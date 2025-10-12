@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSupabase } from '@/lib/providers';
 
 // Force dynamic rendering - this page must not be statically generated
 export const dynamic = 'force-dynamic';
@@ -16,76 +15,57 @@ function AuthCallbackContent() {
     if (typeof window === 'undefined') return;
 
     const handleCallback = async () => {
-      // Import supabase hook inside useEffect to avoid SSR execution
-      const { useSupabase } = await import('@/lib/providers');
       const { getSupabaseClient } = await import('@perfect-task-app/data');
       const supabase = getSupabaseClient();
+
       try {
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
 
-        console.log('🔄 Auth callback called');
-        console.log('URL:', window.location.href);
-
         if (error) {
-          console.error('❌ Auth callback error:', error, errorDescription);
+          console.error('Auth callback error:', error, errorDescription);
           const message = errorDescription || error;
           router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(message)}`);
           return;
         }
 
-        // Check for hash fragments (magic link and some OAuth flows)
+        // Check for hash fragments (magic link/some OAuth flows)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        console.log('Hash params:', {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hash: window.location.hash
-        });
-
-        // If we have tokens in the hash, set the session
         if (accessToken) {
-          console.log('🔑 Setting session from hash tokens...');
-          const { data, error: sessionError } = await supabase.auth.setSession({
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
 
           if (sessionError) {
-            console.error('❌ Session set error:', sessionError);
+            console.error('Session set error:', sessionError);
             router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(sessionError.message)}`);
             return;
           }
 
-          console.log('✅ Session set successfully:', data);
           router.push('/dashboard');
           return;
         }
 
-        // With detectSessionInUrl: true, Supabase automatically handles the code exchange
-        // We just need to wait a moment for it to process, then check for session
+        // For PKCE flow, createBrowserClient handles code exchange automatically
+        // Just wait a moment for it to process, then check for session
         const code = searchParams.get('code');
         if (code) {
-          console.log('🔑 OAuth code detected, waiting for Supabase to process...');
-
-          // Give Supabase a moment to automatically exchange the code
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        // Fallback: check if we already have a session
+        // Check if we have a session
         const { data: { session } } = await supabase.auth.getSession();
-
         if (session) {
-          console.log('✅ Existing session found, redirecting to dashboard');
           router.push('/dashboard');
         } else {
-          console.log('⚠️ No session or auth params found, redirecting to login');
           router.push('/login');
         }
       } catch (err) {
-        console.error('❌ Callback error:', err);
+        console.error('Callback error:', err);
         const message = err instanceof Error ? err.message : 'Unknown error';
         router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(message)}`);
       }
