@@ -62,6 +62,11 @@ function AuthCallbackContent() {
         const code = searchParams.get('code');
         if (code) {
           console.log('🔑 Exchanging OAuth code for session...');
+          console.log('Code value:', code);
+          console.log('Code type:', typeof code);
+          console.log('Code length:', code.length);
+          console.log('Supabase client URL:', supabase.supabaseUrl);
+          console.log('Supabase client key (first 20 chars):', supabase.supabaseKey.substring(0, 20));
 
           try {
             const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
