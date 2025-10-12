@@ -19,7 +19,7 @@ export function initializeSupabase(url: string, anonKey: string) {
       auth: {
         autoRefreshToken: true,
         persistSession: typeof window !== 'undefined', // Only persist in browser
-        detectSessionInUrl: false, // Don't auto-detect - we handle manually in callback page
+        detectSessionInUrl: true, // REQUIRED for PKCE flow to work properly
         flowType: 'pkce', // Use PKCE flow for OAuth
       },
     });
