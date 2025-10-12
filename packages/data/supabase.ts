@@ -27,6 +27,23 @@ export function initializeSupabase(url: string, anonKey: string) {
   }
 
   if (!supabaseInstance) {
+    // Intercept fetch to see what's failing
+    if (typeof window !== 'undefined') {
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        try {
+          console.log('🌐 Fetch called with:', {
+            url: args[0],
+            options: args[1]
+          });
+          return await originalFetch(...args);
+        } catch (err) {
+          console.error('❌ Fetch failed:', err);
+          throw err;
+        }
+      };
+    }
+
     // Use createBrowserClient from @supabase/ssr - this is the official Next.js pattern
     // It automatically handles PKCE, cookies, and session management correctly
     supabaseInstance = createBrowserClient(url, anonKey);
