@@ -1,5 +1,6 @@
 // packages/data/supabase.ts
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Supabase client instance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7,22 +8,32 @@ let supabaseInstance: SupabaseClient<any, 'public', any> | null = null;
 
 // Initialize Supabase with config from the app
 export function initializeSupabase(url: string, anonKey: string) {
-  // Validate inputs
+  // Trim whitespace and validate inputs
+  url = url?.trim() || '';
+  anonKey = anonKey?.trim() || '';
+
   if (!url || !anonKey || url === 'undefined' || anonKey === 'undefined') {
     throw new Error(`Invalid Supabase configuration: url=${url}, anonKey=${anonKey ? '[REDACTED]' : 'missing'}`);
   }
 
-  if (!supabaseInstance) {
-    // Use standard createClient for both browser and server
-    // This handles auth persistence automatically via localStorage in browser
-    supabaseInstance = createClient(url, anonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: typeof window !== 'undefined', // Only persist in browser
-        detectSessionInUrl: true, // REQUIRED for PKCE flow to work properly
-        flowType: 'pkce', // Use PKCE flow for OAuth
-      },
+  // Log the actual values being used (in browser only)
+  if (typeof window !== 'undefined') {
+    console.log('🔧 Initializing Supabase with:', {
+      url,
+      urlValid: url.startsWith('https://'),
+      keyLength: anonKey.length,
+      keyValid: anonKey.length > 100, // Supabase keys are long
     });
+  }
+
+  if (!supabaseInstance) {
+    // Use createBrowserClient from @supabase/ssr - this is the official Next.js pattern
+    // It automatically handles PKCE, cookies, and session management correctly
+    supabaseInstance = createBrowserClient(url, anonKey);
+
+    if (typeof window !== 'undefined') {
+      console.log('✅ Supabase client created with createBrowserClient');
+    }
   }
   return supabaseInstance;
 }
