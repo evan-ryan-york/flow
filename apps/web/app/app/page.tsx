@@ -22,7 +22,7 @@ export default function AppPage() {
     };
 
     getUser();
-  }, [supabase]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (

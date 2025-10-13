@@ -17,7 +17,14 @@ export function LoginForm() {
 
   // Detect Tauri environment on mount
   useEffect(() => {
-    setIsTauriEnv(isTauri());
+    const detected = isTauri();
+    console.log('🔍 Tauri environment detected:', detected);
+    console.log('🔍 Window location:', {
+      protocol: window.location.protocol,
+      hostname: window.location.hostname,
+      href: window.location.href
+    });
+    setIsTauriEnv(detected);
   }, []);
 
   // Check for callback errors
@@ -32,20 +39,24 @@ export function LoginForm() {
     }
   }, [searchParams]);
 
-  // Poll for session after sending email or OAuth (for cross-browser flow)
+  // Check for existing session on mount and redirect if logged in (run once)
   useEffect(() => {
-    console.log('Starting session polling...');
-    const pollInterval = setInterval(async () => {
+    let isMounted = true;
+
+    const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('✅ Session detected! Redirecting to dashboard...');
-        clearInterval(pollInterval);
+      if (session && isMounted) {
+        console.log('✅ Session detected on mount, redirecting to dashboard...');
         router.push('/dashboard');
       }
-    }, 1000); // Check every second
+    };
 
-    return () => clearInterval(pollInterval);
-  }, [router, supabase]);
+    checkSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMagicLink = async (email: string) => {
     try {
@@ -98,14 +109,33 @@ export function LoginForm() {
       // Use Tauri-specific OAuth flow if in Tauri environment
       if (isTauriEnv) {
         console.log('📱 Using Tauri OAuth flow...');
+        console.log('⏰ Current time:', new Date().toISOString());
+
         const result = await handleTauriGoogleOAuth(supabase);
+        console.log('🔍 OAuth result:', result);
 
         if (!result.success) {
+          console.error('❌ OAuth failed:', result.error);
           throw new Error(result.error || 'Failed to authenticate');
         }
 
+        // Verify session was set
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('🔍 Session check after OAuth:', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          email: session?.user?.email,
+          error: sessionError
+        });
+
+        if (!session) {
+          console.error('❌ No session found after successful OAuth');
+          throw new Error('Authentication succeeded but no session was created');
+        }
+
         // Success! Session is now set, redirect to dashboard
-        console.log('✅ Tauri OAuth successful, redirecting...');
+        console.log('✅ Tauri OAuth successful, redirecting to /dashboard...');
+        console.log('⏰ Redirect time:', new Date().toISOString());
         router.push('/dashboard');
         return;
       }

@@ -25,9 +25,16 @@ export function initializeSupabase(url: string, anonKey: string) {
 
 // Helper function to get the current Supabase client
 export function getSupabaseClient() {
-  // During SSR/build, return a dummy client that will be properly initialized in browser
-  if (!supabaseInstance && typeof window === 'undefined') {
-    throw new Error('Supabase client accessed during SSR. This should only be called in client components.');
+  // During SSR/build, initialize the client but it won't have a real session
+  // This allows static export to work - the actual auth will happen client-side
+  if (typeof window === 'undefined' && !supabaseInstance) {
+    // Get env vars for SSR context
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (url && anonKey) {
+      supabaseInstance = createBrowserClient(url, anonKey);
+    }
   }
 
   if (!supabaseInstance) {

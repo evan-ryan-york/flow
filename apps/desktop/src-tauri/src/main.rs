@@ -6,10 +6,13 @@ fn main() {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let show = CustomMenuItem::new("show".to_string(), "Show");
+    let devtools = CustomMenuItem::new("devtools".to_string(), "Toggle DevTools");
 
     let tray_menu = SystemTrayMenu::new()
         .add_item(show)
         .add_item(hide)
+        .add_native_item(SystemTrayMenuItem::Separator)
+        .add_item(devtools)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
 
@@ -18,6 +21,12 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_oauth::init())
         .system_tray(system_tray)
+        .setup(|app| {
+            // Always open devtools to help with debugging
+            let window = app.get_window("main").unwrap();
+            window.open_devtools();
+            Ok(())
+        })
         .on_system_tray_event(|app, event| match event {
             tauri::SystemTrayEvent::LeftClick {
                 position: _,
@@ -40,6 +49,14 @@ fn main() {
                     let window = app.get_window("main").unwrap();
                     window.show().unwrap();
                     window.set_focus().unwrap();
+                }
+                "devtools" => {
+                    let window = app.get_window("main").unwrap();
+                    if window.is_devtools_open() {
+                        window.close_devtools();
+                    } else {
+                        window.open_devtools();
+                    }
                 }
                 _ => {}
             },

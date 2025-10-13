@@ -1,12 +1,9 @@
+'use client';
+
 import { Suspense } from 'react';
 import { LoginForm } from './components/LoginForm';
 
-// Force dynamic rendering for auth pages
-export const dynamic = 'force-dynamic';
-
 export default function LoginPage() {
-  // For now, skip server-side user check to focus on client-side auth flow
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">

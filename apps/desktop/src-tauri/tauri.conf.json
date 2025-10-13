@@ -3,7 +3,8 @@
     "beforeDevCommand": "cd ../web && npm run dev",
     "beforeBuildCommand": "cd ../web && NEXT_OUTPUT=export npm run build",
     "devPath": "http://localhost:3000",
-    "distDir": "../../web/out"
+    "distDir": "../../web/out",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "Perfect Task App",

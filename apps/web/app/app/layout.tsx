@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/lib/providers';
 
@@ -35,7 +35,7 @@ export default function AppLayout({
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen bg-white">

@@ -7,9 +7,6 @@ export const metadata: Metadata = {
   description: 'Ultimate task and project management with calendar integration',
 };
 
-// Force dynamic rendering for all pages since we use client-side auth
-export const dynamic = 'force-dynamic';
-
 export default function RootLayout({
   children,
 }: {
@@ -17,6 +14,37 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Manually inject Tauri initialization for static exports */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Only run in Tauri environment
+                if (typeof window === 'undefined') return;
+
+                const isTauri = window.location.protocol === 'tauri:' ||
+                               '__TAURI_METADATA__' in window ||
+                               '__TAURI_IPC__' in window;
+
+                if (!isTauri) return;
+
+                console.log('🔧 Tauri environment detected, initializing __TAURI_INTERNALS__...');
+
+                // Create the object structure the OAuth plugin expects
+                window.__TAURI_INTERNALS__ = window.__TAURI_INTERNALS__ || {};
+
+                // The plugin needs the invoke function to be available
+                // Tauri v1 exposes this globally
+                if (window.__TAURI__ && window.__TAURI__.tauri && window.__TAURI__.tauri.invoke) {
+                  window.__TAURI_INTERNALS__.invoke = window.__TAURI__.tauri.invoke;
+                  console.log('✅ __TAURI_INTERNALS__.invoke initialized from __TAURI__');
+                }
+              })();
+            `
+          }}
+        />
+      </head>
       <body className="antialiased">
         <Providers>
           {children}

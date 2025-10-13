@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/lib/providers';
-import { DashboardClient } from './components/DashboardClient';
+import { ThreeColumnLayout } from '@/components/ThreeColumnLayout';
 import type { User } from '@supabase/supabase-js';
 
 export default function Dashboard() {
@@ -35,7 +35,7 @@ export default function Dashboard() {
     };
 
     checkUser();
-  }, [supabase, router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -51,5 +51,5 @@ export default function Dashboard() {
     return null;
   }
 
-  return <DashboardClient user={user} />;
+  return <ThreeColumnLayout userId={user.id} />;
 }
