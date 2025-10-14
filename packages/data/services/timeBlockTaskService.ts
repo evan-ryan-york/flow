@@ -22,8 +22,8 @@ export const getTimeBlockTasks = async (timeBlockId: string) => {
         name,
         description,
         due_date,
-        status,
         is_completed,
+        completed_at,
         created_at,
         updated_at
       )
@@ -31,7 +31,13 @@ export const getTimeBlockTasks = async (timeBlockId: string) => {
     .eq('time_block_id', timeBlockId);
 
   if (error) {
-    console.error('❌ Error fetching time block tasks:', error);
+    console.error('❌ Error fetching time block tasks:', {
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     throw error;
   }
 
@@ -42,9 +48,16 @@ export const getTimeBlockTasks = async (timeBlockId: string) => {
     .map(item => item.tasks)
     .filter((task): task is NonNullable<typeof task> => task !== null);
 
-  console.log('✅ Parsed tasks:', tasks.length, tasks);
+  console.log('✅ Parsed tasks before Zod validation:', tasks.length, tasks);
 
-  return z.array(TaskSchema).parse(tasks);
+  try {
+    const validatedTasks = z.array(TaskSchema).parse(tasks);
+    console.log('✅ Zod validation passed:', validatedTasks.length);
+    return validatedTasks;
+  } catch (zodError) {
+    console.error('❌ Zod validation error:', zodError);
+    throw zodError;
+  }
 };
 
 /**

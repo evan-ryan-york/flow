@@ -267,9 +267,16 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     return [...googleEvents, ...workBlocks];
   }, [calendarEvents, timeBlocks, handleTaskChange]);
 
-  // Required by react-big-calendar DnD - we don't need this for our use case
-  // We use onDropFromOutside directly
-  const dragFromOutsideItem = undefined;
+  // Required by react-big-calendar DnD
+  // This function tells the calendar what item is being dragged from outside
+  const dragFromOutsideItem = useCallback(() => {
+    if (!draggedTask) return null;
+
+    return {
+      id: draggedTask.id,
+      title: draggedTask.name,
+    };
+  }, [draggedTask]);
 
   // Handle dropping a task onto the calendar
   const handleDropFromOutside = ({ start, end }: { start: Date | string; end: Date | string }) => {
