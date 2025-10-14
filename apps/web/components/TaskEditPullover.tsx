@@ -99,6 +99,7 @@ export function TaskEditPullover({
   const [localDescription, setLocalDescription] = useState('');
   const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
   const initializedTaskIdRef = useRef<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Data fetching
   const { data: task } = useTask(taskId || '');
@@ -129,6 +130,14 @@ export function TaskEditPullover({
       setCustomPropertyValues(values);
 
       initializedTaskIdRef.current = task.id;
+
+      // Auto-grow textarea after task name is set
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+      }, 0);
     }
   }, [task, propertyValues]); // Only re-run when task ID changes or propertyValues updates
 
@@ -253,17 +262,24 @@ export function TaskEditPullover({
         {task ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <div className="flex-1 min-w-0 mr-4">
-                <Input
-                  type="text"
+            <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex-1 min-w-0 mr-4 flex flex-col gap-2">
+                <textarea
+                  ref={textareaRef}
                   value={localTaskName || task.name || ''}
-                  onChange={(e) => handleTaskNameChange(e.target.value)}
-                  className="font-semibold text-lg border-0 px-0 focus:ring-0 focus:border-b focus:border-blue-500"
+                  onChange={(e) => {
+                    handleTaskNameChange(e.target.value);
+                    // Auto-grow as user types
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  className="w-full font-semibold text-lg border-0 px-0 focus:ring-0 focus:border-b focus:border-blue-500 resize-none overflow-y-hidden leading-tight"
                   placeholder="Task name"
+                  rows={1}
+                  style={{ minHeight: '28px' }}
                 />
                 {currentProject && (
-                  <div className="mt-2">
+                  <div>
                     <ProjectChip
                       project={currentProject}
                       onRemove={() => {}}

@@ -448,6 +448,7 @@ const TaskList = memo(function TaskList({
               isDraggingActive={isDraggingActive}
               groupBy={groupBy}
               userMapping={userMapping}
+              onTaskEditClick={onTaskEditClick}
             />
           ))}
         </div>

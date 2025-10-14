@@ -3,7 +3,7 @@
 import { useState, memo, useEffect } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
-import { EditPencil, Trash } from 'iconoir-react';
+import { Trash } from 'iconoir-react';
 import { DeleteTaskDialog } from './DeleteTaskDialog';
 
 type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
@@ -30,6 +30,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isDraggingActive, setIsDraggingActive] = useState(false);
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.is_completed;
   const isDone = task.is_completed;
   const updateTaskMutation = useUpdateTask();
@@ -70,7 +71,8 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
     }
   };
 
-  const handleStatusToggle = () => {
+  const handleStatusToggle = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click
     const newCompletedState = !isDone;
 
     // If marking as complete, dispatch event to parent to keep it visible
@@ -106,19 +108,45 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
     // Drag handle for @dnd-kit sorting is passed via dragListeners
   };
 
+  // Track drag start/end to prevent clicks during drag
+  const handleDragHandlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation(); // Don't let this trigger row click
+    setIsDraggingActive(true);
+    console.log('🎯 Drag handle pointer down');
+  };
+
+  const handleDragHandlePointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation(); // Don't let this trigger row click
+    // Delay reset to avoid race condition with click event
+    setTimeout(() => setIsDraggingActive(false), 50);
+    console.log('🎯 Drag handle pointer up');
+  };
+
+  const handleRowClick = () => {
+    // Only trigger if not dragging and onEditClick is provided
+    if (!isDraggingActive && onEditClick) {
+      onEditClick(task.id);
+    }
+  };
+
   // HTML5 drag handlers for dragging to calendar
   const handleCalendarDragStart = (e: React.DragEvent) => {
+    // Prevent drag from interfering with row click
+    e.stopPropagation();
+
     // Set data for calendar drop
     e.dataTransfer.effectAllowed = 'copy';
-    e.dataTransfer.setData('application/json', JSON.stringify(task));
+    e.dataTransfer.setData('text/plain', task.id); // Simple data transfer
 
-    // Dispatch custom event for calendar to listen to
+    // Dispatch custom event for calendar to listen to (this is what the calendar actually uses)
     window.dispatchEvent(new CustomEvent('task-drag-start', { detail: task }));
 
     console.log('🎯 Task drag to calendar started:', task.name);
   };
 
-  const handleCalendarDragEnd = () => {
+  const handleCalendarDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+
     // Notify calendar that drag ended
     window.dispatchEvent(new CustomEvent('task-drag-end'));
     console.log('🎯 Task drag to calendar ended');
@@ -126,28 +154,48 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
   return (
     <div
-      className={`relative overflow-hidden border-b border-gray-200 transition-all duration-500 ${
+      className={`relative border-b border-gray-200 transition-all duration-500 ${
         isDragging ? 'bg-blue-50 shadow-lg' : 'bg-white'
-      } ${!isDragging && !isDone ? 'hover:bg-gray-50' : ''} ${isFadingOut ? 'opacity-0' : ''}`}
+      } ${!isDragging && !isDone ? 'hover:bg-gray-50 cursor-pointer' : ''} ${isFadingOut ? 'opacity-0' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleRowClick}
     >
-      {/* Animated background overlay for completion */}
-      {justCompleted && isDone && (
-        <div
-          className="absolute inset-0 bg-green-50 pointer-events-none"
-          style={{
-            animation: 'slideInLR 0.6s ease-out forwards'
-          }}
-        />
-      )}
+      {/* Animated background overlay for completion - needs overflow hidden */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {justCompleted && isDone && (
+          <div
+            className="absolute inset-0 bg-green-50"
+            style={{
+              animation: 'slideInLR 0.6s ease-out forwards'
+            }}
+          />
+        )}
+      </div>
       {/* Table Row Layout */}
       <div className="relative flex items-center gap-3 px-4 py-3">
         {/* Drag Handle */}
         <button
-          {...dragListeners}
           {...dragAttributes}
-          onClick={handleDragHandleClick}
+          {...dragListeners}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDragHandleClick(e);
+          }}
+          onPointerDown={(e) => {
+            handleDragHandlePointerDown(e);
+            // Call the original listener if it exists
+            if (dragListeners?.onPointerDown) {
+              dragListeners.onPointerDown(e as any);
+            }
+          }}
+          onPointerUp={(e) => {
+            handleDragHandlePointerUp(e);
+            // Call the original listener if it exists
+            if (dragListeners?.onPointerUp) {
+              dragListeners.onPointerUp(e as any);
+            }
+          }}
           className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
           title="Drag to reorder"
         >
@@ -163,7 +211,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
         {/* Completion Circle */}
         <button
-          onClick={handleStatusToggle}
+          onClick={(e) => handleStatusToggle(e)}
           disabled={updateTaskMutation.isPending}
           className={`flex-shrink-0 transition-colors ${
             updateTaskMutation.isPending
@@ -183,35 +231,44 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           )}
         </button>
 
-        {/* Name Column - draggable to calendar */}
-        <div
-          draggable
-          onDragStart={handleCalendarDragStart}
-          onDragEnd={handleCalendarDragEnd}
-          className="flex-1 min-w-0 flex items-center gap-2 cursor-grab active:cursor-grabbing"
-          title="Drag to calendar to schedule"
-        >
+        {/* Name Column - clickable to open details */}
+        <div className="flex-1 min-w-0 flex items-center gap-2 group/title relative">
           <span className={`font-medium text-sm truncate block ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
             {task.name}
           </span>
+          {/* Tooltip - shows full task name on hover */}
+          <div className="absolute left-0 bottom-full mb-2 invisible group-hover/title:visible opacity-0 group-hover/title:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
+            <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 max-w-md whitespace-normal break-words">
+              {task.name}
+              {/* Arrow pointing down */}
+              <div className="absolute top-full left-8 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
           {/* Action Icons - appear on hover */}
           {isHovered && (
             <div className="flex items-center gap-1">
-              {onEditClick && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditClick(task.id);
-                  }}
-                  className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  title="Edit task"
-                  draggable={false}
-                >
-                  <EditPencil className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                draggable
+                onDragStart={handleCalendarDragStart}
+                onDragEnd={handleCalendarDragEnd}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  handleDragHandlePointerDown();
+                }}
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  handleDragHandlePointerUp();
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-grab active:cursor-grabbing"
+                title="Drag to calendar"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -378,7 +435,10 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 </div>
               ) : (
                 <button
-                  onClick={() => setEditingPropertyId(property.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingPropertyId(property.id);
+                  }}
                   className="w-full text-right hover:bg-gray-100 px-1 py-0.5 rounded transition-colors"
                   disabled={isDragging}
                 >
