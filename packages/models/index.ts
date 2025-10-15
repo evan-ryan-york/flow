@@ -1,5 +1,50 @@
 import { z } from "zod";
 
+// Import project color names from UI package for schema validation
+// Note: This creates a dependency from models -> ui, but it's justified because
+// the colors.ts file is the single source of truth for all color definitions
+const projectColorEnum = z.enum([
+  "red",
+  "orange-red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "light-blue",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
+  "rose",
+  "magenta",
+  "hot-pink",
+  "plum",
+  "gray",
+  "dark-gray",
+  "charcoal",
+]);
+
+// Legacy color enum for backward compatibility during migration
+const legacyColorEnum = z.enum(["rose", "amber", "mint", "sky", "violet", "lime", "teal", "crimson"]);
+
+// Combined enum that accepts both old and new colors, then transforms old to new
+const projectColorWithMigration = z.union([projectColorEnum, legacyColorEnum]).transform((val) => {
+  // Migration map for old colors
+  const colorMap: Record<string, z.infer<typeof projectColorEnum>> = {
+    'sky': 'blue',
+    'mint': 'emerald',
+    'crimson': 'red',
+  };
+
+  return (colorMap[val] as z.infer<typeof projectColorEnum>) || val;
+});
+
 // ---------------------------------
 // 1. Profiles
 // ---------------------------------
@@ -22,7 +67,7 @@ export const ProjectSchema = z.object({
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   name: z.string().min(1).max(50),
-  color: z.enum(["rose", "amber", "mint", "sky", "violet", "lime", "teal", "crimson"]).default("sky"),
+  color: projectColorWithMigration.default("blue"),
   is_general: z.boolean().default(false),
   created_at: z.string(), // More flexible datetime validation
   updated_at: z.string(), // More flexible datetime validation
@@ -36,7 +81,7 @@ export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
 export const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(50).trim().optional(),
-  color: z.enum(["rose", "amber", "mint", "sky", "violet", "lime", "teal", "crimson"]).optional(),
+  color: projectColorEnum.optional(),
 });
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
 

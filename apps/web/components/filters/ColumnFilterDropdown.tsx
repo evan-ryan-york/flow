@@ -5,6 +5,7 @@ import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
 import { Filter, Check, Xmark } from 'iconoir-react';
 import { FilterState, FilterOption, getActiveFilterCount, DateRange, CompletionFilter } from '@perfect-task-app/ui/lib/taskFiltering';
+import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
 
 interface ColumnFilterDropdownProps {
   availableFilters: {
@@ -138,9 +139,15 @@ export function ColumnFilterDropdown({
                 className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                    isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                  }`}>
+                  <div
+                    className={`w-4 h-4 border rounded flex items-center justify-center ${
+                      !isSelected ? 'border-gray-300' : ''
+                    }`}
+                    style={isSelected ? {
+                      backgroundColor: BRAND_COLOR.main,
+                      borderColor: BRAND_COLOR.main,
+                    } : undefined}
+                  >
                     {isSelected && <Check className="w-3 h-3 text-white" />}
                   </div>
                   <span className={isSelected ? 'font-medium text-gray-900' : 'text-gray-700'}>
@@ -166,14 +173,20 @@ export function ColumnFilterDropdown({
         <Button
           variant="outline"
           size="sm"
-          className={`relative ${className || ''} ${
-            hasActiveFilters ? 'bg-blue-50 border-blue-300 text-blue-700' : ''
-          }`}
+          className={`relative ${className || ''}`}
+          style={hasActiveFilters ? {
+            backgroundColor: BRAND_COLOR.light,
+            borderColor: BRAND_COLOR.main,
+            color: BRAND_COLOR.main,
+          } : undefined}
         >
           <Filter className="h-4 w-4 mr-2" />
           Filter
           {hasActiveFilters && (
-            <span className="ml-1 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] h-5 flex items-center justify-center">
+            <span
+              className="ml-1 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] h-5 flex items-center justify-center"
+              style={{ backgroundColor: BRAND_COLOR.main }}
+            >
               {activeFilterCount}
             </span>
           )}
@@ -187,7 +200,8 @@ export function ColumnFilterDropdown({
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-sm flex items-center gap-1"
+                style={{ color: BRAND_COLOR.main }}
               >
                 <Xmark className="h-3 w-3" />
                 Clear All

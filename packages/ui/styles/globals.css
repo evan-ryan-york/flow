@@ -25,7 +25,7 @@
     --ring: 0 1% 52%;                  /* #858080 - Focus rings */
 
     /* Legacy tokens for compatibility */
-    --popover: 60 67% 96%;             /* Same as card */
+    --popover: 0 0% 100%;              /* Same as card */
     --popover-foreground: 340 5% 9%;   /* Same as card-foreground */
     --accent: 80 5% 90%;               /* Same as secondary */
     --accent-foreground: 340 5% 9%;    /* Same as secondary-foreground */

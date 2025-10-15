@@ -5,6 +5,7 @@ import { Button } from '@perfect-task-app/ui/components/ui/button';
 import { Xmark, Search, Filter, Group } from 'iconoir-react';
 import { FilterState, hasActiveFilters } from '@perfect-task-app/ui/lib/taskFiltering';
 import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
+import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
 
 interface ActiveFiltersBarProps {
   searchQuery: string;
@@ -92,13 +93,13 @@ export function ActiveFiltersBar({
   };
 
   return (
-    <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+    <div className="px-4 py-3 border-b" style={{ backgroundColor: BRAND_COLOR.lighter, borderColor: BRAND_COLOR.light }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search chip */}
           {hasSearch && (
-            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Search className="h-3 w-3 text-blue-600" />
+            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Search className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">"{searchQuery}"</span>
               <button
                 onClick={onSearchClear}
@@ -112,8 +113,8 @@ export function ActiveFiltersBar({
 
           {/* Assignee filters */}
           {selectedFilters.assignee.map((assignee) => (
-            <div key={assignee} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Filter className="h-3 w-3 text-blue-600" />
+            <div key={assignee} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Filter className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">Assignee: {getProfileName(assignee)}</span>
               <button
                 onClick={() => onFilterClear('assignee')}
@@ -127,8 +128,8 @@ export function ActiveFiltersBar({
 
           {/* Due date filter */}
           {selectedFilters.dueDate && (
-            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Filter className="h-3 w-3 text-blue-600" />
+            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Filter className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">Due: {getDueDateLabel(selectedFilters.dueDate)}</span>
               <button
                 onClick={() => onFilterClear('dueDate')}
@@ -142,8 +143,8 @@ export function ActiveFiltersBar({
 
           {/* Project filters */}
           {selectedFilters.project.map((projectId) => (
-            <div key={projectId} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Filter className="h-3 w-3 text-blue-600" />
+            <div key={projectId} className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Filter className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">Project: {getProjectName(projectId)}</span>
               <button
                 onClick={() => onFilterClear('project')}
@@ -157,8 +158,8 @@ export function ActiveFiltersBar({
 
           {/* Completion filter - only show if not the default 'incomplete' */}
           {selectedFilters.completion && selectedFilters.completion.status !== 'incomplete' && (
-            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-blue-200">
-              <Filter className="h-3 w-3 text-blue-600" />
+            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Filter className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">{getCompletionLabel(selectedFilters.completion)}</span>
               <button
                 onClick={() => onFilterClear('completion')}
@@ -172,8 +173,8 @@ export function ActiveFiltersBar({
 
           {/* Group by chip */}
           {hasGrouping && (
-            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border border-purple-200">
-              <Group className="h-3 w-3 text-purple-600" />
+            <div className="flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm border" style={{ borderColor: BRAND_COLOR.light }}>
+              <Group className="h-3 w-3" style={{ color: BRAND_COLOR.main }} />
               <span className="text-gray-700">Grouped by {getGroupByLabel(groupBy!)}</span>
               <button
                 onClick={onGroupByClear}
@@ -203,7 +204,8 @@ export function ActiveFiltersBar({
             variant="ghost"
             size="sm"
             onClick={onClearAll}
-            className="text-blue-700 hover:text-blue-800 hover:bg-blue-100"
+            className="hover:bg-opacity-50"
+            style={{ color: BRAND_COLOR.main }}
           >
             Clear All
           </Button>

@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
 import { Group, Check } from 'iconoir-react';
 import { GroupByOption, getAvailableGroupByOptions } from '@perfect-task-app/ui/lib/taskGrouping';
 import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
 
 interface GroupByDropdownProps {
   value: GroupByOption | null;
@@ -64,9 +65,12 @@ export function GroupByDropdown({
         <Button
           variant="outline"
           size="sm"
-          className={`${className || ''} ${
-            hasActiveGrouping ? 'bg-purple-50 border-purple-300 text-purple-700' : ''
-          }`}
+          className={className || ''}
+          style={hasActiveGrouping ? {
+            backgroundColor: BRAND_COLOR.light,
+            borderColor: BRAND_COLOR.main,
+            color: BRAND_COLOR.main,
+          } : undefined}
         >
           <Group className="h-4 w-4 mr-2" />
           {hasActiveGrouping ? (
@@ -110,17 +114,27 @@ export function GroupByDropdown({
                     option.disabled
                       ? 'text-gray-400 cursor-not-allowed'
                       : isSelected
-                      ? 'bg-purple-50 text-purple-700 font-medium'
+                      ? 'font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
+                  style={isSelected && !option.disabled ? {
+                    backgroundColor: BRAND_COLOR.light,
+                    color: BRAND_COLOR.main,
+                  } : undefined}
                 >
-                  <div className={`w-4 h-4 border rounded-full flex items-center justify-center ${
-                    isSelected && !option.disabled
-                      ? 'bg-purple-600 border-purple-600'
-                      : option.disabled
-                      ? 'border-gray-200'
-                      : 'border-gray-300'
-                  }`}>
+                  <div
+                    className={`w-4 h-4 border rounded-full flex items-center justify-center ${
+                      option.disabled
+                        ? 'border-gray-200'
+                        : !isSelected
+                        ? 'border-gray-300'
+                        : ''
+                    }`}
+                    style={isSelected && !option.disabled ? {
+                      backgroundColor: BRAND_COLOR.main,
+                      borderColor: BRAND_COLOR.main,
+                    } : undefined}
+                  >
                     {isSelected && !option.disabled && (
                       <Check className="w-3 h-3 text-white" />
                     )}

@@ -5,6 +5,7 @@ import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perf
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { Trash } from 'iconoir-react';
 import { DeleteTaskDialog } from './DeleteTaskDialog';
+import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-task-app/ui/colors';
 
 type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
 
@@ -344,37 +345,22 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 return <span className="text-sm text-gray-400">Unknown</span>;
               }
 
-              const getColorClasses = (color: string) => {
-                switch (color) {
-                  case 'rose': return 'bg-rose-100 text-rose-800 border-rose-200';
-                  case 'amber': return 'bg-amber-100 text-amber-800 border-amber-200';
-                  case 'mint': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                  case 'sky': return 'bg-sky-100 text-sky-800 border-sky-200';
-                  case 'violet': return 'bg-violet-100 text-violet-800 border-violet-200';
-                  case 'lime': return 'bg-lime-100 text-lime-800 border-lime-200';
-                  case 'teal': return 'bg-teal-100 text-teal-800 border-teal-200';
-                  case 'crimson': return 'bg-red-100 text-red-800 border-red-200';
-                  default: return 'bg-gray-100 text-gray-800 border-gray-200';
-                }
-              };
-
-              const getColorDot = (color: string) => {
-                switch (color) {
-                  case 'rose': return 'bg-rose-500';
-                  case 'amber': return 'bg-amber-500';
-                  case 'mint': return 'bg-emerald-500';
-                  case 'sky': return 'bg-sky-500';
-                  case 'violet': return 'bg-violet-500';
-                  case 'lime': return 'bg-lime-500';
-                  case 'teal': return 'bg-teal-500';
-                  case 'crimson': return 'bg-red-600';
-                  default: return 'bg-gray-500';
-                }
-              };
+              const mainColor = getProjectColorHex(project.color || 'blue');
+              const lightBg = getProjectColorLightBackground(project.color || 'blue');
 
               return (
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${getColorClasses(project.color)}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${getColorDot(project.color)}`} />
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border"
+                  style={{
+                    backgroundColor: lightBg,
+                    borderColor: mainColor,
+                    color: mainColor,
+                  }}
+                >
+                  <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: mainColor }}
+                  />
                   <span className="truncate max-w-[80px]">{project.name}</span>
                 </span>
               );

@@ -8,6 +8,7 @@ import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
 
 interface TaskGroupProps {
   group: TaskGroupType;
@@ -74,23 +75,35 @@ export function TaskGroup({
   return (
     <div
       ref={setNodeRef}
-      className={`mb-6 rounded-lg transition-all duration-200 ${
+      className={`mb-6 rounded-lg transition-all duration-200 border-2 ${
         isOver
-          ? 'bg-blue-50 border-2 border-blue-300 shadow-lg'
+          ? 'shadow-lg'
           : isDraggingActive && isDragDropEnabled
-          ? 'bg-blue-50/30 border-2 border-blue-200 hover:border-blue-300'
-          : 'border-2 border-transparent'
+          ? ''
+          : 'border-transparent'
       }`}
+      style={
+        isOver
+          ? { backgroundColor: BRAND_COLOR.lighter, borderColor: BRAND_COLOR.main }
+          : isDraggingActive && isDragDropEnabled
+          ? { backgroundColor: `${BRAND_COLOR.lighter}50`, borderColor: BRAND_COLOR.light }
+          : undefined
+      }
     >
       {/* Group Header */}
       <div
         className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 cursor-pointer transition-colors ${
-          isOver
-            ? 'bg-blue-100'
-            : isDraggingActive && isDragDropEnabled
-            ? 'bg-blue-50 hover:bg-blue-100'
-            : 'bg-gray-50 hover:bg-gray-100'
+          !(isOver || (isDraggingActive && isDragDropEnabled))
+            ? 'bg-gray-50 hover:bg-gray-100'
+            : ''
         }`}
+        style={
+          isOver
+            ? { backgroundColor: BRAND_COLOR.light }
+            : isDraggingActive && isDragDropEnabled
+            ? { backgroundColor: BRAND_COLOR.lighter }
+            : undefined
+        }
         onClick={handleToggle}
       >
         <div className="flex items-center gap-3">
@@ -113,12 +126,12 @@ export function TaskGroup({
           <h3 className="font-medium text-gray-900">
             {group.label}
             {isDraggingActive && isDragDropEnabled && !isOver && (
-              <span className="ml-2 text-xs text-blue-500 font-normal opacity-75">
+              <span className="ml-2 text-xs font-normal opacity-75" style={{ color: BRAND_COLOR.main }}>
                 Drop anywhere in this section
               </span>
             )}
             {isOver && (
-              <span className="ml-2 text-xs text-blue-700 font-medium">
+              <span className="ml-2 text-xs font-medium" style={{ color: BRAND_COLOR.main }}>
                 Release to move here
               </span>
             )}
@@ -157,9 +170,10 @@ export function TaskGroup({
 
       {/* Group Tasks */}
       {!isCollapsed && group.tasks.length > 0 && (
-        <div className={`transition-colors ${
-          isOver ? 'bg-blue-50/50' : 'bg-white'
-        }`}>
+        <div
+          className="transition-colors"
+          style={isOver ? { backgroundColor: `${BRAND_COLOR.lighter}80` } : { backgroundColor: 'white' }}
+        >
           <SortableContext
             items={group.tasks.map(task => task.id)}
             strategy={verticalListSortingStrategy}
@@ -184,9 +198,14 @@ export function TaskGroup({
 
       {/* Empty State */}
       {!isCollapsed && group.tasks.length === 0 && (
-        <div className={`mx-4 my-4 px-4 py-8 text-center text-gray-400 transition-colors border-2 border-dashed rounded-lg ${
-          isOver ? 'bg-blue-50/50 border-blue-300' : 'bg-gray-50 border-gray-300'
-        }`}>
+        <div
+          className="mx-4 my-4 px-4 py-8 text-center text-gray-400 transition-colors border-2 border-dashed rounded-lg"
+          style={
+            isOver
+              ? { backgroundColor: `${BRAND_COLOR.lighter}80`, borderColor: BRAND_COLOR.main }
+              : { backgroundColor: '#f9fafb', borderColor: '#d1d5db' }
+          }
+        >
           <p className="text-sm">No Tasks</p>
           {isDraggingActive && isDragDropEnabled && (
             <p className="text-xs mt-1">Drop a task here to add it</p>
