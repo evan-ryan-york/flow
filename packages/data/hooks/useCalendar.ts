@@ -405,7 +405,7 @@ export function useTriggerEventSync() {
 
       // eslint-disable-next-line no-undef
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 120000) : null; // 2 minute timeout
+      const timeoutId = controller ? setTimeout(() => controller.abort('Request timeout after 2 minutes'), 120000) : null; // 2 minute timeout
 
       try {
         const response = await fetch(
