@@ -213,10 +213,10 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         <button
           onClick={(e) => handleStatusToggle(e)}
           disabled={updateTaskMutation.isPending}
-          className={`flex-shrink-0 transition-colors ${
+          className={`flex-shrink-0 p-1 rounded-full transition-all ${
             updateTaskMutation.isPending
               ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-400 hover:text-green-600'
+              : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
           }`}
           title={isDone ? "Mark as not done" : "Mark as done"}
         >
