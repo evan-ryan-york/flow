@@ -48,8 +48,8 @@ export function ProjectsPanel({
         name: projectName,
       });
 
-      // Auto-select the new project
-      onProjectSelectionChange([newProject.id]);
+      // Add the new project to existing selection
+      onProjectSelectionChange([...selectedProjectIds, newProject.id]);
     } catch {
       // Error is handled by the mutation
     }
