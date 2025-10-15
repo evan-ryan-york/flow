@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, memo, useRef, useEffect } from 'react';
+import React, { useState, memo, useRef, useEffect, useMemo } from 'react';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -14,6 +14,15 @@ import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/
 
 // Built-in columns that can be hidden
 export type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
+
+// Sort direction
+export type SortDirection = 'asc' | 'desc' | null;
+
+// Sort configuration
+export interface SortConfig {
+  column: string; // Can be built-in column or custom property ID
+  direction: SortDirection;
+}
 
 interface TaskListProps {
   tasks: Task[];
@@ -36,6 +45,8 @@ interface TaskListProps {
   visibleBuiltInColumns?: Set<BuiltInColumn>;
   onVisibleColumnIdsChange?: (ids: Set<string>) => void;
   onVisibleBuiltInColumnsChange?: (cols: Set<BuiltInColumn>) => void;
+  // Custom property values for sorting
+  customPropertyValues?: Array<{ task_id: string; definition_id: string; value: string }>;
 }
 
 const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
@@ -44,11 +55,19 @@ const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
   { id: 'project', label: 'Project' },
 ];
 
-// Column menu component
-function ColumnMenu({
-  onHide
+// Sort menu component - handles both sorting and hiding columns
+function SortMenu({
+  columnId,
+  currentSort,
+  onSort,
+  onHide,
+  canHide = true
 }: {
+  columnId: string;
+  currentSort: SortConfig | null;
+  onSort: (column: string, direction: SortDirection) => void;
   onHide: () => void;
+  canHide?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -65,11 +84,16 @@ function ColumnMenu({
     }
   }, [isOpen]);
 
+  const isSortedAsc = currentSort?.column === columnId && currentSort?.direction === 'asc';
+  const isSortedDesc = currentSort?.column === columnId && currentSort?.direction === 'desc';
+
   return (
     <div className="relative inline-block" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="ml-1 text-gray-400 hover:text-gray-600 transition-colors"
+        className={`ml-1 transition-colors ${
+          isSortedAsc || isSortedDesc ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+        }`}
       >
         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -81,13 +105,46 @@ function ColumnMenu({
           <div className="py-1">
             <button
               onClick={() => {
-                onHide();
+                onSort(columnId, 'asc');
                 setIsOpen(false);
               }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 flex items-center gap-2 ${
+                isSortedAsc ? 'text-blue-600 font-medium' : 'text-gray-700'
+              }`}
             >
-              Hide column
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+              </svg>
+              Sort ascending
             </button>
+            <button
+              onClick={() => {
+                onSort(columnId, 'desc');
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 flex items-center gap-2 ${
+                isSortedDesc ? 'text-blue-600 font-medium' : 'text-gray-700'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h5a1 1 0 000-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+              </svg>
+              Sort descending
+            </button>
+            {canHide && (
+              <>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button
+                  onClick={() => {
+                    onHide();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
+                >
+                  Hide column
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -182,6 +239,8 @@ function TableHeaders({
   customPropertyDefinitions,
   visibleColumnIds,
   visibleBuiltInColumns,
+  sortConfig,
+  onSort,
   onHideColumn,
   onShowColumn,
   onHideBuiltInColumn,
@@ -190,6 +249,8 @@ function TableHeaders({
   customPropertyDefinitions: CustomPropertyDefinition[];
   visibleColumnIds: Set<string>;
   visibleBuiltInColumns: Set<BuiltInColumn>;
+  sortConfig: SortConfig | null;
+  onSort: (column: string, direction: SortDirection) => void;
   onHideColumn: (columnId: string) => void;
   onShowColumn: (columnId: string) => void;
   onHideBuiltInColumn: (columnId: BuiltInColumn) => void;
@@ -206,13 +267,25 @@ function TableHeaders({
       {/* Spacer for completion button - exact width of w-5 icon */}
       <div className="flex-shrink-0" style={{ width: '20px', height: '20px' }}></div>
       {/* Name Column */}
-      <div className="flex-1 min-w-0">Name</div>
+      <div className="flex-1 min-w-0 flex items-center">
+        <span>Name</span>
+        <SortMenu
+          columnId="name"
+          currentSort={sortConfig}
+          onSort={onSort}
+          onHide={() => {}}
+          canHide={false}
+        />
+      </div>
       {/* Assigned To Column */}
       {visibleBuiltInColumns.has('assigned_to') && (
         <div className="flex-shrink-0 w-24 flex items-center justify-end">
           <div className="flex items-center text-right">
             <span>Assigned</span>
-            <ColumnMenu
+            <SortMenu
+              columnId="assigned_to"
+              currentSort={sortConfig}
+              onSort={onSort}
               onHide={() => onHideBuiltInColumn('assigned_to')}
             />
           </div>
@@ -223,7 +296,10 @@ function TableHeaders({
         <div className="flex-shrink-0 w-28 flex items-center justify-end">
           <div className="flex items-center text-right">
             <span>Due Date</span>
-            <ColumnMenu
+            <SortMenu
+              columnId="due_date"
+              currentSort={sortConfig}
+              onSort={onSort}
               onHide={() => onHideBuiltInColumn('due_date')}
             />
           </div>
@@ -234,7 +310,10 @@ function TableHeaders({
         <div className="flex-shrink-0 w-28 flex items-center justify-end">
           <div className="flex items-center text-right">
             <span>Project</span>
-            <ColumnMenu
+            <SortMenu
+              columnId="project"
+              currentSort={sortConfig}
+              onSort={onSort}
               onHide={() => onHideBuiltInColumn('project')}
             />
           </div>
@@ -245,7 +324,10 @@ function TableHeaders({
         <div key={property.id} className="flex-shrink-0 w-32 flex items-center justify-end">
           <div className="flex items-center text-right">
             <span>{property.name}</span>
-            <ColumnMenu
+            <SortMenu
+              columnId={property.id}
+              currentSort={sortConfig}
+              onSort={onSort}
               onHide={() => onHideColumn(property.id)}
             />
           </div>
@@ -282,10 +364,14 @@ const TaskList = memo(function TaskList({
   visibleColumnIds: controlledVisibleColumnIds,
   visibleBuiltInColumns: controlledVisibleBuiltInColumns,
   onVisibleColumnIdsChange,
-  onVisibleBuiltInColumnsChange
+  onVisibleBuiltInColumnsChange,
+  customPropertyValues = []
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // State for sorting
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // State for column visibility - use controlled if provided, otherwise manage locally
   const [localVisibleColumnIds, setLocalVisibleColumnIds] = useState<Set<string>>(() =>
@@ -337,6 +423,41 @@ const TaskList = memo(function TaskList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customPropertyDefinitions]);
 
+  // Auto-hide the column being grouped by (it's redundant with the group headers)
+  useEffect(() => {
+    if (!groupBy || groupBy === 'none') return;
+
+    // Handle custom property grouping
+    if (typeof groupBy === 'object' && groupBy.type === 'customProperty') {
+      const groupedPropertyId = groupBy.definitionId;
+      if (visibleColumnIds.has(groupedPropertyId)) {
+        setVisibleColumnIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(groupedPropertyId);
+          return newSet;
+        });
+      }
+      return;
+    }
+
+    // Handle built-in column grouping
+    const columnMapping: Record<string, BuiltInColumn> = {
+      'project': 'project',
+      'assignee': 'assigned_to',
+      // 'dueDate' and 'completion' don't have corresponding columns, so we don't hide anything
+    };
+
+    const columnToHide = columnMapping[groupBy as string];
+    if (columnToHide && visibleBuiltInColumns.has(columnToHide)) {
+      setVisibleBuiltInColumns(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(columnToHide);
+        return newSet;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupBy]);
+
   const handleToggleCollapse = (groupKey: string) => {
     setCollapsedGroups(prev => {
       const newSet = new Set(prev);
@@ -381,6 +502,111 @@ const TaskList = memo(function TaskList({
     });
   };
 
+  const handleSort = (column: string, direction: SortDirection) => {
+    if (direction === null) {
+      setSortConfig(null);
+    } else {
+      setSortConfig({ column, direction });
+    }
+  };
+
+  // Helper function to get custom property value for a task
+  const getCustomPropertyValue = (taskId: string, definitionId: string): string => {
+    const propertyValue = customPropertyValues.find(
+      pv => pv.task_id === taskId && pv.definition_id === definitionId
+    );
+    return propertyValue?.value || '';
+  };
+
+  // Apply sorting to tasks - MUST BE BEFORE ANY EARLY RETURNS (Rules of Hooks)
+  const displayedTasks = useMemo(() => {
+    if (!sortConfig) {
+      return [...tasks];
+    }
+
+    return [...tasks].sort((a, b) => {
+      const { column, direction } = sortConfig;
+      const multiplier = direction === 'asc' ? 1 : -1;
+
+      // Handle built-in columns
+      switch (column) {
+        case 'name':
+          return multiplier * a.name.localeCompare(b.name);
+
+        case 'due_date': {
+          const aDate = a.due_date ? new Date(a.due_date).getTime() : 0;
+          const bDate = b.due_date ? new Date(b.due_date).getTime() : 0;
+          // Null dates go to the end
+          if (!a.due_date && !b.due_date) return 0;
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return multiplier * (aDate - bDate);
+        }
+
+        case 'assigned_to': {
+          const aName = a.assigned_to ? (userMapping[a.assigned_to] || '') : '';
+          const bName = b.assigned_to ? (userMapping[b.assigned_to] || '') : '';
+          // Unassigned tasks go to the end
+          if (!aName && !bName) return 0;
+          if (!aName) return 1;
+          if (!bName) return -1;
+          return multiplier * aName.localeCompare(bName);
+        }
+
+        case 'project': {
+          const aProject = projects.find(p => p.id === a.project_id);
+          const bProject = projects.find(p => p.id === b.project_id);
+          const aName = aProject?.name || '';
+          const bName = bProject?.name || '';
+          if (!aName && !bName) return 0;
+          if (!aName) return 1;
+          if (!bName) return -1;
+          return multiplier * aName.localeCompare(bName);
+        }
+
+        default: {
+          // Handle custom property sorting
+          const aValue = getCustomPropertyValue(a.id, column);
+          const bValue = getCustomPropertyValue(b.id, column);
+
+          // Find property definition to determine type
+          const propertyDef = customPropertyDefinitions.find(def => def.id === column);
+
+          if (!propertyDef) return 0;
+
+          // Empty values go to the end
+          if (!aValue && !bValue) return 0;
+          if (!aValue) return 1;
+          if (!bValue) return -1;
+
+          // Sort based on property type
+          switch (propertyDef.type) {
+            case 'number':
+              return multiplier * (parseFloat(aValue) - parseFloat(bValue));
+
+            case 'date': {
+              const aDate = new Date(aValue).getTime();
+              const bDate = new Date(bValue).getTime();
+              return multiplier * (aDate - bDate);
+            }
+
+            default:
+              // Text and select sorting
+              return multiplier * aValue.localeCompare(bValue);
+          }
+        }
+      }
+    });
+  }, [tasks, sortConfig, userMapping, projects, customPropertyDefinitions, customPropertyValues]);
+
+  // Filter visible columns
+  const visibleColumns = customPropertyDefinitions.filter(prop => visibleColumnIds.has(prop.id));
+
+  // Determine if we should show grouped or flat display
+  const shouldShowGrouped = showGroupHeaders && groupedTasks && groupedTasks.length > 1;
+
+  // ALL HOOKS CALLED ABOVE - NOW SAFE TO HAVE EARLY RETURNS
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -391,17 +617,6 @@ const TaskList = memo(function TaskList({
       </div>
     );
   }
-
-  // Determine if we should show grouped or flat display
-  const shouldShowGrouped = showGroupHeaders && groupedTasks && groupedTasks.length > 1;
-
-  // Use tasks in the order they're passed from TaskHub (preserves drag order)
-  // Note: Sorting by custom properties will be visual only for now
-  // To implement server-side sorting, we'd need to fetch property values for all tasks upfront
-  const displayedTasks = [...tasks];
-
-  // Filter visible columns
-  const visibleColumns = customPropertyDefinitions.filter(prop => visibleColumnIds.has(prop.id));
 
   if (tasks.length === 0) {
     return (
@@ -429,6 +644,8 @@ const TaskList = memo(function TaskList({
           customPropertyDefinitions={customPropertyDefinitions}
           visibleColumnIds={visibleColumnIds}
           visibleBuiltInColumns={visibleBuiltInColumns}
+          sortConfig={sortConfig}
+          onSort={handleSort}
           onHideColumn={handleHideColumn}
           onShowColumn={handleShowColumn}
           onHideBuiltInColumn={handleHideBuiltInColumn}
@@ -448,6 +665,10 @@ const TaskList = memo(function TaskList({
               isDraggingActive={isDraggingActive}
               groupBy={groupBy}
               userMapping={userMapping}
+              projectMapping={projectMapping}
+              projects={projects}
+              profiles={profiles}
+              visibleBuiltInColumns={visibleBuiltInColumns}
               onTaskEditClick={onTaskEditClick}
             />
           ))}
@@ -463,6 +684,8 @@ const TaskList = memo(function TaskList({
         customPropertyDefinitions={customPropertyDefinitions}
         visibleColumnIds={visibleColumnIds}
         visibleBuiltInColumns={visibleBuiltInColumns}
+        sortConfig={sortConfig}
+        onSort={handleSort}
         onHideColumn={handleHideColumn}
         onShowColumn={handleShowColumn}
         onHideBuiltInColumn={handleHideBuiltInColumn}

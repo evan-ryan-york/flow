@@ -543,6 +543,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
               visibleBuiltInColumns={visibleBuiltInColumns}
               onVisibleColumnIdsChange={setVisibleColumnIds}
               onVisibleBuiltInColumnsChange={setVisibleBuiltInColumns}
+              customPropertyValues={allPropertyValues}
               onTaskEditClick={(taskId) => {
                 if (isEditPanelOpen && selectedTaskId === taskId) {
                   // If same task is clicked, close the panel

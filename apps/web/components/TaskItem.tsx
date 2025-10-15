@@ -185,15 +185,15 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           onPointerDown={(e) => {
             handleDragHandlePointerDown(e);
             // Call the original listener if it exists
-            if (dragListeners?.onPointerDown) {
-              dragListeners.onPointerDown(e as any);
+            if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
+              (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
             }
           }}
           onPointerUp={(e) => {
             handleDragHandlePointerUp(e);
             // Call the original listener if it exists
-            if (dragListeners?.onPointerUp) {
-              dragListeners.onPointerUp(e as any);
+            if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
+              (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
             }
           }}
           className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
@@ -255,11 +255,11 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 onDragEnd={handleCalendarDragEnd}
                 onPointerDown={(e) => {
                   e.stopPropagation();
-                  handleDragHandlePointerDown();
+                  handleDragHandlePointerDown(e);
                 }}
                 onPointerUp={(e) => {
                   e.stopPropagation();
-                  handleDragHandlePointerUp();
+                  handleDragHandlePointerUp(e);
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-grab active:cursor-grabbing"

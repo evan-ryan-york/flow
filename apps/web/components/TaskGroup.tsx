@@ -18,6 +18,10 @@ interface TaskGroupProps {
   isDraggingActive?: boolean;
   groupBy?: GroupByOption | null;
   userMapping?: Record<string, string>;
+  projectMapping?: Record<string, string>;
+  projects?: Array<{ id: string; name: string; color: string }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project'>;
   onTaskEditClick?: (taskId: string) => void;
 }
 
@@ -30,6 +34,10 @@ export function TaskGroup({
   isDraggingActive = false,
   groupBy,
   userMapping = {},
+  projectMapping = {},
+  projects = [],
+  profiles = [],
+  visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']),
   onTaskEditClick
 }: TaskGroupProps) {
   const handleToggle = () => {
@@ -163,6 +171,10 @@ export function TaskGroup({
                 customPropertyDefinitions={customPropertyDefinitions}
                 userId={userId}
                 userMapping={userMapping}
+                projectMapping={projectMapping}
+                projects={projects}
+                profiles={profiles}
+                visibleBuiltInColumns={visibleBuiltInColumns}
                 onTaskEditClick={onTaskEditClick}
               />
             ))}
@@ -191,12 +203,20 @@ function SortableTaskItem({
   customPropertyDefinitions,
   userId,
   userMapping,
+  projectMapping,
+  projects,
+  profiles,
+  visibleBuiltInColumns,
   onTaskEditClick
 }: {
   task: Task;
   customPropertyDefinitions: CustomPropertyDefinition[];
   userId: string;
   userMapping?: Record<string, string>;
+  projectMapping?: Record<string, string>;
+  projects?: Array<{ id: string; name: string; color: string }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project'>;
   onTaskEditClick?: (taskId: string) => void;
 }) {
   const {
@@ -229,6 +249,10 @@ function SortableTaskItem({
         dragAttributes={attributes as unknown as Record<string, unknown> & { [key: string]: unknown }}
         dragListeners={listeners as unknown as Record<string, unknown> & { [key: string]: unknown }}
         userMapping={userMapping}
+        projectMapping={projectMapping}
+        projects={projects}
+        profiles={profiles}
+        visibleBuiltInColumns={visibleBuiltInColumns}
         onEditClick={onTaskEditClick}
       />
     </div>
