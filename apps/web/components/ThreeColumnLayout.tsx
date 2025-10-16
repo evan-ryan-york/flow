@@ -6,8 +6,7 @@ import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
-import { Button } from '@perfect-task-app/ui';
-import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useUpdateView, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
+import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;
@@ -17,7 +16,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [hasManualChanges, setHasManualChanges] = useState(false);
 
   // Load user's saved project visibility preferences
   const { data: generalProject } = useGeneralProject(userId);
@@ -32,14 +30,11 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   // Fetch all projects to validate selectedProjectIds
   const { data: allProjects = [] } = useProjectsForUser(userId);
 
-  // Mutation for updating view
-  const updateViewMutation = useUpdateView();
-
   // Initialize with saved visible projects and selected view from localStorage
   useEffect(() => {
     // Wait for both visible projects and views to load before initializing
     if (!hasInitialized && !isLoadingVisibleProjects && !isLoadingViews && userViews.length > 0) {
-      // Restore selected view from localStorage, or use default view if no saved view
+      // Restore selected view from localStorage
       // eslint-disable-next-line no-undef
       const savedViewId = typeof localStorage !== 'undefined' ? localStorage.getItem(`selectedViewId_${userId}`) : null;
 
@@ -50,12 +45,16 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         defaultViewId: defaultView?.id,
       });
 
-      if (savedViewId && userViews.some(v => v.id === savedViewId)) {
+      if (savedViewId === 'none') {
+        // User explicitly deselected view - keep it deselected
+        console.log('[ThreeColumnLayout] ⭕ No view selected (user preference)');
+        setSelectedViewId(null);
+      } else if (savedViewId && userViews.some(v => v.id === savedViewId)) {
         // Use saved view if it exists
         console.log('[ThreeColumnLayout] ✅ Using saved view:', savedViewId);
         setSelectedViewId(savedViewId);
       } else if (defaultView) {
-        // Fall back to default view if no saved view or saved view doesn't exist
+        // Fall back to default view for first-time users or if saved view no longer exists
         console.log('[ThreeColumnLayout] ⚠️ Falling back to default view:', defaultView.id);
         setSelectedViewId(defaultView.id);
       }
@@ -71,12 +70,19 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
 
   // Persist selected view to localStorage whenever it changes
   useEffect(() => {
-    if (typeof localStorage !== 'undefined' && selectedViewId) {
-      // eslint-disable-next-line no-undef
-      localStorage.setItem(`selectedViewId_${userId}`, selectedViewId);
-      console.log('[ThreeColumnLayout] 💾 Saved view to localStorage:', selectedViewId);
+    if (typeof localStorage !== 'undefined' && hasInitialized) {
+      if (selectedViewId) {
+        // eslint-disable-next-line no-undef
+        localStorage.setItem(`selectedViewId_${userId}`, selectedViewId);
+        console.log('[ThreeColumnLayout] 💾 Saved view to localStorage:', selectedViewId);
+      } else {
+        // Save 'none' to indicate user explicitly deselected view
+        // eslint-disable-next-line no-undef
+        localStorage.setItem(`selectedViewId_${userId}`, 'none');
+        console.log('[ThreeColumnLayout] 💾 Saved "no view selected" state to localStorage');
+      }
     }
-  }, [selectedViewId, userId]);
+  }, [selectedViewId, userId, hasInitialized]);
 
   // Clean up selectedProjectIds to remove invalid/deleted project IDs
   useEffect(() => {
@@ -107,7 +113,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         : activeView.config.projectIds;
 
       setSelectedProjectIds(projectsToSelect);
-      setHasManualChanges(false);
       updateVisibleProjectsMutation.mutate({ projectIds: projectsToSelect, userId });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,41 +124,20 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
     setSelectedProjectIds(newProjectIds);
     updateVisibleProjectsMutation.mutate({ projectIds: newProjectIds, userId });
 
-    // If a view is active and projects are manually changed, mark as having manual changes
+    // If a view is active and projects are manually changed, deselect the view
     if (activeView) {
-      const viewProjectIds = activeView.config.projectIds || [];
+      const viewProjectIds = activeView.config.projectIds.length === 0
+        ? allProjects.map(p => p.id)  // Default view's empty array means "all projects"
+        : activeView.config.projectIds;
+
       const isDifferent =
         newProjectIds.length !== viewProjectIds.length ||
         !newProjectIds.every(id => viewProjectIds.includes(id));
-      setHasManualChanges(isDifferent);
-    }
-  };
 
-  // Update the active view with current project selection
-  const handleUpdateView = () => {
-    if (activeView) {
-      updateViewMutation.mutate({
-        viewId: activeView.id,
-        updates: {
-          config: {
-            ...activeView.config,
-            projectIds: selectedProjectIds,
-          },
-        },
-      }, {
-        onSuccess: () => {
-          setHasManualChanges(false);
-        },
-      });
-    }
-  };
-
-  // Discard changes and revert to view's project selection
-  const handleDiscardChanges = () => {
-    if (activeView?.config.projectIds) {
-      setSelectedProjectIds(activeView.config.projectIds);
-      setHasManualChanges(false);
-      updateVisibleProjectsMutation.mutate({ projectIds: activeView.config.projectIds, userId });
+      if (isDifferent) {
+        console.log('[ThreeColumnLayout] Projects changed, deselecting view');
+        setSelectedViewId(null);
+      }
     }
   };
 
@@ -186,36 +170,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
           id="task-hub-panel"
         >
           <div className="flex flex-col h-full min-w-0">
-            {/* Unsaved Changes Banner */}
-            {hasManualChanges && activeView && (
-              <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                  <span className="text-sm text-amber-900">
-                    Project selection differs from view "{activeView.name}"
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleDiscardChanges}
-                    className="text-amber-700 hover:text-amber-900 hover:bg-amber-100"
-                  >
-                    Discard
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleUpdateView}
-                    disabled={updateViewMutation.isPending}
-                    className="bg-amber-600 hover:bg-amber-700 text-white"
-                  >
-                    {updateViewMutation.isPending ? 'Updating...' : 'Update View'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <TaskHub
               userId={userId}
               selectedProjectIds={selectedProjectIds}
