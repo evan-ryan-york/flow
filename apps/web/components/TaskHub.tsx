@@ -63,8 +63,8 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
 
   // Column visibility state
   const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(() => new Set());
-  const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<'assigned_to' | 'due_date' | 'project'>>(() =>
-    new Set(['assigned_to', 'due_date', 'project'])
+  const [visibleBuiltInColumns, setVisibleBuiltInColumns] = useState<Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>>(() =>
+    new Set(['assigned_to', 'due_date', 'project', 'created_at'])
   );
 
   // Task edit panel state
@@ -78,20 +78,20 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     setHasUnsavedChanges,
   } = useTaskEditPanel();
 
-  // Determine which projects to query: use view config if active, otherwise use selectedProjectIds
-  const effectiveProjectIds = activeView?.config.projectIds && activeView.config.projectIds.length > 0
-    ? activeView.config.projectIds
-    : selectedProjectIds;
-
+  // Always use selectedProjectIds for fetching tasks - views only initialize the selection
+  // The parent component (ThreeColumnLayout) manages syncing selectedProjectIds with view changes
+  const effectiveProjectIds = selectedProjectIds;
 
   // Fetch tasks from effective project IDs
+  // When no projects are selected, the query is disabled and we explicitly use an empty array
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
+  const actualServerTasks = effectiveProjectIds.length === 0 ? [] : serverTasks;
 
   // Use isFetching instead of isLoading to prevent showing loader when we already have data
   // isLoading is true when there's no cached data, isFetching is true during any fetch
   // We only want to show the loader when we have no data at all
   const hasNoProjects = effectiveProjectIds.length === 0;
-  const effectiveIsLoading = hasNoProjects ? false : (isLoading && !serverTasks.length);
+  const effectiveIsLoading = hasNoProjects ? false : (isLoading && !actualServerTasks.length);
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
@@ -209,7 +209,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   const sortedServerTasks = useMemo(() => {
     const sortBy = activeView?.config.sortBy || 'due_date';
 
-    return [...serverTasks].sort((a, b) => {
+    return [...actualServerTasks].sort((a, b) => {
       switch (sortBy) {
         case 'due_date':
           // Sort by due date first (tasks with due dates come first)
@@ -242,7 +242,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [serverTasks, activeView?.config.sortBy]);
+  }, [actualServerTasks, activeView?.config.sortBy]);
 
   // Use sorted server tasks as the base
   const baseTasks = sortedServerTasks;

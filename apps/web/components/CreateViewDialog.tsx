@@ -35,7 +35,7 @@ interface CreateViewDialogProps {
   /** Array of visible custom property/column IDs */
   currentVisibleProperties?: string[];
   /** Array of visible built-in columns */
-  currentVisibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project')[];
+  currentVisibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project' | 'created_at')[];
   /** Optional callback fired when view is successfully created, receives the new view ID */
   onViewCreated?: (viewId: string) => void;
 }

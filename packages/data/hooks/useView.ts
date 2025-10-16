@@ -24,6 +24,16 @@ export const useUserViews = (userId: string) => {
   });
 };
 
+/**
+ * Hook to get the user's default view
+ * @param userId - The ID of the user
+ * @returns The default view or undefined if not found
+ */
+export const useDefaultView = (userId: string) => {
+  const { data: views } = useUserViews(userId);
+  return views?.find(v => v.is_default);
+};
+
 export const useCreateView = () => {
   const queryClient = useQueryClient();
 

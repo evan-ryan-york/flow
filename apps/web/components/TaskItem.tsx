@@ -7,7 +7,7 @@ import { Trash } from 'iconoir-react';
 import { DeleteTaskDialog } from './DeleteTaskDialog';
 import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-task-app/ui/colors';
 
-type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
+type BuiltInColumn = 'assigned_to' | 'due_date' | 'project' | 'created_at';
 
 interface TaskItemProps {
   task: Task;
@@ -26,7 +26,7 @@ interface TaskItemProps {
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -365,6 +365,34 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 </span>
               );
             })()}
+          </div>
+        )}
+
+        {/* Created Column - Fixed width */}
+        {visibleBuiltInColumns.has('created_at') && (
+          <div className="flex-shrink-0 w-28 text-right">
+            <span className="text-sm text-gray-600">
+              {(() => {
+                const createdDate = new Date(task.created_at);
+                const now = new Date();
+                const diffMs = now.getTime() - createdDate.getTime();
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) {
+                  return 'Today';
+                } else if (diffDays === 1) {
+                  return '1 Day Ago';
+                } else if (diffDays <= 7) {
+                  return `${diffDays} Days Ago`;
+                } else {
+                  return createdDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  });
+                }
+              })()}
+            </span>
           </div>
         )}
 

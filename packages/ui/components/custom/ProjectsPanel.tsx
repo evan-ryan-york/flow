@@ -197,7 +197,7 @@ export function ProjectsPanel({
                       onChange={(e) => setNewProjectName(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Project name..."
-                      className="w-full border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-full"
                       autoFocus
                       disabled={createProjectMutation.isPending}
                     />

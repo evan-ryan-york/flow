@@ -13,7 +13,7 @@ import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-
 import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 
 // Built-in columns that can be hidden
-export type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
+export type BuiltInColumn = 'assigned_to' | 'due_date' | 'project' | 'created_at';
 
 // Sort direction
 export type SortDirection = 'asc' | 'desc' | null;
@@ -53,6 +53,7 @@ const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
   { id: 'assigned_to', label: 'Assigned To' },
   { id: 'due_date', label: 'Due Date' },
   { id: 'project', label: 'Project' },
+  { id: 'created_at', label: 'Created' },
 ];
 
 // Sort menu component - handles both sorting and hiding columns
@@ -195,7 +196,7 @@ function AddColumnButton({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0">
+        <div className="absolute z-[100] mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0">
           <div className="py-1 max-h-60 overflow-y-auto">
             <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase">
               Hidden Columns
@@ -319,6 +320,20 @@ function TableHeaders({
           </div>
         </div>
       )}
+      {/* Created Column */}
+      {visibleBuiltInColumns.has('created_at') && (
+        <div className="flex-shrink-0 w-28 flex items-center justify-end">
+          <div className="flex items-center text-right">
+            <span>Created</span>
+            <SortMenu
+              columnId="created_at"
+              currentSort={sortConfig}
+              onSort={onSort}
+              onHide={() => onHideBuiltInColumn('created_at')}
+            />
+          </div>
+        </div>
+      )}
       {/* Custom Property Columns */}
       {visibleColumns.map((property) => (
         <div key={property.id} className="flex-shrink-0 w-32 flex items-center justify-end">
@@ -334,7 +349,7 @@ function TableHeaders({
         </div>
       ))}
       {/* Add Column Button - absolutely positioned */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
         <AddColumnButton
           hiddenCustomColumns={hiddenColumns}
           hiddenBuiltInColumns={hiddenBuiltInColumns}
@@ -379,7 +394,7 @@ const TaskList = memo(function TaskList({
   );
 
   const [localVisibleBuiltInColumns, setLocalVisibleBuiltInColumns] = useState<Set<BuiltInColumn>>(() =>
-    new Set<BuiltInColumn>(['assigned_to', 'due_date', 'project'])
+    new Set<BuiltInColumn>(['assigned_to', 'due_date', 'project', 'created_at'])
   );
 
   // Use controlled state if provided, otherwise use local state
@@ -562,6 +577,12 @@ const TaskList = memo(function TaskList({
           if (!aName) return 1;
           if (!bName) return -1;
           return multiplier * aName.localeCompare(bName);
+        }
+
+        case 'created_at': {
+          const aDate = new Date(a.created_at).getTime();
+          const bDate = new Date(b.created_at).getTime();
+          return multiplier * (aDate - bDate);
         }
 
         default: {

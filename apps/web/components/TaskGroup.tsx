@@ -22,7 +22,7 @@ interface TaskGroupProps {
   projectMapping?: Record<string, string>;
   projects?: Array<{ id: string; name: string; color: string }>;
   profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
-  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project'>;
+  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;
 }
 
@@ -38,7 +38,7 @@ export function TaskGroup({
   projectMapping = {},
   projects = [],
   profiles = [],
-  visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']),
+  visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']),
   onTaskEditClick
 }: TaskGroupProps) {
   const handleToggle = () => {
@@ -235,7 +235,7 @@ function SortableTaskItem({
   projectMapping?: Record<string, string>;
   projects?: Array<{ id: string; name: string; color: string }>;
   profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
-  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project'>;
+  visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;
 }) {
   const {

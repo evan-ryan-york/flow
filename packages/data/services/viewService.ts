@@ -9,7 +9,7 @@ export interface CreateViewData {
     groupBy?: string;
     sortBy?: string;
     visibleProperties?: string[];
-    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project')[];
+    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project' | 'created_at')[];
   };
 }
 
@@ -21,7 +21,7 @@ export interface UpdateViewData {
     groupBy?: string;
     sortBy?: string;
     visibleProperties?: string[];
-    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project')[];
+    visibleBuiltInColumns?: ('assigned_to' | 'due_date' | 'project' | 'created_at')[];
   };
 }
 
@@ -47,7 +47,13 @@ export const getViewsForUser = async (userId: string): Promise<View[]> => {
     // Zod validation happens here - ensuring type safety
     const validatedViews = ViewSchema.array().parse(parsedData);
 
-    return validatedViews;
+    // Sort: default view first, then others by creation date (newest first)
+    return validatedViews.sort((a, b) => {
+      if (a.is_default && !b.is_default) return -1;
+      if (!a.is_default && b.is_default) return 1;
+      // Both are custom views, keep creation date order (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   } catch (error) {
     console.error('ViewService.getViewsForUser error:', error);
     throw error;
