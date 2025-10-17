@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Project } from '@perfect-task-app/models';
 import { useProjectSearch } from '@perfect-task-app/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Badge } from '../ui/badge';
 import { getProjectColorHex } from '../../colors';
 
 interface ProjectAutocompleteProps {

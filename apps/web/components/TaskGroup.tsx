@@ -3,7 +3,7 @@
 import React from 'react';
 import { NavArrowDown, NavArrowRight } from 'iconoir-react';
 import { TaskItem } from './TaskItem';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
@@ -20,7 +20,7 @@ interface TaskGroupProps {
   groupBy?: GroupByOption | null;
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
-  projects?: Array<{ id: string; name: string; color: string }>;
+  projects?: Project[];
   profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
   visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;
@@ -233,7 +233,7 @@ function SortableTaskItem({
   userId: string;
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
-  projects?: Array<{ id: string; name: string; color: string }>;
+  projects?: Project[];
   profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
   visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;

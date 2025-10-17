@@ -269,12 +269,14 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
 
   // Required by react-big-calendar DnD
   // This function tells the calendar what item is being dragged from outside
-  const dragFromOutsideItem = useCallback(() => {
-    if (!draggedTask) return null;
-
+  const dragFromOutsideItem = useCallback((): CalendarEventType => {
+    // Return a placeholder event structure that matches CalendarEventType
+    // The actual dates will be set by react-big-calendar when dropped
     return {
-      id: draggedTask.id,
-      title: draggedTask.name,
+      id: draggedTask?.id || 'temp',
+      title: draggedTask?.name || '',
+      start: new Date(),
+      end: new Date(),
     };
   }, [draggedTask]);
 
