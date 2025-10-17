@@ -5,8 +5,9 @@ import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perf
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { Trash } from 'iconoir-react';
 import { DeleteTaskDialog } from './DeleteTaskDialog';
+import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-task-app/ui/colors';
 
-type BuiltInColumn = 'assigned_to' | 'due_date' | 'project';
+type BuiltInColumn = 'assigned_to' | 'due_date' | 'project' | 'created_at';
 
 interface TaskItemProps {
   task: Task;
@@ -25,7 +26,7 @@ interface TaskItemProps {
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -185,15 +186,15 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           onPointerDown={(e) => {
             handleDragHandlePointerDown(e);
             // Call the original listener if it exists
-            if (dragListeners?.onPointerDown) {
-              dragListeners.onPointerDown(e as any);
+            if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
+              (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
             }
           }}
           onPointerUp={(e) => {
             handleDragHandlePointerUp(e);
             // Call the original listener if it exists
-            if (dragListeners?.onPointerUp) {
-              dragListeners.onPointerUp(e as any);
+            if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
+              (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
             }
           }}
           className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
@@ -213,10 +214,10 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         <button
           onClick={(e) => handleStatusToggle(e)}
           disabled={updateTaskMutation.isPending}
-          className={`flex-shrink-0 transition-colors ${
+          className={`flex-shrink-0 p-1 rounded-full transition-all ${
             updateTaskMutation.isPending
               ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-400 hover:text-green-600'
+              : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
           }`}
           title={isDone ? "Mark as not done" : "Mark as done"}
         >
@@ -255,11 +256,11 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 onDragEnd={handleCalendarDragEnd}
                 onPointerDown={(e) => {
                   e.stopPropagation();
-                  handleDragHandlePointerDown();
+                  handleDragHandlePointerDown(e);
                 }}
                 onPointerUp={(e) => {
                   e.stopPropagation();
-                  handleDragHandlePointerUp();
+                  handleDragHandlePointerUp(e);
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-grab active:cursor-grabbing"
@@ -344,41 +345,54 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                 return <span className="text-sm text-gray-400">Unknown</span>;
               }
 
-              const getColorClasses = (color: string) => {
-                switch (color) {
-                  case 'rose': return 'bg-rose-100 text-rose-800 border-rose-200';
-                  case 'amber': return 'bg-amber-100 text-amber-800 border-amber-200';
-                  case 'mint': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                  case 'sky': return 'bg-sky-100 text-sky-800 border-sky-200';
-                  case 'violet': return 'bg-violet-100 text-violet-800 border-violet-200';
-                  case 'lime': return 'bg-lime-100 text-lime-800 border-lime-200';
-                  case 'teal': return 'bg-teal-100 text-teal-800 border-teal-200';
-                  case 'crimson': return 'bg-red-100 text-red-800 border-red-200';
-                  default: return 'bg-gray-100 text-gray-800 border-gray-200';
-                }
-              };
-
-              const getColorDot = (color: string) => {
-                switch (color) {
-                  case 'rose': return 'bg-rose-500';
-                  case 'amber': return 'bg-amber-500';
-                  case 'mint': return 'bg-emerald-500';
-                  case 'sky': return 'bg-sky-500';
-                  case 'violet': return 'bg-violet-500';
-                  case 'lime': return 'bg-lime-500';
-                  case 'teal': return 'bg-teal-500';
-                  case 'crimson': return 'bg-red-600';
-                  default: return 'bg-gray-500';
-                }
-              };
+              const mainColor = getProjectColorHex(project.color || 'blue');
+              const lightBg = getProjectColorLightBackground(project.color || 'blue');
 
               return (
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${getColorClasses(project.color)}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${getColorDot(project.color)}`} />
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border"
+                  style={{
+                    backgroundColor: lightBg,
+                    borderColor: mainColor,
+                    color: mainColor,
+                  }}
+                >
+                  <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: mainColor }}
+                  />
                   <span className="truncate max-w-[80px]">{project.name}</span>
                 </span>
               );
             })()}
+          </div>
+        )}
+
+        {/* Created Column - Fixed width */}
+        {visibleBuiltInColumns.has('created_at') && (
+          <div className="flex-shrink-0 w-28 text-right">
+            <span className="text-sm text-gray-600">
+              {(() => {
+                const createdDate = new Date(task.created_at);
+                const now = new Date();
+                const diffMs = now.getTime() - createdDate.getTime();
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) {
+                  return 'Today';
+                } else if (diffDays === 1) {
+                  return '1 Day Ago';
+                } else if (diffDays <= 7) {
+                  return `${diffDays} Days Ago`;
+                } else {
+                  return createdDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  });
+                }
+              })()}
+            </span>
           </div>
         )}
 

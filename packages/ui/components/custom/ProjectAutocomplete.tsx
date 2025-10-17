@@ -5,6 +5,7 @@ import { Project } from '@perfect-task-app/models';
 import { useProjectSearch } from '@perfect-task-app/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
+import { getProjectColorHex } from '../../colors';
 
 interface ProjectAutocompleteProps {
   query: string;
@@ -119,19 +120,12 @@ export const ProjectAutocomplete: React.FC<ProjectAutocompleteProps> = ({
                     data-selected={index === selectedIndex}
                   >
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={`w-3 h-3 rounded-full border-2 p-0 ${
-                          project.color === 'rose' ? 'bg-rose-500 border-rose-500' :
-                          project.color === 'amber' ? 'bg-amber-500 border-amber-500' :
-                          project.color === 'mint' ? 'bg-emerald-500 border-emerald-500' :
-                          project.color === 'sky' ? 'bg-sky-500 border-sky-500' :
-                          project.color === 'violet' ? 'bg-violet-500 border-violet-500' :
-                          project.color === 'lime' ? 'bg-lime-500 border-lime-500' :
-                          project.color === 'teal' ? 'bg-teal-500 border-teal-500' :
-                          project.color === 'crimson' ? 'bg-red-600 border-red-600' :
-                          'bg-gray-500 border-gray-500'
-                        }`}
+                      <div
+                        className="w-3 h-3 rounded-full border-2"
+                        style={{
+                          backgroundColor: getProjectColorHex(project.color || 'blue'),
+                          borderColor: getProjectColorHex(project.color || 'blue'),
+                        }}
                       />
                       <span className="text-sm font-medium">{project.name}</span>
                     </div>

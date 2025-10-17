@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Lock } from 'iconoir-react';
 import { ProjectContextMenu } from './ProjectContextMenu';
-import { ProjectColorPicker, getProjectColorHSL, type ProjectColor } from './ProjectColorPicker';
+import { ProjectColorPicker, getProjectColorHex, type ProjectColor } from './ProjectColorPicker';
 import type { Project } from '@perfect-task-app/models';
 
 interface ProjectItemProps {
@@ -48,7 +48,7 @@ export function ProjectItem({
               // Solid dot for selected projects
               <motion.div
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getProjectColorHSL(project.color || 'sky') }}
+                style={{ backgroundColor: getProjectColorHex(project.color || 'blue') }}
                 initial={false}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -57,7 +57,7 @@ export function ProjectItem({
               // Hollow circle for unselected projects
               <motion.div
                 className="w-3 h-3 rounded-full border-2"
-                style={{ borderColor: getProjectColorHSL(project.color || 'sky') }}
+                style={{ borderColor: getProjectColorHex(project.color || 'blue') }}
                 initial={false}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -65,18 +65,16 @@ export function ProjectItem({
             )}
           </motion.div>
 
-          {/* Color picker overlay (only for non-general projects) */}
-          {!project.is_general && (
-            <ProjectColorPicker
-              currentColor={project.color || 'sky'}
-              onColorChange={handleColorChange}
-            >
-              <button
-                className="absolute inset-0 w-full h-full rounded-full opacity-0 hover:opacity-10 bg-gray-500 transition-opacity duration-200"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </ProjectColorPicker>
-          )}
+          {/* Color picker overlay */}
+          <ProjectColorPicker
+            currentColor={project.color || 'blue'}
+            onColorChange={handleColorChange}
+          >
+            <button
+              className="absolute inset-0 w-full h-full rounded-full opacity-0 hover:opacity-10 bg-gray-500 transition-opacity duration-200"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </ProjectColorPicker>
         </div>
 
         {/* Project button */}

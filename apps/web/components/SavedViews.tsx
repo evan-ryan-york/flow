@@ -155,16 +155,18 @@ export function SavedViews({ userId, selectedViewId, onViewChange, onCreateView 
                 <span>{view.name}</span>
               </button>
 
-              <button
-                className="flex items-center hover:opacity-70 transition-opacity"
-                aria-label={`Delete ${view.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setViewToDelete(view);
-                }}
-              >
-                <Trash className="h-3.5 w-3.5" />
-              </button>
+              {!view.is_default && (
+                <button
+                  className="flex items-center hover:opacity-70 transition-opacity"
+                  aria-label={`Delete ${view.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewToDelete(view);
+                  }}
+                >
+                  <Trash className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           );
         })}

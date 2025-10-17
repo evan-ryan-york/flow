@@ -14,7 +14,7 @@ import {
 import { ProjectChip } from "@perfect-task-app/ui/components/custom";
 import { Input } from "@perfect-task-app/ui/components/ui/input";
 import { Button } from "@perfect-task-app/ui/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@perfect-task-app/ui";
+import { Popover, PopoverContent, PopoverTrigger, getProjectColorHex, BRAND_COLOR } from "@perfect-task-app/ui";
 import { Calendar as CalendarIcon, User, NavArrowDown } from "iconoir-react";
 import { format } from "date-fns";
 import { CustomPropertyManager } from "@perfect-task-app/ui/components/custom/CustomPropertyManager";
@@ -344,35 +344,22 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                       key={project.id}
                       onClick={() => handleProjectSelect(project)}
                       className={`cursor-pointer px-3 py-2 rounded-md hover:bg-gray-100 transition-colors ${
-                        index === selectedProjectIndex ? "bg-blue-50 border border-blue-200" : ""
+                        index === selectedProjectIndex ? "border" : ""
                       }`}
+                      style={index === selectedProjectIndex ? {
+                        backgroundColor: BRAND_COLOR.light,
+                        borderColor: BRAND_COLOR.light,
+                      } : undefined}
                       data-selected={index === selectedProjectIndex}
                     >
                       <div className="flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${
-                            project.color === "rose"
-                              ? "bg-rose-500"
-                              : project.color === "amber"
-                                ? "bg-amber-500"
-                                : project.color === "mint"
-                                  ? "bg-emerald-500"
-                                  : project.color === "sky"
-                                    ? "bg-sky-500"
-                                    : project.color === "violet"
-                                      ? "bg-violet-500"
-                                      : project.color === "lime"
-                                        ? "bg-lime-500"
-                                        : project.color === "teal"
-                                          ? "bg-teal-500"
-                                          : project.color === "crimson"
-                                            ? "bg-red-600"
-                                            : "bg-gray-500"
-                          }`}
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: getProjectColorHex(project.color || 'blue') }}
                         />
                         <span className="text-sm font-medium">{project.name}</span>
                         {index === selectedProjectIndex && (
-                          <span className="ml-auto text-xs text-blue-600">Press Tab</span>
+                          <span className="ml-auto text-xs" style={{ color: BRAND_COLOR.main }}>Press Tab</span>
                         )}
                       </div>
                     </div>
@@ -400,11 +387,14 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
-                      dueDate
-                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors"
+                    style={dueDate ? {
+                      backgroundColor: BRAND_COLOR.light,
+                      color: BRAND_COLOR.main,
+                    } : {
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                    }}
                   >
                     <CalendarIcon className="w-4 h-4" />
                     <span>{dueDate ? format(new Date(dueDate), "MMM d") : "Due"}</span>
@@ -478,12 +468,16 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                           setShowUserPicker(false);
                         }}
                         className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 flex items-center gap-2 ${
-                          assignedUser === userId ? "bg-blue-50 border border-blue-200" : ""
+                          assignedUser === userId ? "border" : ""
                         }`}
+                        style={assignedUser === userId ? {
+                          backgroundColor: BRAND_COLOR.light,
+                          borderColor: BRAND_COLOR.light,
+                        } : undefined}
                       >
                         <User className="w-4 h-4" />
                         <span>You (default)</span>
-                        {assignedUser === userId && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                        {assignedUser === userId && <span className="ml-auto text-xs" style={{ color: BRAND_COLOR.main }}>✓</span>}
                       </button>
 
                       {/* Other Users */}
@@ -498,12 +492,16 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
                               setShowUserPicker(false);
                             }}
                             className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 flex items-center gap-2 ${
-                              assignedUser === profile.id ? "bg-blue-50 border border-blue-200" : ""
+                              assignedUser === profile.id ? "border" : ""
                             }`}
+                            style={assignedUser === profile.id ? {
+                              backgroundColor: BRAND_COLOR.light,
+                              borderColor: BRAND_COLOR.light,
+                            } : undefined}
                           >
                             <User className="w-4 h-4" />
                             <span>{profile.first_name || profile.last_name || "Unknown User"}</span>
-                            {assignedUser === profile.id && <span className="ml-auto text-blue-600 text-xs">✓</span>}
+                            {assignedUser === profile.id && <span className="ml-auto text-xs" style={{ color: BRAND_COLOR.main }}>✓</span>}
                           </button>
                         ))}
 

@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase';
 import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from '@perfect-task-app/models';
+import { ProjectColorName } from '@perfect-task-app/ui';
 
 export interface CreateProjectData {
   name: string;
@@ -7,7 +8,7 @@ export interface CreateProjectData {
 
 export interface UpdateProjectData {
   name?: string;
-  color?: 'rose' | 'amber' | 'mint' | 'sky' | 'violet' | 'lime' | 'teal' | 'crimson';
+  color?: ProjectColorName;
 }
 
 export interface AddProjectMemberData {
