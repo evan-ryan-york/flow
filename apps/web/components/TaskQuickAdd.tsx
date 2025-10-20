@@ -281,7 +281,8 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
       <form onSubmit={handleSubmit} role="form">
         {/* Main Input with Project Chip */}
         <div className="relative">
-          <div className="flex gap-2 items-center">
+          {/* Desktop Layout (≥1024px) */}
+          <div className="hidden lg:flex gap-2 items-center">
             <div className="flex-1 relative">
               <Input
                 ref={inputRef}
@@ -294,7 +295,7 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
                 data-testid="task-input"
               />
 
-              {/* Project Chip */}
+              {/* Project Chip - Desktop (inside input) */}
               {selectedProject && !showAutocomplete && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
                   <ProjectChip
@@ -325,6 +326,37 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
               type="submit"
               disabled={!cleanTaskName(taskName).trim() || createTaskMutation.isPending}
               className="min-w-[80px]"
+            >
+              {createTaskMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-white rounded-full animate-spin mr-2" />
+                  Adding...
+                </>
+              ) : (
+                "Add"
+              )}
+            </Button>
+          </div>
+
+          {/* Mobile Layout (<1024px) */}
+          <div className="lg:hidden flex gap-2 items-center">
+            {/* Input - Full Width */}
+            <Input
+              ref={inputRef}
+              type="text"
+              value={taskName}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Add a task..."
+              className="flex-1"
+              data-testid="task-input"
+            />
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={!cleanTaskName(taskName).trim() || createTaskMutation.isPending}
+              className="min-w-[80px] min-h-[44px]"
             >
               {createTaskMutation.isPending ? (
                 <>

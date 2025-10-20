@@ -7,17 +7,22 @@ import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-tas
 interface ProjectChipsBarProps {
   projects: Project[];
   visibleProjectIds: string[]; // Filled state chips
+  selectedProjectId: string | null; // Selected project for new tasks (blue border)
   onVisibilityChange: (projectId: string, visible: boolean) => void;
+  onProjectSelect: (projectId: string) => void; // Long-press to select
 }
 
 export function ProjectChipsBar({
   projects,
   visibleProjectIds,
+  selectedProjectId,
   onVisibilityChange,
+  onProjectSelect,
 }: ProjectChipsBarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Check if scrollable and update fade indicators
   const updateFadeIndicators = () => {
@@ -50,32 +55,58 @@ export function ProjectChipsBar({
     onVisibilityChange(projectId, !isVisible);
   };
 
+  // Handle long-press start
+  const handlePressStart = (projectId: string) => {
+    const timer = setTimeout(() => {
+      onProjectSelect(projectId);
+    }, 500); // 500ms for long-press
+    setLongPressTimer(timer);
+  };
+
+  // Handle long-press end
+  const handlePressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
   // Get chip state
-  const getChipState = (projectId: string): 'outline' | 'filled' => {
-    if (visibleProjectIds.includes(projectId)) return 'filled';
-    return 'outline';
+  const getChipState = (projectId: string): { visible: boolean; selected: boolean } => {
+    return {
+      visible: visibleProjectIds.includes(projectId),
+      selected: projectId === selectedProjectId,
+    };
   };
 
   // Get chip styles based on state and project color
-  const getChipStyles = (state: 'outline' | 'filled', project: Project) => {
+  const getChipStyles = (visible: boolean, project: Project) => {
     const mainColor = getProjectColorHex(project.color || 'blue');
     const lightBg = getProjectColorLightBackground(project.color || 'blue');
 
-    switch (state) {
-      case 'filled':
-        return {
-          style: {
-            backgroundColor: lightBg,
-            color: mainColor,
-            borderColor: mainColor,
-          },
-          className: 'border-2'
-        };
-      case 'outline':
-        return {
-          style: {},
-          className: 'border-2 border-gray-300 bg-white text-gray-700'
-        };
+    if (visible) {
+      return {
+        style: {
+          backgroundColor: lightBg,
+          color: mainColor,
+          borderColor: mainColor,
+        },
+        className: 'border-2'
+      };
+    } else {
+      return {
+        style: {},
+        className: 'border-2 border-gray-300 bg-white text-gray-700'
+      };
     }
   };
 
@@ -101,11 +132,17 @@ export function ProjectChipsBar({
       >
         {projects.map((project) => {
           const chipState = getChipState(project.id);
-          const chipStyles = getChipStyles(chipState, project);
+          const chipStyles = getChipStyles(chipState.visible, project);
           return (
             <button
               key={project.id}
               onClick={() => handleChipClick(project.id)}
+              onTouchStart={() => handlePressStart(project.id)}
+              onTouchEnd={handlePressEnd}
+              onTouchCancel={handlePressEnd}
+              onMouseDown={() => handlePressStart(project.id)}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
               style={chipStyles.style}
               className={`
                 px-4 py-2 rounded-full text-sm font-medium
@@ -115,10 +152,13 @@ export function ProjectChipsBar({
                 active:scale-95
                 ${chipStyles.className}
               `}
-              aria-pressed={chipState === 'filled'}
-              aria-label={`${project.name} project${chipState === 'filled' ? ' (visible)' : ''}`}
+              aria-pressed={chipState.visible}
+              aria-label={`${project.name} project${chipState.selected ? ' (selected for new tasks)' : chipState.visible ? ' (visible)' : ''}`}
             >
               {project.name}
+              {chipState.selected && (
+                <span className="ml-1.5 text-xs">✓</span>
+              )}
             </button>
           );
         })}

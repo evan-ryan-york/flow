@@ -1,5 +1,7 @@
 'use client';
 
+import { List, Folder, Calendar, User } from 'iconoir-react';
+
 interface MobileBottomNavProps {
   activeTab: 'tasks' | 'projects' | 'calendar' | 'account';
   onTabChange: (tab: 'tasks' | 'projects' | 'calendar' | 'account') => void;
@@ -7,10 +9,10 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps) {
   const tabs = [
-    { id: 'tasks' as const, label: 'Tasks', icon: '📋' },
-    { id: 'projects' as const, label: 'Projects', icon: '📁' },
-    { id: 'calendar' as const, label: 'Calendar', icon: '📅' },
-    { id: 'account' as const, label: 'Account', icon: '👤' },
+    { id: 'tasks' as const, label: 'Tasks', Icon: List },
+    { id: 'projects' as const, label: 'Projects', Icon: Folder },
+    { id: 'calendar' as const, label: 'Calendar', Icon: Calendar },
+    { id: 'account' as const, label: 'Account', Icon: User },
   ];
 
   return (
@@ -21,12 +23,13 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
       <div className="flex h-16 items-center justify-around">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const IconComponent = tab.Icon;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`
-                flex flex-col items-center justify-center
+                flex flex-col items-center justify-center gap-1
                 min-w-[64px] min-h-[48px]
                 transition-colors
                 ${isActive
@@ -37,9 +40,7 @@ export function MobileBottomNav({ activeTab, onTabChange }: MobileBottomNavProps
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
             >
-              <span className="text-2xl mb-1" aria-hidden="true">
-                {tab.icon}
-              </span>
+              <IconComponent className="w-6 h-6" strokeWidth={isActive ? 2 : 1.5} />
               <span className={`text-xs font-medium ${isActive ? 'text-blue-600' : 'text-gray-600'}`}>
                 {tab.label}
               </span>

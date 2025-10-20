@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileTopActionBar } from './MobileTopActionBar';
 import { MobileSearchOverlay } from './MobileSearchOverlay';
 import { MobileFilterSheet } from './MobileFilterSheet';
 import { MobileGroupSheet } from './MobileGroupSheet';
 import { ProjectChipsBar } from './ProjectChipsBar';
+import { MobileTaskDetail } from './MobileTaskDetail';
 import { TaskList } from '../TaskList';
 import { TaskQuickAdd } from '../TaskQuickAdd';
 import {
@@ -43,6 +44,13 @@ export function MobileTaskView({
   const [groupSheetOpen, setGroupSheetOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<FilterState>(createEmptyFilterState());
   const [groupBy, setGroupBy] = useState<GroupByOption | null>(null);
+
+  // Task detail state
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [taskDetailOpen, setTaskDetailOpen] = useState(false);
+
+  // Selected project for new tasks (long-press on project chip)
+  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string | null>(null);
 
   // Fetch user projects and visibility state
   const { data: projects = [] } = useProjectsForUser(userId);
@@ -172,6 +180,26 @@ export function MobileTaskView({
     updateVisibleProjectsMutation.mutate({ projectIds: newVisibleIds, userId });
   };
 
+  // Handle task click to open detail overlay
+  const handleTaskClick = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setTaskDetailOpen(true);
+  };
+
+  // Handle task detail close
+  const handleTaskDetailClose = () => {
+    setTaskDetailOpen(false);
+    // Small delay before clearing taskId to allow closing animation
+    setTimeout(() => setSelectedTaskId(null), 300);
+  };
+
+  // Initialize selected project to first visible project
+  useEffect(() => {
+    if (!selectedProjectForTasks && visibleProjectIds.length > 0) {
+      setSelectedProjectForTasks(visibleProjectIds[0]);
+    }
+  }, [visibleProjectIds, selectedProjectForTasks]);
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Top Action Bar */}
@@ -217,7 +245,9 @@ export function MobileTaskView({
       <ProjectChipsBar
         projects={projects}
         visibleProjectIds={visibleProjectIds}
+        selectedProjectId={selectedProjectForTasks}
         onVisibilityChange={handleVisibilityChange}
+        onProjectSelect={setSelectedProjectForTasks}
       />
 
       {/* Main Content Area - Tab-based routing */}
@@ -238,6 +268,7 @@ export function MobileTaskView({
             projects={projects}
             profiles={allProfiles}
             customPropertyValues={allPropertyValues}
+            onTaskEditClick={handleTaskClick}
           />
         )}
         {activeTab === 'projects' && (
@@ -264,13 +295,21 @@ export function MobileTaskView({
       <div className="sticky bottom-16 bg-white border-t border-gray-200 p-4 shadow-lg">
         <TaskQuickAdd
           userId={userId}
-          defaultProjectId={visibleProjectIds[0] || ''}
+          defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
           showAdvancedOptions={false}
         />
       </div>
 
       {/* Bottom Navigation */}
       <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Task Detail Overlay */}
+      <MobileTaskDetail
+        taskId={selectedTaskId}
+        isOpen={taskDetailOpen}
+        onClose={handleTaskDetailClose}
+        userId={userId}
+      />
     </div>
   );
 }
