@@ -171,62 +171,23 @@ export async function handleTauriGoogleOAuth(
       throw new Error('Failed to load Tauri modules');
     }
 
-    // 1. Generate PKCE parameters
-    console.log('🔐 Generating PKCE parameters...');
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
-    console.log('✅ PKCE parameters generated');
-
-    // Store code_verifier in sessionStorage with Supabase's expected key format
-    // Supabase expects the key to be: `{storageKeyPrefix}-auth-token-code-verifier`
-    if (typeof window !== 'undefined' && window.sessionStorage) {
-      // Debug: Check Supabase's internal storage key before storing
-      const supabaseStorageKey = (supabase.auth as any).storageKey;
-      console.log('🔍 DEBUG (before storing): Supabase storage key:', supabaseStorageKey);
-
-      // Try multiple possible key formats
-      const possibleKeys = [
-        'sb-ewuhxqbfwbenkhnkzokp-auth-token-code-verifier',
-        `${supabaseStorageKey}-code-verifier`,
-        'supabase.auth.token-code-verifier',
-        'sb-auth-token-code-verifier',
-      ];
-
-      console.log('🔍 DEBUG: Possible storage keys:', possibleKeys);
-
-      // Store with all possible keys to ensure Supabase finds it
-      possibleKeys.forEach(key => {
-        if (key) {
-          window.sessionStorage.setItem(key, codeVerifier);
-          console.log(`💾 Code verifier stored with key: ${key}`);
-        }
-      });
-
-      // Debug: Verify storage
-      console.log('🔍 DEBUG: All sessionStorage keys after storing:',
-        Object.keys(window.sessionStorage)
-      );
-    }
-
     // 2. Start the local OAuth server on a FIXED port (required for Google OAuth)
     // Google requires the exact redirect URI to be registered in Cloud Console
-    // Using port 3000 which must be registered as http://localhost:3000 in Google Console
-    const FIXED_PORT = 3000;
+    // Using port 3210 (NOT 3000 which is used by Next.js dev server)
+    // This must be registered as http://localhost:3210 in Google Cloud Console
+    const FIXED_PORT = 3210;
     console.log(`📡 Starting OAuth server on port ${FIXED_PORT}...`);
     const port = await tauriOAuth.start({ ports: [FIXED_PORT] });
     console.log(`✅ OAuth server started on port ${port}`);
 
-    // 3. Get OAuth URL from Supabase with redirect to localhost and PKCE challenge
-    console.log('🔗 Getting OAuth URL from Supabase with PKCE challenge...');
+    // 3. Get OAuth URL from Supabase with PKCE flow
+    // Supabase SDK will automatically generate PKCE parameters and store the code_verifier
+    console.log('🔗 Getting OAuth URL from Supabase with PKCE flow...');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         skipBrowserRedirect: true,
-        redirectTo: `http://localhost:${port}`,
-        queryParams: {
-          code_challenge: codeChallenge,
-          code_challenge_method: 'S256'
-        }
+        redirectTo: `http://localhost:${port}/oauth-callback`,
       },
     });
 
@@ -249,12 +210,20 @@ export async function handleTauriGoogleOAuth(
 
     // 5. Wait for the callback with auth code
     console.log('⏳ Waiting for OAuth callback...');
+    console.log('🌐 OAuth server is listening on: http://localhost:' + port + '/oauth-callback');
+    console.log('📝 When OAuth completes, Google will redirect your browser to this address');
+    console.log('📝 Make sure no other services are running on port ' + port);
+    console.log('📝 IMPORTANT: Close all browser tabs for localhost:' + port + ' to prevent cached content');
 
     return new Promise((resolve) => {
       // Set a timeout for the OAuth flow (5 minutes)
       const timeout = setTimeout(async () => {
         console.error('⏰ OAuth flow timed out');
-        await tauriOAuth!.cancel(port);
+        try {
+          await tauriOAuth!.cancel(port);
+        } catch {
+          // Ignore cleanup errors on timeout
+        }
         resolve({ success: false, error: 'OAuth flow timed out' });
       }, 5 * 60 * 1000);
 
@@ -279,69 +248,11 @@ export async function handleTauriGoogleOAuth(
 
           console.log('🔑 Auth code received:', code.substring(0, 10) + '...');
 
-          // 6. Get stored code_verifier
-          const codeVerifierKey = 'sb-ewuhxqbfwbenkhnkzokp-auth-token-code-verifier';
-          const codeVerifier = typeof window !== 'undefined' && window.sessionStorage
-            ? window.sessionStorage.getItem(codeVerifierKey)
-            : null;
+          // 6. Exchange code for session using Supabase SDK
+          // This will automatically handle PKCE using the stored code_verifier
+          console.log('🔄 Exchanging code for session via Supabase SDK...');
 
-          if (!codeVerifier) {
-            console.error('❌ Code verifier not found in sessionStorage');
-            console.log('🔍 Available keys:', Object.keys(window.sessionStorage));
-            await tauriOAuth!.cancel(port);
-            resolve({ success: false, error: 'Code verifier not found' });
-            return;
-          }
-
-          console.log('✅ Code verifier found:', codeVerifier.substring(0, 10) + '...');
-
-          // 7. Exchange code for tokens using raw Supabase API
-          // Bypass the SDK to have full control over PKCE parameters
-          console.log('🔄 Exchanging code for tokens via Supabase API...');
-
-          // Get Supabase URL and anon key from the client
-          const supabaseUrl = (supabase as any).supabaseUrl ||
-                             'https://ewuhxqbfwbenkhnkzokp.supabase.co';
-          const supabaseKey = (supabase as any).supabaseKey ||
-                             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-          console.log('🔗 Supabase URL:', supabaseUrl);
-
-          const tokenResponse = await fetch(
-            `${supabaseUrl}/auth/v1/token`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseKey!
-              },
-              body: JSON.stringify({
-                grant_type: 'pkce',
-                auth_code: code,
-                code_verifier: codeVerifier
-              })
-            }
-          );
-
-          if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error('❌ Token exchange failed:', errorText);
-            await tauriOAuth!.cancel(port);
-            resolve({
-              success: false,
-              error: `Token exchange failed: ${tokenResponse.status} ${errorText}`
-            });
-            return;
-          }
-
-          const tokenData = await tokenResponse.json();
-          console.log('✅ Tokens received from Supabase');
-
-          // 8. Set the session in Supabase client
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token
-          });
+          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (sessionError) {
             console.error('❌ Failed to set session:', sessionError);
@@ -353,19 +264,23 @@ export async function handleTauriGoogleOAuth(
           console.log('✅ Authentication successful!');
           console.log('👤 User:', sessionData.user?.email);
 
-          // Clean up the code_verifier from sessionStorage
-          if (typeof window !== 'undefined' && window.sessionStorage) {
-            window.sessionStorage.removeItem(codeVerifierKey);
-            console.log('🧹 Code verifier cleaned from sessionStorage');
+          // Clean up the OAuth server (ignore errors as server may already be closed)
+          try {
+            await tauriOAuth!.cancel(port);
+            console.log('🧹 OAuth server cleaned up');
+          } catch (cleanupError) {
+            console.log('ℹ️  OAuth server cleanup skipped (already closed)');
           }
-
-          // Clean up the OAuth server
-          await tauriOAuth!.cancel(port);
 
           resolve({ success: true });
         } catch (err) {
           console.error('❌ Error processing OAuth callback:', err);
-          await tauriOAuth!.cancel(port);
+          // Try to clean up server on error (ignore failures)
+          try {
+            await tauriOAuth!.cancel(port);
+          } catch {
+            // Ignore cleanup errors
+          }
           resolve({
             success: false,
             error: err instanceof Error ? err.message : 'Unknown error'

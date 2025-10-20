@@ -8,6 +8,7 @@ import { enUS } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
 import { TimeBlockEvent } from '@perfect-task-app/ui/components/Calendar/TimeBlockEvent';
+import { ProfileMenu } from './ProfileMenu';
 import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
 import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
 import { useAssignTaskToTimeBlock } from '@perfect-task-app/data/hooks/useTimeBlockTasks';
@@ -435,27 +436,30 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
               </span>
             )}
           </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setView('day')}
-              className={`px-3 py-1 text-sm rounded ${
-                view === 'day'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => setView('week')}
-              className={`px-3 py-1 text-sm rounded ${
-                view === 'week'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              Week
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setView('day')}
+                className={`px-3 py-1 text-sm rounded ${
+                  view === 'day'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setView('week')}
+                className={`px-3 py-1 text-sm rounded ${
+                  view === 'week'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Week
+              </button>
+            </div>
+            <ProfileMenu />
           </div>
         </div>
 

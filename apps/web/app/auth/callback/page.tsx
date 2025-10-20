@@ -13,7 +13,18 @@ function AuthCallbackContent() {
 
     const handleCallback = async () => {
       const { getSupabaseClient } = await import('@perfect-task-app/data');
+      const { isTauri } = await import('@/lib/tauri-oauth');
       const supabase = getSupabaseClient();
+
+      // Special handling for Tauri: if we're here, it means the OAuth server
+      // didn't intercept the callback (browser loaded cached content)
+      // We need to manually trigger the PKCE flow
+      const isTauriEnv = isTauri();
+      if (isTauriEnv) {
+        console.log('⚠️  Tauri environment detected in web callback page');
+        console.log('⚠️  This means the OAuth server did not intercept the callback');
+        console.log('⚠️  Falling back to manual PKCE flow...');
+      }
 
       try {
         const error = searchParams.get('error');
