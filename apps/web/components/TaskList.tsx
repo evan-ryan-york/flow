@@ -245,7 +245,8 @@ function TableHeaders({
   onHideColumn,
   onShowColumn,
   onHideBuiltInColumn,
-  onShowBuiltInColumn
+  onShowBuiltInColumn,
+  showDragHandle = true
 }: {
   customPropertyDefinitions: CustomPropertyDefinition[];
   visibleColumnIds: Set<string>;
@@ -256,6 +257,7 @@ function TableHeaders({
   onShowColumn: (columnId: string) => void;
   onHideBuiltInColumn: (columnId: BuiltInColumn) => void;
   onShowBuiltInColumn: (columnId: BuiltInColumn) => void;
+  showDragHandle?: boolean;
 }) {
   const visibleColumns = customPropertyDefinitions.filter(prop => visibleColumnIds.has(prop.id));
   const hiddenColumns = customPropertyDefinitions.filter(prop => !visibleColumnIds.has(prop.id));
@@ -264,7 +266,9 @@ function TableHeaders({
   return (
     <div className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
       {/* Spacer for drag handle - exact width of button with p-1 and w-4 icon */}
-      <div className="flex-shrink-0" style={{ width: '24px', height: '24px' }}></div>
+      {showDragHandle && (
+        <div className="flex-shrink-0" style={{ width: '24px', height: '24px' }}></div>
+      )}
       {/* Spacer for completion button - exact width of w-5 icon */}
       <div className="flex-shrink-0" style={{ width: '20px', height: '20px' }}></div>
       {/* Name Column */}
@@ -278,9 +282,9 @@ function TableHeaders({
           canHide={false}
         />
       </div>
-      {/* Assigned To Column */}
+      {/* Assigned To Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('assigned_to') && (
-        <div className="flex-shrink-0 w-24 flex items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-24 items-center justify-end">
           <div className="flex items-center text-right">
             <span>Assigned</span>
             <SortMenu
@@ -292,9 +296,9 @@ function TableHeaders({
           </div>
         </div>
       )}
-      {/* Due Date Column */}
+      {/* Due Date Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('due_date') && (
-        <div className="flex-shrink-0 w-28 flex items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
           <div className="flex items-center text-right">
             <span>Due Date</span>
             <SortMenu
@@ -306,9 +310,9 @@ function TableHeaders({
           </div>
         </div>
       )}
-      {/* Project Column */}
+      {/* Project Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('project') && (
-        <div className="flex-shrink-0 w-28 flex items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
           <div className="flex items-center text-right">
             <span>Project</span>
             <SortMenu
@@ -320,9 +324,9 @@ function TableHeaders({
           </div>
         </div>
       )}
-      {/* Created Column */}
+      {/* Created Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('created_at') && (
-        <div className="flex-shrink-0 w-28 flex items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
           <div className="flex items-center text-right">
             <span>Created</span>
             <SortMenu
@@ -334,9 +338,9 @@ function TableHeaders({
           </div>
         </div>
       )}
-      {/* Custom Property Columns */}
+      {/* Custom Property Columns - Hidden on mobile (< 1024px), shown on desktop (≥ 1024px) */}
       {visibleColumns.map((property) => (
-        <div key={property.id} className="flex-shrink-0 w-32 flex items-center justify-end">
+        <div key={property.id} className="hidden lg:flex flex-shrink-0 w-32 items-center justify-end">
           <div className="flex items-center text-right">
             <span>{property.name}</span>
             <SortMenu
@@ -348,8 +352,8 @@ function TableHeaders({
           </div>
         </div>
       ))}
-      {/* Add Column Button - absolutely positioned */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+      {/* Add Column Button - absolutely positioned, hidden on mobile */}
+      <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-10">
         <AddColumnButton
           hiddenCustomColumns={hiddenColumns}
           hiddenBuiltInColumns={hiddenBuiltInColumns}
@@ -661,17 +665,20 @@ const TaskList = memo(function TaskList({
     // Render grouped tasks with table headers
     return (
       <div className="flex flex-col h-full">
-        <TableHeaders
-          customPropertyDefinitions={customPropertyDefinitions}
-          visibleColumnIds={visibleColumnIds}
-          visibleBuiltInColumns={visibleBuiltInColumns}
-          sortConfig={sortConfig}
-          onSort={handleSort}
-          onHideColumn={handleHideColumn}
-          onShowColumn={handleShowColumn}
-          onHideBuiltInColumn={handleHideBuiltInColumn}
-          onShowBuiltInColumn={handleShowBuiltInColumn}
-        />
+        <div className="hidden lg:block">
+          <TableHeaders
+            customPropertyDefinitions={customPropertyDefinitions}
+            visibleColumnIds={visibleColumnIds}
+            visibleBuiltInColumns={visibleBuiltInColumns}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            onHideColumn={handleHideColumn}
+            onShowColumn={handleShowColumn}
+            onHideBuiltInColumn={handleHideBuiltInColumn}
+            onShowBuiltInColumn={handleShowBuiltInColumn}
+            showDragHandle={true}
+          />
+        </div>
 
         {/* Grouped Tasks */}
         <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -701,17 +708,20 @@ const TaskList = memo(function TaskList({
   // Render flat task list (original layout)
   return (
     <div className="flex flex-col h-full">
-      <TableHeaders
-        customPropertyDefinitions={customPropertyDefinitions}
-        visibleColumnIds={visibleColumnIds}
-        visibleBuiltInColumns={visibleBuiltInColumns}
-        sortConfig={sortConfig}
-        onSort={handleSort}
-        onHideColumn={handleHideColumn}
-        onShowColumn={handleShowColumn}
-        onHideBuiltInColumn={handleHideBuiltInColumn}
-        onShowBuiltInColumn={handleShowBuiltInColumn}
-      />
+      <div className="hidden lg:block">
+        <TableHeaders
+          customPropertyDefinitions={customPropertyDefinitions}
+          visibleColumnIds={visibleColumnIds}
+          visibleBuiltInColumns={visibleBuiltInColumns}
+          sortConfig={sortConfig}
+          onSort={handleSort}
+          onHideColumn={handleHideColumn}
+          onShowColumn={handleShowColumn}
+          onHideBuiltInColumn={handleHideBuiltInColumn}
+          onShowBuiltInColumn={handleShowBuiltInColumn}
+          showDragHandle={false}
+        />
+      </div>
 
       {/* Task Rows */}
       <div className="flex-1 overflow-y-auto bg-white">
@@ -720,7 +730,7 @@ const TaskList = memo(function TaskList({
           strategy={verticalListSortingStrategy}
         >
           {displayedTasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} projectMapping={projectMapping} projects={projects} profiles={profiles} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} />
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} projectMapping={projectMapping} projects={projects} profiles={profiles} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} showDragHandle={showGroupHeaders} />
           ))}
         </SortableContext>
       </div>
@@ -730,7 +740,7 @@ const TaskList = memo(function TaskList({
 
 export { TaskList };
 
-function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, projectMapping, projects, profiles, visibleBuiltInColumns, onTaskEditClick }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; projectMapping?: Record<string, string>; projects?: Project[]; profiles?: Profile[]; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void }) {
+function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, projectMapping, projects, profiles, visibleBuiltInColumns, onTaskEditClick, showDragHandle }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; projectMapping?: Record<string, string>; projects?: Project[]; profiles?: Profile[]; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void; showDragHandle?: boolean }) {
   const {
     attributes,
     listeners,
@@ -768,6 +778,7 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
         profiles={profiles}
         visibleBuiltInColumns={visibleBuiltInColumns}
         onEditClick={onTaskEditClick}
+        showDragHandle={showDragHandle}
       />
     </div>
   );

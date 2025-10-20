@@ -23,9 +23,10 @@ import { cleanTaskName } from "@perfect-task-app/ui/lib/textParser";
 interface TaskQuickAddProps {
   userId: string;
   defaultProjectId: string;
+  showAdvancedOptions?: boolean; // Default true for desktop, false for mobile
 }
 
-export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
+export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true }: TaskQuickAddProps) {
   const [taskName, setTaskName] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [dueDate, setDueDate] = useState<string>("");
@@ -307,16 +308,18 @@ export function TaskQuickAdd({ userId, defaultProjectId }: TaskQuickAddProps) {
               )}
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="p-2"
-              title="Advanced options"
-            >
-              <NavArrowDown className="w-4 h-4" />
-            </Button>
+            {showAdvancedOptions && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="p-2"
+                title="Advanced options"
+              >
+                <NavArrowDown className="w-4 h-4" />
+              </Button>
+            )}
 
             <Button
               type="submit"
