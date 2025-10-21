@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { Plus, Settings, NavArrowLeft, NavArrowRight } from 'iconoir-react';
+import { format, addDays } from 'date-fns';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileTopActionBar } from './MobileTopActionBar';
 import { MobileSearchOverlay } from './MobileSearchOverlay';
@@ -8,6 +10,9 @@ import { MobileFilterSheet } from './MobileFilterSheet';
 import { MobileGroupSheet } from './MobileGroupSheet';
 import { ProjectChipsBar } from './ProjectChipsBar';
 import { MobileTaskDetail } from './MobileTaskDetail';
+import { MobileCalendarView } from './MobileCalendarView';
+import { MobileProjectsView } from './MobileProjectsView';
+import { MobileAccountView } from './MobileAccountView';
 import { TaskList } from '../TaskList';
 import { TaskQuickAdd } from '../TaskQuickAdd';
 import {
@@ -51,6 +56,13 @@ export function MobileTaskView({
 
   // Selected project for new tasks (long-press on project chip)
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string | null>(null);
+
+  // Create project state (for projects tab)
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+
+  // Calendar state (for calendar tab)
+  const [calendarView, setCalendarView] = useState<'day' | 'week'>('day');
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Fetch user projects and visibility state
   const { data: projects = [] } = useProjectsForUser(userId);
@@ -166,7 +178,7 @@ export function MobileTaskView({
     return mapping;
   }, [projects]);
 
-  // Handle project visibility toggle
+  // Handle project visibility toggle (for ProjectChipsBar)
   const handleVisibilityChange = (projectId: string, visible: boolean) => {
     let newVisibleIds: string[];
     if (visible) {
@@ -178,6 +190,13 @@ export function MobileTaskView({
     // Update both local state and database
     onProjectSelectionChange(newVisibleIds);
     updateVisibleProjectsMutation.mutate({ projectIds: newVisibleIds, userId });
+  };
+
+  // Handle project selection change (for MobileProjectsView)
+  const handleProjectSelectionChange = (projectIds: string[]) => {
+    // Update both local state and database
+    onProjectSelectionChange(projectIds);
+    updateVisibleProjectsMutation.mutate({ projectIds, userId });
   };
 
   // Handle task click to open detail overlay
@@ -202,14 +221,104 @@ export function MobileTaskView({
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* Top Action Bar */}
-      <MobileTopActionBar
-        onSearchOpen={() => setSearchOverlayOpen(true)}
-        onFilterOpen={() => setFilterSheetOpen(true)}
-        onGroupOpen={() => setGroupSheetOpen(true)}
-        activeFilterCount={activeFilterCount}
-        currentGroupBy={groupBy}
-      />
+      {/* Top Action Bar - Only shown on tasks tab */}
+      {activeTab === 'tasks' && (
+        <MobileTopActionBar
+          onSearchOpen={() => setSearchOverlayOpen(true)}
+          onFilterOpen={() => setFilterSheetOpen(true)}
+          onGroupOpen={() => setGroupSheetOpen(true)}
+          activeFilterCount={activeFilterCount}
+          currentGroupBy={groupBy}
+        />
+      )}
+
+      {/* Projects Top Action Bar */}
+      {activeTab === 'projects' && (
+        <div className="flex items-center justify-between px-4 h-14 bg-white border-b border-gray-200">
+          <h1 className="text-lg font-semibold text-blue-600">Current</h1>
+          <button
+            onClick={() => setIsCreatingProject(!isCreatingProject)}
+            className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            aria-label="Create new project"
+          >
+            <Plus className="w-6 h-6 text-gray-700" strokeWidth={2} style={{ transform: isCreatingProject ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease-in-out' }} />
+          </button>
+        </div>
+      )}
+
+      {/* Calendar Top Action Bar */}
+      {activeTab === 'calendar' && (
+        <div className="flex flex-col bg-white border-b border-gray-200">
+          {/* First row: Title and action buttons */}
+          <div className="flex items-center justify-between px-4 h-14">
+            <h1 className="text-lg font-semibold text-blue-600">Current</h1>
+            <div className="flex items-center gap-2">
+              {/* Day/Week Toggle */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCalendarView('day')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    calendarView === 'day'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
+                  }`}
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setCalendarView('week')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    calendarView === 'week'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'text-gray-600 hover:bg-gray-100 active:bg-gray-200'
+                  }`}
+                >
+                  Week
+                </button>
+              </div>
+              {/* Settings Button */}
+              <button
+                onClick={() => {
+                  window.location.href = '/app/settings/calendar-connections';
+                }}
+                className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                aria-label="Calendar Settings"
+              >
+                <Settings className="w-5 h-5 text-gray-700" strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+          {/* Second row: Date navigation */}
+          <div className="flex items-center justify-between px-4 pb-3">
+            <button
+              onClick={() => {
+                const newDate = new Date(calendarDate);
+                newDate.setDate(newDate.getDate() - (calendarView === 'week' ? 7 : 1));
+                setCalendarDate(newDate);
+              }}
+              className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200"
+            >
+              <NavArrowLeft className="w-6 h-6 text-gray-700" strokeWidth={2.5} />
+            </button>
+            <span className="font-semibold text-gray-900">
+              {calendarView === 'day'
+                ? format(calendarDate, 'EEEE, MMM d')
+                : `${format(calendarDate, 'MMM d')} - ${format(addDays(calendarDate, 6), 'MMM d')}`
+              }
+            </span>
+            <button
+              onClick={() => {
+                const newDate = new Date(calendarDate);
+                newDate.setDate(newDate.getDate() + (calendarView === 'week' ? 7 : 1));
+                setCalendarDate(newDate);
+              }}
+              className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200"
+            >
+              <NavArrowRight className="w-6 h-6 text-gray-700" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search Overlay */}
       <MobileSearchOverlay
@@ -241,14 +350,16 @@ export function MobileTaskView({
         customPropertyDefinitions={customPropertyDefinitions}
       />
 
-      {/* Project Chips Bar */}
-      <ProjectChipsBar
-        projects={projects}
-        visibleProjectIds={visibleProjectIds}
-        selectedProjectId={selectedProjectForTasks}
-        onVisibilityChange={handleVisibilityChange}
-        onProjectSelect={setSelectedProjectForTasks}
-      />
+      {/* Project Chips Bar - Only shown on tasks tab */}
+      {activeTab === 'tasks' && (
+        <ProjectChipsBar
+          projects={projects}
+          visibleProjectIds={visibleProjectIds}
+          selectedProjectId={selectedProjectForTasks}
+          onVisibilityChange={handleVisibilityChange}
+          onProjectSelect={setSelectedProjectForTasks}
+        />
+      )}
 
       {/* Main Content Area - Tab-based routing */}
       <div className="flex-1 overflow-hidden pb-20">
@@ -272,33 +383,38 @@ export function MobileTaskView({
           />
         )}
         {activeTab === 'projects' && (
-          <div className="p-4">
-            <p className="text-gray-500 text-center">Project management will appear here</p>
-            <p className="text-xs text-gray-400 text-center mt-2">Future feature</p>
-          </div>
+          <MobileProjectsView
+            userId={userId}
+            selectedProjectIds={visibleProjectIds}
+            onProjectSelectionChange={handleProjectSelectionChange}
+            isCreatingProject={isCreatingProject}
+            onCreateProjectToggle={() => setIsCreatingProject(!isCreatingProject)}
+          />
         )}
         {activeTab === 'calendar' && (
-          <div className="p-4">
-            <p className="text-gray-500 text-center">Calendar view will appear here</p>
-            <p className="text-xs text-gray-400 text-center mt-2">Desktop calendar adapted for mobile</p>
-          </div>
+          <MobileCalendarView
+            userId={userId}
+            view={calendarView}
+            onViewChange={setCalendarView}
+            date={calendarDate}
+            onDateChange={setCalendarDate}
+          />
         )}
         {activeTab === 'account' && (
-          <div className="p-4">
-            <p className="text-gray-500 text-center">Account settings will appear here</p>
-            <p className="text-xs text-gray-400 text-center mt-2">Future feature</p>
-          </div>
+          <MobileAccountView />
         )}
       </div>
 
-      {/* Quick Add Input - Integrated TaskQuickAdd */}
-      <div className="sticky bottom-16 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <TaskQuickAdd
-          userId={userId}
-          defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
-          showAdvancedOptions={false}
-        />
-      </div>
+      {/* Quick Add Input - Only shown on tasks tab */}
+      {activeTab === 'tasks' && (
+        <div className="sticky bottom-16 bg-white border-t border-gray-200 p-4 shadow-lg">
+          <TaskQuickAdd
+            userId={userId}
+            defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
+            showAdvancedOptions={false}
+          />
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />

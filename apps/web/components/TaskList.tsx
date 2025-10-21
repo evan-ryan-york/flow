@@ -264,7 +264,7 @@ function TableHeaders({
   const hiddenBuiltInColumns = BUILT_IN_COLUMNS.filter(col => !visibleBuiltInColumns.has(col.id)).map(col => col.id);
 
   return (
-    <div className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+    <div className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
       {/* Spacer for drag handle - exact width of button with p-1 and w-4 icon */}
       {showDragHandle && (
         <div className="flex-shrink-0" style={{ width: '24px', height: '24px' }}></div>
@@ -529,16 +529,16 @@ const TaskList = memo(function TaskList({
     }
   };
 
-  // Helper function to get custom property value for a task
-  const getCustomPropertyValue = (taskId: string, definitionId: string): string => {
-    const propertyValue = customPropertyValues.find(
-      pv => pv.task_id === taskId && pv.definition_id === definitionId
-    );
-    return propertyValue?.value || '';
-  };
-
   // Apply sorting to tasks - MUST BE BEFORE ANY EARLY RETURNS (Rules of Hooks)
   const displayedTasks = useMemo(() => {
+    // Helper function to get custom property value for a task (inside useMemo to avoid dependency issues)
+    const getCustomPropertyValue = (taskId: string, definitionId: string): string => {
+      const propertyValue = customPropertyValues.find(
+        pv => pv.task_id === taskId && pv.definition_id === definitionId
+      );
+      return propertyValue?.value || '';
+    };
+
     if (!sortConfig) {
       return [...tasks];
     }

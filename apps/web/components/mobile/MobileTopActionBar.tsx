@@ -30,7 +30,7 @@ export function MobileTopActionBar({
   return (
     <div className="flex items-center justify-between px-4 h-14 bg-white border-b border-gray-200">
       {/* App Title */}
-      <h1 className="text-lg font-semibold text-gray-900">Perfect Task</h1>
+      <h1 className="text-lg font-semibold text-blue-600">Current</h1>
 
       {/* Action Icons */}
       <div className="flex items-center gap-2">

@@ -49,7 +49,9 @@ export async function waitForTauriAPI(timeout = 10000): Promise<boolean> {
     // Check for the EXACT thing the OAuth plugin requires
     if (
       typeof window !== 'undefined' &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).__TAURI_INTERNALS__ &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       typeof (window as any).__TAURI_INTERNALS__.invoke === 'function'
     ) {
       console.log('✅ window.__TAURI_INTERNALS__.invoke ready after', attempt, 'attempts');
@@ -58,10 +60,12 @@ export async function waitForTauriAPI(timeout = 10000): Promise<boolean> {
 
     // Log progress every 20 attempts
     if (attempt % 20 === 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Need to access Tauri internals
+      const internals = (window as any).__TAURI_INTERNALS__;
       console.log(`⏳ Attempt ${attempt}, checking for __TAURI_INTERNALS__.invoke...`, {
         hasTauriInternals: '__TAURI_INTERNALS__' in window,
-        hasInvoke: (window as any).__TAURI_INTERNALS__ ? 'invoke' in (window as any).__TAURI_INTERNALS__ : false,
-        internalsType: typeof (window as any).__TAURI_INTERNALS__
+        hasInvoke: internals ? 'invoke' in internals : false,
+        internalsType: typeof internals
       });
     }
 
@@ -71,6 +75,7 @@ export async function waitForTauriAPI(timeout = 10000): Promise<boolean> {
   console.error('❌ window.__TAURI_INTERNALS__.invoke never loaded after', attempt, 'attempts');
   console.error('Final state:', {
     hasTauriInternals: '__TAURI_INTERNALS__' in window,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     internals: (window as any).__TAURI_INTERNALS__
   });
   return false;
@@ -109,35 +114,38 @@ async function initTauriModules() {
 /**
  * Generate a cryptographically secure random string for PKCE code_verifier
  * Must be 43-128 characters, URL-safe base64 encoded
+ *
+ * Note: These functions are kept for potential future use but are currently
+ * handled automatically by Supabase SDK's signInWithOAuth method.
  */
-function generateCodeVerifier(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return base64URLEncode(array);
-}
+// function _generateCodeVerifier(): string {
+//   const array = new Uint8Array(32);
+//   crypto.getRandomValues(array);
+//   return _base64URLEncode(array);
+// }
 
 /**
  * Base64 URL encode (without padding)
  * Converts binary data to URL-safe base64 string
  */
-function base64URLEncode(buffer: Uint8Array): string {
-  const base64 = btoa(String.fromCharCode(...buffer));
-  return base64
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
+// function _base64URLEncode(buffer: Uint8Array): string {
+//   const base64 = btoa(String.fromCharCode(...buffer));
+//   return base64
+//     .replace(/\+/g, '-')
+//     .replace(/\//g, '_')
+//     .replace(/=/g, '');
+// }
 
 /**
  * Generate code_challenge from code_verifier using SHA-256
  * Required for PKCE S256 method
  */
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(verifier);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return base64URLEncode(new Uint8Array(hash));
-}
+// async function _generateCodeChallenge(verifier: string): Promise<string> {
+//   const encoder = new TextEncoder();
+//   const data = encoder.encode(verifier);
+//   const hash = await crypto.subtle.digest('SHA-256', data);
+//   return _base64URLEncode(new Uint8Array(hash));
+// }
 
 /**
  * Handle Google OAuth flow in Tauri desktop app
@@ -268,7 +276,7 @@ export async function handleTauriGoogleOAuth(
           try {
             await tauriOAuth!.cancel(port);
             console.log('🧹 OAuth server cleaned up');
-          } catch (cleanupError) {
+          } catch {
             console.log('ℹ️  OAuth server cleanup skipped (already closed)');
           }
 

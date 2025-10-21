@@ -15,8 +15,8 @@
     --foreground: 340 5% 9%;           /* #1a1718 - Default text color */
     --card: 0 0% 100%;                 /* #ffffff - Card background */
     --card-foreground: 340 5% 9%;      /* #1a1718 - Text inside cards */
-    --primary: 340 5% 9%;              /* #1a1718 - Primary buttons, active UI */
-    --primary-foreground: 40 80% 99%;  /* #fefefd - Text on primary elements */
+    --primary: 217 91% 60%;            /* #2563eb - Primary buttons, active UI (blue-600) */
+    --primary-foreground: 0 0% 100%;   /* #ffffff - Text on primary elements */
     --secondary: 80 5% 90%;            /* #e5e6e4 - Secondary buttons, UI */
     --secondary-foreground: 340 5% 9%; /* #1a1718 - Text on secondary elements */
     --muted: 0 2% 64%;                 /* #a6a2a2 - Disabled/placeholder text */
@@ -75,7 +75,7 @@
     --foreground: 60 8% 93%;           /* #f0f0ef - Default text color */
     --card: 340 3% 15%;                /* #292728 - Card background */
     --card-foreground: 60 8% 93%;      /* #f0f0ef - Text inside cards */
-    --primary: 60 8% 93%;              /* #f0f0ef - Primary buttons, active UI */
+    --primary: 213 94% 68%;            /* #60a5fa - Primary buttons, active UI (blue-400) */
     --primary-foreground: 340 5% 9%;   /* #1a1718 - Text on primary elements */
     --secondary: 0 2% 25%;             /* #434040 - Secondary buttons, UI */
     --secondary-foreground: 60 8% 93%; /* #f0f0ef - Text on secondary elements */
