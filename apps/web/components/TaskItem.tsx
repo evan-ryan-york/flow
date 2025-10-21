@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo, useEffect } from 'react';
+import { useState, memo, useEffect, useRef } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { Trash } from 'iconoir-react';
@@ -242,12 +242,12 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           }`}>
             {task.name}
           </span>
-          {/* Tooltip - shows full task name on hover */}
-          <div className="absolute left-0 bottom-full mb-2 invisible group-hover/title:visible opacity-0 group-hover/title:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
+          {/* Tooltip - shows full task name on hover, positioned below to avoid header overlap */}
+          <div className="absolute left-0 top-full mt-2 invisible group-hover/title:visible opacity-0 group-hover/title:opacity-100 transition-opacity duration-200 z-[9999] pointer-events-none">
             <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 max-w-md whitespace-normal break-words">
               {task.name}
-              {/* Arrow pointing down */}
-              <div className="absolute top-full left-8 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              {/* Arrow pointing up to task */}
+              <div className="absolute bottom-full left-8 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
             </div>
           </div>
           {/* Action Icons - appear on hover */}
