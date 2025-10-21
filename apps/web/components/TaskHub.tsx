@@ -85,7 +85,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
   // Fetch tasks from effective project IDs
   // When no projects are selected, the query is disabled and we explicitly use an empty array
   const { data: serverTasks = [], isLoading, error } = useProjectsTasks(userId, effectiveProjectIds);
-  const actualServerTasks = effectiveProjectIds.length === 0 ? [] : serverTasks;
+  const actualServerTasks = useMemo(() =>
+    effectiveProjectIds.length === 0 ? [] : serverTasks,
+    [effectiveProjectIds.length, serverTasks]
+  );
 
   // Use isFetching instead of isLoading to prevent showing loader when we already have data
   // isLoading is true when there's no cached data, isFetching is true during any fetch

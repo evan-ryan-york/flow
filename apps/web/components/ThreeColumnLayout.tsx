@@ -6,6 +6,7 @@ import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
+import { MobileTaskView } from './mobile/MobileTaskView';
 import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
 
 interface ThreeColumnLayoutProps {
@@ -146,54 +147,66 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-white">
-      {/* Column 1: Projects/Navigation Panel - Keep Fixed */}
-      <div className="w-48 border-r border-gray-200 flex-shrink-0">
-        <ProjectsPanel
+    <>
+      {/* Desktop View (≥ 1024px) */}
+      <div className="hidden lg:flex h-screen bg-white">
+        {/* Column 1: Projects/Navigation Panel - Keep Fixed */}
+        <div className="w-48 border-r border-gray-200 flex-shrink-0">
+          <ProjectsPanel
+            userId={userId}
+            selectedProjectIds={selectedProjectIds}
+            onProjectSelectionChange={handleProjectSelectionChange}
+          />
+        </div>
+
+        {/* Columns 2 & 3: Resizable Task Hub and Calendar */}
+        <PanelGroup
+          direction="horizontal"
+          autoSaveId="task-calendar-layout"
+          className="flex-1"
+        >
+          {/* Column 2: Task Hub - Resizable */}
+          <Panel
+            defaultSize={60}
+            minSize={30}
+            maxSize={80}
+            id="task-hub-panel"
+          >
+            <div className="flex flex-col h-full min-w-0">
+              <TaskHub
+                userId={userId}
+                selectedProjectIds={selectedProjectIds}
+                selectedViewId={selectedViewId}
+                onViewChange={handleViewChange}
+              />
+            </div>
+          </Panel>
+
+          {/* Resize Handle */}
+          <ResizeHandle />
+
+          {/* Column 3: Calendar Panel - Resizable */}
+          <Panel
+            defaultSize={40}
+            minSize={20}
+            maxSize={70}
+            id="calendar-panel"
+          >
+            <div className="flex flex-col h-full border-l border-gray-200">
+              <CalendarPanel userId={userId} />
+            </div>
+          </Panel>
+        </PanelGroup>
+      </div>
+
+      {/* Mobile View (< 1024px) */}
+      <div className="block lg:hidden h-screen bg-white">
+        <MobileTaskView
           userId={userId}
           selectedProjectIds={selectedProjectIds}
           onProjectSelectionChange={handleProjectSelectionChange}
         />
       </div>
-
-      {/* Columns 2 & 3: Resizable Task Hub and Calendar */}
-      <PanelGroup
-        direction="horizontal"
-        autoSaveId="task-calendar-layout"
-        className="flex-1"
-      >
-        {/* Column 2: Task Hub - Resizable */}
-        <Panel
-          defaultSize={60}
-          minSize={30}
-          maxSize={80}
-          id="task-hub-panel"
-        >
-          <div className="flex flex-col h-full min-w-0">
-            <TaskHub
-              userId={userId}
-              selectedProjectIds={selectedProjectIds}
-              selectedViewId={selectedViewId}
-              onViewChange={handleViewChange}
-            />
-          </div>
-        </Panel>
-
-        {/* Resize Handle */}
-        <ResizeHandle />
-
-        {/* Column 3: Calendar Panel - Resizable */}
-        <Panel
-          defaultSize={40}
-          minSize={20}
-          maxSize={70}
-          id="calendar-panel"
-        >
-          <div className="flex flex-col h-full border-l border-gray-200">
-            <CalendarPanel userId={userId} />
-          </div>
-        </Panel>
-      </PanelGroup>
-    </div>
+    </>
   );
 }

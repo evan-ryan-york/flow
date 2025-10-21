@@ -23,10 +23,10 @@
  * product UI (brand color) and user content (project colors).
  */
 export const BRAND_COLOR = {
-  main: '#F564A9',           // Primary brand color
-  hover: '#E0508E',          // Slightly darker for hover states
-  light: '#FDE8F3',          // Light background for badges/pills
-  lighter: '#FEF5FA',        // Very light background for subtle highlights
+  main: '#2563eb',           // Primary brand color (blue-600)
+  hover: '#1d4ed8',          // Slightly darker for hover states (blue-700)
+  light: '#dbeafe',          // Light background for badges/pills (blue-100)
+  lighter: '#eff6ff',        // Very light background for subtle highlights (blue-50)
 } as const;
 
 // ---------------------------------

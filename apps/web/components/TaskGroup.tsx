@@ -273,6 +273,7 @@ function SortableTaskItem({
         profiles={profiles}
         visibleBuiltInColumns={visibleBuiltInColumns}
         onEditClick={onTaskEditClick}
+        showDragHandle={true}
       />
     </div>
   );

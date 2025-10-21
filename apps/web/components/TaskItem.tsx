@@ -22,11 +22,12 @@ interface TaskItemProps {
   profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
   visibleBuiltInColumns?: Set<BuiltInColumn>;
   onEditClick?: (taskId: string) => void;
+  showDragHandle?: boolean;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick, showDragHandle = true }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -174,41 +175,43 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         )}
       </div>
       {/* Table Row Layout */}
-      <div className="relative flex items-center gap-3 px-4 py-3">
-        {/* Drag Handle */}
-        <button
-          {...dragAttributes}
-          {...dragListeners}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDragHandleClick(e);
-          }}
-          onPointerDown={(e) => {
-            handleDragHandlePointerDown(e);
-            // Call the original listener if it exists
-            if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
-              (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
-            }
-          }}
-          onPointerUp={(e) => {
-            handleDragHandlePointerUp(e);
-            // Call the original listener if it exists
-            if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
-              (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
-            }
-          }}
-          className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
-          title="Drag to reorder"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="9" cy="5" r="1"/>
-            <circle cx="15" cy="5" r="1"/>
-            <circle cx="9" cy="12" r="1"/>
-            <circle cx="15" cy="12" r="1"/>
-            <circle cx="9" cy="19" r="1"/>
-            <circle cx="15" cy="19" r="1"/>
-          </svg>
-        </button>
+      <div className="relative flex items-center gap-2 px-2 lg:gap-3 lg:px-4 py-3">
+        {/* Drag Handle - Only show when grouping is active */}
+        {showDragHandle && (
+          <button
+            {...dragAttributes}
+            {...dragListeners}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDragHandleClick(e);
+            }}
+            onPointerDown={(e) => {
+              handleDragHandlePointerDown(e);
+              // Call the original listener if it exists
+              if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
+                (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
+              }
+            }}
+            onPointerUp={(e) => {
+              handleDragHandlePointerUp(e);
+              // Call the original listener if it exists
+              if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
+                (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
+              }
+            }}
+            className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
+            title="Drag to reorder"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="9" cy="5" r="1"/>
+              <circle cx="15" cy="5" r="1"/>
+              <circle cx="9" cy="12" r="1"/>
+              <circle cx="15" cy="12" r="1"/>
+              <circle cx="9" cy="19" r="1"/>
+              <circle cx="15" cy="19" r="1"/>
+            </svg>
+          </button>
+        )}
 
         {/* Completion Circle */}
         <button
@@ -234,7 +237,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
         {/* Name Column - clickable to open details */}
         <div className="flex-1 min-w-0 flex items-center gap-2 group/title relative">
-          <span className={`font-medium text-sm truncate block ${
+          <span className={`font-medium text-sm block lg:truncate ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
             {task.name}
@@ -285,9 +288,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           )}
         </div>
 
-        {/* Assigned To Column - Fixed width */}
+        {/* Assigned To Column - Fixed width, hidden on mobile */}
         {visibleBuiltInColumns.has('assigned_to') && (
-          <div className="flex-shrink-0 w-24 flex justify-end">
+          <div className="hidden lg:flex flex-shrink-0 w-24 justify-end">
             {task.assigned_to ? (
               <div
                 className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium"
@@ -318,9 +321,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Due Date Column - Fixed width */}
+        {/* Due Date Column - Fixed width, hidden on mobile */}
         {visibleBuiltInColumns.has('due_date') && (
-          <div className="flex-shrink-0 w-28 text-right">
+          <div className="hidden lg:block flex-shrink-0 w-28 text-right">
             {task.due_date ? (
               <span className={`text-sm truncate block ${
                 isOverdue && !isDone ? 'text-red-600 font-medium' : 'text-gray-600'
@@ -336,9 +339,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Project Column - Fixed width */}
+        {/* Project Column - Fixed width, hidden on mobile */}
         {visibleBuiltInColumns.has('project') && (
-          <div className="flex-shrink-0 w-28 flex justify-end">
+          <div className="hidden lg:flex flex-shrink-0 w-28 justify-end">
             {(() => {
               const project = projects.find(p => p.id === task.project_id);
               if (!project) {
@@ -368,9 +371,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Created Column - Fixed width */}
+        {/* Created Column - Fixed width, hidden on mobile */}
         {visibleBuiltInColumns.has('created_at') && (
-          <div className="flex-shrink-0 w-28 text-right">
+          <div className="hidden lg:block flex-shrink-0 w-28 text-right">
             <span className="text-sm text-gray-600">
               {(() => {
                 const createdDate = new Date(task.created_at);
@@ -396,13 +399,13 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Custom Property Columns */}
+        {/* Custom Property Columns - Hidden on mobile (< 1024px), shown on desktop (≥ 1024px) */}
         {customPropertyDefinitions.map((property) => {
           const value = getPropertyValue(property.id);
           const isEditing = editingPropertyId === property.id;
 
           return (
-            <div key={property.id} className="flex-shrink-0 w-32 text-right">
+            <div key={property.id} className="hidden lg:flex flex-shrink-0 w-32 text-right">
               {isEditing ? (
                 <div className="px-1">
                   {property.type === 'select' ? (
@@ -475,6 +478,24 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
             </div>
           );
         })}
+
+        {/* Project Color Dot - Visible on mobile, hidden on desktop */}
+        <div className="flex-shrink-0 lg:hidden ml-auto pr-1">
+          {(() => {
+            const project = projects.find(p => p.id === task.project_id);
+            if (!project) return null;
+
+            const mainColor = getProjectColorHex(project.color || 'blue');
+
+            return (
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: mainColor }}
+                title={project.name}
+              />
+            );
+          })()}
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

@@ -6,9 +6,8 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, startOfDay, endOfDay, addDays } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import { Settings, RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
+import { RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
 import { TimeBlockEvent } from '@perfect-task-app/ui/components/Calendar/TimeBlockEvent';
-import { ProfileMenu } from './ProfileMenu';
 import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
 import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
 import { useAssignTaskToTimeBlock } from '@perfect-task-app/data/hooks/useTimeBlockTasks';
@@ -53,33 +52,33 @@ interface CalendarEventType {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DnDCalendar = withDragAndDrop<CalendarEventType>(Calendar as any);
 
-interface CalendarPanelProps {
+interface MobileCalendarViewProps {
   userId: string;
+  view?: 'day' | 'week';
+  onViewChange?: (view: 'day' | 'week') => void;
+  date?: Date;
+  onDateChange?: (date: Date) => void;
+  onSettingsClick?: () => void;
+  onSyncClick?: () => void;
 }
 
 // Calculate the relative luminance of a color (WCAG formula)
 function getRelativeLuminance(hex: string): number {
-  // Remove # if present
   const cleanHex = hex.replace('#', '');
-
-  // Parse RGB
   const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
   const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
   const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
 
-  // Apply gamma correction
   const [rs, gs, bs] = [r, g, b].map(c =>
     c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
   );
 
-  // Calculate relative luminance
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
 // Determine if white or black text has better contrast on a given background color
 function getTextColor(backgroundColor: string): string {
   const luminance = getRelativeLuminance(backgroundColor);
-  // If background is light (luminance > 0.5), use black text. Otherwise use white.
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
 
@@ -95,7 +94,7 @@ function transformCalendarEvent(event: CalendarEvent): CalendarEventType {
       source: 'google',
       description: event.description,
       location: event.location,
-      color: event.color || '#059669', // Use the color from DB (user-customizable)
+      color: event.color || '#059669',
       isAllDay: event.is_all_day,
       googleCalendarId: event.google_calendar_id,
     },
@@ -112,15 +111,45 @@ function transformTimeBlock(timeBlock: TimeBlock, onTaskChange?: () => void): Ca
     resource: {
       type: 'work-block',
       tasks: [],
-      onTaskChange, // Callback to trigger calendar re-render
+      onTaskChange,
     },
   };
 }
 
-export function CalendarPanel({ userId }: CalendarPanelProps) {
+export function MobileCalendarView({
+  userId,
+  view: externalView,
+  onViewChange,
+  date: externalDate,
+  onDateChange,
+  onSettingsClick,
+  onSyncClick,
+}: MobileCalendarViewProps) {
   const router = useRouter();
-  const [view, setView] = useState<'day' | 'week'>('day');
-  const [date, setDate] = useState(new Date());
+
+  // Use internal state if no external control is provided
+  const [internalView, setInternalView] = useState<'day' | 'week'>('day');
+  const [internalDate, setInternalDate] = useState(new Date());
+
+  const view = externalView ?? internalView;
+  const date = externalDate ?? internalDate;
+
+  const _setView = (newView: 'day' | 'week') => {
+    if (onViewChange) {
+      onViewChange(newView);
+    } else {
+      setInternalView(newView);
+    }
+  };
+
+  const handleDateChange = (newDate: Date) => {
+    if (onDateChange) {
+      onDateChange(newDate);
+    } else {
+      setInternalDate(newDate);
+    }
+  };
+
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   // Calculate date range based on view and selected date
@@ -131,7 +160,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         end: endOfDay(date),
       };
     } else {
-      // Week view - get 7 days starting from current date
       return {
         start: startOfDay(date),
         end: endOfDay(addDays(date, 6)),
@@ -175,31 +203,28 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
 
   // Debug logging
   React.useEffect(() => {
-    console.log('📅 CalendarPanel Debug:', {
+    console.log('📱 MobileCalendarView Debug:', {
       dateRange,
       calendarEventsCount: calendarEvents.length,
       timeBlocksCount: timeBlocks.length,
       isLoading,
       error: error?.message,
-      syncPending: triggerEventSync.isPending,
     });
-  }, [calendarEvents, timeBlocks, isLoading, error, dateRange, triggerEventSync.isPending]);
+  }, [calendarEvents, timeBlocks, isLoading, error, dateRange]);
 
-  // Trigger automatic event sync every 5 minutes
+  // Trigger automatic event sync on mount
   const lastAutoSyncRef = React.useRef<Date | null>(null);
   const [previousVisibleCount, setPreviousVisibleCount] = React.useState(0);
 
-  // Count visible calendars
   const visibleCalendarCount = React.useMemo(() => {
     return subscriptions.filter(sub => sub.is_visible).length;
   }, [subscriptions]);
 
-  // Automatic sync on mount only (syncs visible subscriptions only to avoid timeout)
   React.useEffect(() => {
     if (connections.length === 0 || isLoading) return;
-    if (lastAutoSyncRef.current) return; // Only sync once
+    if (lastAutoSyncRef.current) return;
 
-    console.log('🔄 Initial automatic event sync (visible calendars only)...');
+    console.log('🔄 Initial automatic event sync (mobile)...');
     triggerEventSync.mutate(undefined, {
       onSuccess: (result) => {
         console.log('🔄 Sync completed:', result);
@@ -207,36 +232,32 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       },
       onError: (error) => {
         console.error('🔄 Sync failed:', error);
-        lastAutoSyncRef.current = new Date(); // Mark as attempted even on failure to prevent infinite retries
+        lastAutoSyncRef.current = new Date();
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connections.length, isLoading]);
 
-  // Sync when visible calendars change (user toggles visibility)
   React.useEffect(() => {
     if (previousVisibleCount > 0 && visibleCalendarCount > previousVisibleCount) {
-      console.log('🔄 New calendar made visible, triggering sync...', {
-        previousCount: previousVisibleCount,
-        currentCount: visibleCalendarCount
-      });
+      console.log('🔄 New calendar made visible, triggering sync...');
       triggerEventSync.mutate(undefined);
     }
     setPreviousVisibleCount(visibleCalendarCount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleCalendarCount, previousVisibleCount]);
 
-  // Listen for task drag events from Task Hub
+  // Listen for task drag events
   React.useEffect(() => {
     const handleTaskDragStart = (e: Event) => {
       const customEvent = e as CustomEvent<Task>;
       setDraggedTask(customEvent.detail);
-      console.log('🎯 Task drag started:', customEvent.detail.name);
+      console.log('🎯 Task drag started (mobile):', customEvent.detail.name);
     };
 
     const handleTaskDragEnd = () => {
       setDraggedTask(null);
-      console.log('🎯 Task drag ended');
+      console.log('🎯 Task drag ended (mobile)');
     };
 
     window.addEventListener('task-drag-start', handleTaskDragStart);
@@ -251,14 +272,9 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   // State to force calendar re-render when tasks change
   const [calendarKey, setCalendarKey] = useState(0);
 
-  // Callback to force calendar re-render when tasks change (stable reference)
   const handleTaskChange = useCallback(() => {
-    console.log('🔄 handleTaskChange called - forcing calendar re-render');
-    setCalendarKey(prev => {
-      const newKey = prev + 1;
-      console.log('🔄 Calendar key updated:', prev, '->', newKey);
-      return newKey;
-    });
+    console.log('🔄 handleTaskChange called (mobile)');
+    setCalendarKey(prev => prev + 1);
   }, []);
 
   // Transform and merge events for react-big-calendar
@@ -268,11 +284,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     return [...googleEvents, ...workBlocks];
   }, [calendarEvents, timeBlocks, handleTaskChange]);
 
-  // Required by react-big-calendar DnD
-  // This function tells the calendar what item is being dragged from outside
   const dragFromOutsideItem = useCallback((): CalendarEventType => {
-    // Return a placeholder event structure that matches CalendarEventType
-    // The actual dates will be set by react-big-calendar when dropped
     return {
       id: draggedTask?.id || 'temp',
       title: draggedTask?.name || '',
@@ -281,26 +293,20 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     };
   }, [draggedTask]);
 
-  // Handle dropping a task onto the calendar
-  const handleDropFromOutside = ({ start, end }: { start: Date | string; end: Date | string }) => {
+  const handleDropFromOutside = ({ start, end: _end }: { start: Date | string; end: Date | string }) => {
     if (!draggedTask) {
       console.log('⚠️ No task being dragged');
       return;
     }
 
     const dropStart = new Date(start);
-    const _dropEnd = new Date(end);
-
-    // Find if there's an existing work block at this time
     const existingBlock = timeBlocks.find(block => {
       const blockStart = new Date(block.start_time);
       const blockEnd = new Date(block.end_time);
-      // Check if the drop overlaps with this block
       return dropStart >= blockStart && dropStart < blockEnd;
     });
 
     if (existingBlock) {
-      // Assign task to existing block
       console.log('✅ Assigning task to existing block:', existingBlock.title);
       assignTaskMutation.mutate({
         taskId: draggedTask.id,
@@ -308,7 +314,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       }, {
         onSuccess: () => {
           console.log('✅ Task assigned successfully');
-          // Force calendar re-render to show new task
           setCalendarKey(prev => prev + 1);
         },
         onError: (error) => {
@@ -317,8 +322,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         },
       });
     } else {
-      // No work block at this time - do nothing per requirements
-      console.log('⚠️ No work block at drop location - ignoring drop');
+      console.log('⚠️ No work block at drop location');
       alert('Please drop the task on an existing work block. Create a work block first.');
     }
 
@@ -326,7 +330,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   };
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
-    // Create new work time block
     const title = prompt('Enter work block title:');
     if (title) {
       createTimeBlock.mutate({
@@ -348,7 +351,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   const handleSelectEvent = (event: CalendarEventType) => {
     console.log('Selected event:', event);
 
-    // Only allow deletion of work blocks (not Google Calendar events)
     if (event.resource?.type === 'work-block') {
       const confirmDelete = window.confirm(
         `Delete work block "${event.title}"?\n\nThis action cannot be undone.`
@@ -366,7 +368,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         });
       }
     } else if (event.resource?.type === 'google-event') {
-      // For Google Calendar events, just show info (no deletion)
       alert(`Google Calendar Event: ${event.title}\n\nTo edit or delete this event, please use Google Calendar.`);
     }
   };
@@ -389,9 +390,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     }
 
     if (resource?.type === 'google-event') {
-      // Use the calendar's color if available, otherwise default to a darker green for better contrast
       const bgColor = resource.color || '#059669';
-
       return {
         style: {
           backgroundColor: bgColor,
@@ -408,98 +407,33 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     return {};
   };
 
+  const _handleSettingsClick = () => {
+    if (onSettingsClick) {
+      onSettingsClick();
+    } else {
+      router.push('/app/settings/calendar-connections');
+    }
+  };
+
+  const _handleSyncClick = () => {
+    if (onSyncClick) {
+      onSyncClick();
+    } else {
+      triggerEventSync.mutate(undefined);
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-900">Calendar</h2>
-            <button
-              onClick={() => router.push('/app/settings/calendar-connections')}
-              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
-              title="Calendar Settings"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => triggerEventSync.mutate(undefined)}
-              disabled={triggerEventSync.isPending}
-              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
-              title="Sync Events"
-            >
-              <RefreshCw className={`h-4 w-4 ${triggerEventSync.isPending ? 'animate-spin' : ''}`} />
-            </button>
-            {events.length > 0 && (
-              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
-                {events.length}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setView('day')}
-                className={`px-3 py-1 text-sm rounded ${
-                  view === 'day'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => setView('week')}
-                className={`px-3 py-1 text-sm rounded ${
-                  view === 'week'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                Week
-              </button>
-            </div>
-            <ProfileMenu />
-          </div>
-        </div>
-
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() - (view === 'week' ? 7 : 1)))}
-            className="p-1 text-gray-600 hover:text-gray-900"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          <span className="font-medium text-gray-900">
-            {view === 'day'
-              ? format(date, 'EEEE, MMM d')
-              : `${format(date, 'MMM d')} - ${format(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 6), 'MMM d')}`
-            }
-          </span>
-
-          <button
-            onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() + (view === 'week' ? 7 : 1)))}
-            className="p-1 text-gray-600 hover:text-gray-900"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Calendar */}
-      <div className="flex-1 p-4 relative overflow-hidden">
+    <div className="flex flex-col h-full">
+      {/* Calendar - Takes remaining space */}
+      <div className="flex-1 p-3 relative overflow-hidden bg-white">
         <style>{`
+          /* Mobile-optimized calendar styles */
           .rbc-timeslot-group {
-            min-height: 60px !important;
+            min-height: 70px !important;
           }
           .rbc-time-slot {
-            min-height: 15px !important;
+            min-height: 17.5px !important;
           }
           .rbc-day-slot .rbc-time-slot {
             background-color: white !important;
@@ -510,7 +444,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
           .rbc-time-content {
             background-color: white !important;
           }
-          /* Match app fonts */
           .rbc-calendar {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
           }
@@ -518,30 +451,34 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
             font-weight: 600 !important;
             font-size: 0.875rem !important;
             color: #111827 !important;
-          }
-          .rbc-time-header-content {
-            font-weight: 500 !important;
+            padding: 8px 4px !important;
           }
           .rbc-label {
             font-size: 0.75rem !important;
-            font-weight: 400 !important;
+            font-weight: 500 !important;
             color: #6b7280 !important;
+            padding: 4px !important;
           }
           .rbc-event {
             font-size: 0.875rem !important;
             font-weight: 500 !important;
+            padding: 4px 6px !important;
+          }
+          /* Larger hit areas for mobile */
+          .rbc-event-content {
+            padding: 2px 0 !important;
           }
         `}</style>
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-2">
-              <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+              <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
               <span className="text-sm text-gray-600">Loading events...</span>
             </div>
           </div>
         )}
         {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm z-10">
+          <div className="absolute top-4 left-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm z-10">
             Failed to load events. Please try again.
           </div>
         )}
@@ -553,9 +490,9 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
           endAccessor={(event: CalendarEventType) => event.end}
           style={{ height: '100%' }}
           view={view === 'day' ? Views.DAY : Views.WEEK}
-          onView={() => {}} // Controlled by our buttons
+          onView={() => {}}
           date={date}
-          onNavigate={setDate}
+          onNavigate={handleDateChange}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           selectable
@@ -564,20 +501,17 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
           eventPropGetter={eventStyleGetter}
           step={15}
           timeslots={4}
-          scrollToTime={new Date(0, 0, 0, 7, 0, 0)} // Scroll to 7 AM on load
+          scrollToTime={new Date(0, 0, 0, 7, 0, 0)}
           dayLayoutAlgorithm="no-overlap"
-          // Drag and drop props
           onDropFromOutside={handleDropFromOutside}
           dragFromOutsideItem={dragFromOutsideItem}
           onDragOver={(e: React.DragEvent) => e.preventDefault()}
-          draggableAccessor={() => false} // Disable dragging of calendar events
-          // Custom event component
+          draggableAccessor={() => false}
           components={{
             event: (props: { event: CalendarEventType }) => {
               if (props.event.resource?.type === 'work-block') {
                 return <TimeBlockEvent event={props.event} />;
               }
-              // Default rendering for Google Calendar events
               return <div>{props.event.title}</div>;
             },
           }}
@@ -589,19 +523,19 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="p-4 border-t border-gray-200 space-y-2">
+      {/* Quick Actions - Mobile optimized */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
         <button
           onClick={() => handleSelectSlot({
             start: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0),
             end: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 10, 0)
           })}
-          className="w-full px-3 py-2 text-sm text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
+          className="w-full px-4 py-3 text-sm font-medium text-blue-600 border-2 border-blue-300 rounded-lg hover:bg-blue-50 active:bg-blue-100"
         >
           + Add Work Block
         </button>
-        <p className="text-xs text-gray-500 text-center">
-          Drag tasks here to schedule them
+        <p className="text-xs text-gray-500 text-center mt-2">
+          Tap on the calendar to create time blocks
         </p>
       </div>
     </div>
