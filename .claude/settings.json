@@ -1,0 +1,44 @@
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "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"
+  },
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(pnpm test:*)",
+      "Read(//Users/ryanyork/Software/Project/**)",
+      "Bash(rm:*)",
+      "Bash(pod install:*)",
+      "Bash(xcodebuild:*)",
+      "Read(//Users/ryanyork/Software/**)",
+      "Bash(echo $PWD)",
+      "Bash(npm run ios:*)",
+      "Bash(npx expo run:ios:*)",
+      "Read(//Users/ryanyork/Library/Developer/Xcode/DerivedData/PerfectTask-dutbnkwcrooqnqdfbgdyyvvmgfbd/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/EXConstants.build/**)",
+      "Bash(bash:*)",
+      "Read(//Users/ryanyork/Library/Developer/Xcode/DerivedData/**)",
+      "WebSearch",
+      "Bash(xcrun simctl list:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)",
+      "Bash(pnpm supabase:*)",
+      "Bash(pnpm build:*)",
+      "Bash(npx supabase:*)",
+      "Bash(psql:*)",
+      "Read(//Users/ryanyork/Desktop/**)",
+      "Bash(chmod:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(git show:*)",
+      "Bash(pnpm tauri icon:*)",
+      "Bash(PATH=\"/Users/ryanyork/.cargo/bin:$PATH\" pnpm build)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

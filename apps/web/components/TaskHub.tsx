@@ -496,8 +496,10 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
     >
       <div className="h-full flex flex-col">
         {/* Quick Add Bar */}
-        <div className="p-4 border-b border-gray-200 bg-white">
-          <TaskQuickAdd userId={userId} defaultProjectId={selectedProjectIds[0] || "1"} />
+        <div className="h-[57px] px-4 border-b border-gray-200 bg-white flex items-center w-full">
+          <div className="w-full">
+            <TaskQuickAdd userId={userId} defaultProjectId={selectedProjectIds[0] || "1"} />
+          </div>
         </div>
 
         {/* Search/Filters Bar */}

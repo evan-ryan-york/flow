@@ -411,85 +411,76 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-900">Calendar</h2>
-            <button
-              onClick={() => router.push('/app/settings/calendar-connections')}
-              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
-              title="Calendar Settings"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => triggerEventSync.mutate(undefined)}
-              disabled={triggerEventSync.isPending}
-              className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
-              title="Sync Events"
-            >
-              <RefreshCw className={`h-4 w-4 ${triggerEventSync.isPending ? 'animate-spin' : ''}`} />
-            </button>
-            {events.length > 0 && (
-              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
-                {events.length}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setView('day')}
-                className={`px-3 py-1 text-sm rounded ${
-                  view === 'day'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => setView('week')}
-                className={`px-3 py-1 text-sm rounded ${
-                  view === 'week'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                Week
-              </button>
-            </div>
-            <ProfileMenu />
-          </div>
-        </div>
-
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between">
+      <div className="h-[57px] px-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 className="font-semibold text-gray-900">Calendar</h2>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() - (view === 'week' ? 7 : 1)))}
-            className="p-1 text-gray-600 hover:text-gray-900"
+            onClick={() => router.push('/app/settings/calendar-connections')}
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+            title="Calendar Settings"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <Settings className="h-4 w-4" />
           </button>
-
-          <span className="font-medium text-gray-900">
-            {view === 'day'
-              ? format(date, 'EEEE, MMM d')
-              : `${format(date, 'MMM d')} - ${format(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 6), 'MMM d')}`
-            }
-          </span>
-
           <button
-            onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() + (view === 'week' ? 7 : 1)))}
-            className="p-1 text-gray-600 hover:text-gray-900"
+            onClick={() => triggerEventSync.mutate(undefined)}
+            disabled={triggerEventSync.isPending}
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
+            title="Sync Events"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <RefreshCw className={`h-4 w-4 ${triggerEventSync.isPending ? 'animate-spin' : ''}`} />
           </button>
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          <button
+            onClick={() => setView('day')}
+            className={`px-3 py-1 text-sm rounded ${
+              view === 'day'
+                ? 'bg-blue-100 text-blue-800'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Day
+          </button>
+          <button
+            onClick={() => setView('week')}
+            className={`px-3 py-1 text-sm rounded ${
+              view === 'week'
+                ? 'bg-blue-100 text-blue-800'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Week
+          </button>
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          <ProfileMenu />
         </div>
+      </div>
+
+      {/* Date Navigation */}
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <button
+          onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() - (view === 'week' ? 7 : 1)))}
+          className="p-1 text-gray-600 hover:text-gray-900"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <span className="font-medium text-gray-900">
+          {view === 'day'
+            ? format(date, 'EEEE, MMM d')
+            : `${format(date, 'MMM d')} - ${format(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 6), 'MMM d')}`
+          }
+        </span>
+
+        <button
+          onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() + (view === 'week' ? 7 : 1)))}
+          className="p-1 text-gray-600 hover:text-gray-900"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       {/* Calendar */}
