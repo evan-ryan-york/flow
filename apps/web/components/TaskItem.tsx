@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo, useEffect, useRef } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
 import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
 import { Trash } from 'iconoir-react';

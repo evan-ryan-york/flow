@@ -13,13 +13,25 @@ export default function AppLayout({
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    let mounted = true;
 
-      if (!user) {
+    const checkAuth = async () => {
+      // First check session from storage (synchronous, faster)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Give it a moment to restore session from storage if needed
+      if (!session) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Re-check after delay
+      const { data: { session: finalSession } } = await supabase.auth.getSession();
+
+      if (!finalSession && mounted) {
+        console.log('No session found after grace period, redirecting to login');
         router.push('/login');
+      } else if (finalSession) {
+        console.log('Session restored:', finalSession.user.email);
       }
     };
 
@@ -29,12 +41,16 @@ export default function AppLayout({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      console.log('Auth state changed:', event, session?.user?.email);
+      if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
         router.push('/login');
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

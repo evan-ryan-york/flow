@@ -5,26 +5,33 @@ import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/lib/providers';
 import { useSearchParams } from 'next/navigation';
 import { isTauri, handleTauriGoogleOAuth } from '@/lib/tauri-oauth';
+import { isCapacitor, handleCapacitorGoogleOAuth } from '@/lib/capacitor-oauth';
+import { App } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const [isTauriEnv, setIsTauriEnv] = useState(false);
+  const [isCapacitorEnv, setIsCapacitorEnv] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useSupabase();
 
-  // Detect Tauri environment on mount
+  // Detect Tauri and Capacitor environment on mount
   useEffect(() => {
-    const detected = isTauri();
-    console.log('🔍 Tauri environment detected:', detected);
-    console.log('🔍 Window location:', {
+    const detectedTauri = isTauri();
+    const detectedCapacitor = isCapacitor();
+    console.log('🔍 Environment detection:', {
+      tauri: detectedTauri,
+      capacitor: detectedCapacitor,
       protocol: window.location.protocol,
       hostname: window.location.hostname,
       href: window.location.href
     });
-    setIsTauriEnv(detected);
+    setIsTauriEnv(detectedTauri);
+    setIsCapacitorEnv(detectedCapacitor);
   }, []);
 
   // Check for callback errors
@@ -38,6 +45,51 @@ export function LoginForm() {
       setError(`Authentication failed: ${errorMessage}`);
     }
   }, [searchParams]);
+
+  // This hook runs *after* the page reloads (from the deep link)
+  // It checks the URL hash for auth tokens and manually sets the session.
+  useEffect(() => {
+    // Check if we just reloaded with auth tokens in the hash
+    const hash = window.location.hash;
+    if (hash.includes('access_token') && hash.includes('refresh_token')) {
+      console.log('🔐 Auth tokens found in URL hash on page load.');
+      setIsLoading(true); // Show loading spinner
+
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const setSessionAndRedirect = async () => {
+          try {
+            console.log('🔑 Calling setSession() with tokens from hash...');
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (error) {
+              throw error;
+            }
+
+            console.log('✅ Session set successfully! Redirecting to dashboard...');
+            // Clear the hash from the URL
+            window.history.replaceState(null, '', ' ');
+            router.push('/dashboard');
+
+          } catch (err) {
+            console.error('❌ Error setting session from hash:', err);
+            setError(err instanceof Error ? err.message : 'Failed to log in');
+            setIsLoading(false);
+            window.history.replaceState(null, '', ' '); // Clear the hash on error too
+          }
+        };
+
+        // Call the async function
+        setSessionAndRedirect();
+      }
+    }
+  }, [supabase, router]);
 
   // Check for existing session on mount and redirect if logged in (run once)
   useEffect(() => {
@@ -57,6 +109,73 @@ export function LoginForm() {
       isMounted = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Set up Capacitor App URL listener for OAuth callback
+  useEffect(() => {
+    // Only run this effect if in Capacitor
+    if (!isCapacitorEnv) {
+      return;
+    }
+
+    console.log('Setting up Capacitor App state/URL listeners...');
+    let stateListener: PluginListenerHandle | null = null;
+
+    // This function will process the URL and log the user in
+    const handleAuthUrl = async (url: string) => {
+      console.log('📱 Processing auth URL:', url);
+
+      // Check if it's our auth callback
+      if (url.startsWith('com.perfecttask.app://auth/callback')) {
+        // We are back in the app!
+        // The URL has the hash fragment with auth tokens.
+        // Navigate to the login page with the hash so our useEffect can detect it.
+
+        const authUrl = new URL(url);
+        const hash = authUrl.hash;
+
+        console.log(`✅ Auth tokens found! Navigating to /login with hash...`);
+
+        // Navigate to /login with the hash fragment
+        // This will trigger the useEffect hook that detects tokens in the hash
+        window.location.href = '/login' + hash;
+      }
+    };
+
+    // 1. Check if the app was opened with a URL (cold start)
+    // This runs once when the component mounts
+    App.getLaunchUrl().then((launchUrl) => {
+      if (launchUrl && launchUrl.url) {
+        console.log('App launched with URL:', launchUrl.url);
+        handleAuthUrl(launchUrl.url);
+      }
+    });
+
+    // 2. Listen for when the app resumes from background
+    // This is the main one for our OAuth flow
+    const setupListener = async () => {
+      stateListener = await App.addListener('appStateChange', async (state) => {
+        // state.isActive is true when app comes to foreground
+        if (state.isActive) {
+          console.log('App resumed. Checking for launch URL...');
+          // Get the URL that opened the app
+          const launchUrl = await App.getLaunchUrl();
+          if (launchUrl && launchUrl.url) {
+            console.log('App resumed with URL:', launchUrl.url);
+            // Process the URL
+            handleAuthUrl(launchUrl.url);
+          }
+        }
+      });
+    };
+
+    setupListener();
+
+    // Clean up the listener when the component unmounts
+    return () => {
+      console.log('Removing Capacitor App state listener...');
+      stateListener?.remove();
+    };
+  }, [isCapacitorEnv, supabase, router]); // Add dependencies
 
   const handleMagicLink = async (email: string) => {
     try {
@@ -106,6 +225,23 @@ export function LoginForm() {
 
       console.log('🚀 Starting Google sign-in...');
 
+      // Use Capacitor-specific OAuth flow if in Capacitor environment
+      if (isCapacitorEnv) {
+        console.log('📱 Using Capacitor OAuth flow...');
+        const result = await handleCapacitorGoogleOAuth(supabase);
+
+        if (!result.success) {
+          console.error('❌ Capacitor OAuth failed:', result.error);
+          throw new Error(result.error || 'Failed to authenticate');
+        }
+
+        // Don't setIsLoading(false) here.
+        // We are now waiting for the app to re-open via deep link,
+        // so the disabled button is correct.
+        // The listener above will handle the callback and redirect.
+        return;
+      }
+
       // Use Tauri-specific OAuth flow if in Tauri environment
       if (isTauriEnv) {
         console.log('📱 Using Tauri OAuth flow...');
@@ -145,19 +281,11 @@ export function LoginForm() {
       console.log('Origin:', window.location.origin);
       console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
 
-      // Log localStorage state BEFORE OAuth initiation
-      console.log('📦 LocalStorage BEFORE OAuth:', typeof window !== 'undefined' ? {
-        // eslint-disable-next-line no-undef
-        keys: Object.keys(localStorage),
-        // eslint-disable-next-line no-undef
-        supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
-      } : {});
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: false, // Explicitly set this
+          skipBrowserRedirect: false,
         },
       });
 
@@ -165,14 +293,6 @@ export function LoginForm() {
         console.error('❌ OAuth initiation error:', error);
         throw error;
       }
-
-      // Log localStorage state AFTER OAuth initiation (before redirect)
-      console.log('📦 LocalStorage AFTER OAuth:', typeof window !== 'undefined' ? {
-        // eslint-disable-next-line no-undef
-        keys: Object.keys(localStorage),
-        // eslint-disable-next-line no-undef
-        supabaseKeys: Object.keys(localStorage).filter(k => k.includes('supabase'))
-      } : {});
 
       // Browser will automatically redirect to Google
       console.log('✅ OAuth initiated:', data);

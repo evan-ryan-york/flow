@@ -3,12 +3,16 @@ PODS:
     - CapacitorCordova
   - CapacitorApp (6.0.2):
     - Capacitor
+  - CapacitorBrowser (6.0.5):
+    - Capacitor
   - CapacitorCordova (6.2.1)
   - CapacitorFilesystem (6.0.3):
     - Capacitor
   - CapacitorHaptics (6.0.2):
     - Capacitor
   - CapacitorLocalNotifications (6.1.2):
+    - Capacitor
+  - CapacitorPreferences (6.0.3):
     - Capacitor
   - CapacitorPushNotifications (6.0.4):
     - Capacitor
@@ -18,10 +22,12 @@ PODS:
 DEPENDENCIES:
   - "Capacitor (from `../../../../node_modules/@capacitor/ios`)"
   - "CapacitorApp (from `../../../../node_modules/@capacitor/app`)"
+  - "CapacitorBrowser (from `../../../../node_modules/@capacitor/browser`)"
   - "CapacitorCordova (from `../../../../node_modules/@capacitor/ios`)"
   - "CapacitorFilesystem (from `../../../../node_modules/@capacitor/filesystem`)"
   - "CapacitorHaptics (from `../../../../node_modules/@capacitor/haptics`)"
   - "CapacitorLocalNotifications (from `../../../../node_modules/@capacitor/local-notifications`)"
+  - "CapacitorPreferences (from `../../../../node_modules/@capacitor/preferences`)"
   - "CapacitorPushNotifications (from `../../../../node_modules/@capacitor/push-notifications`)"
   - "CapacitorShare (from `../../../../node_modules/@capacitor/share`)"
 
@@ -30,6 +36,8 @@ EXTERNAL SOURCES:
     :path: "../../../../node_modules/@capacitor/ios"
   CapacitorApp:
     :path: "../../../../node_modules/@capacitor/app"
+  CapacitorBrowser:
+    :path: "../../../../node_modules/@capacitor/browser"
   CapacitorCordova:
     :path: "../../../../node_modules/@capacitor/ios"
   CapacitorFilesystem:
@@ -38,6 +46,8 @@ EXTERNAL SOURCES:
     :path: "../../../../node_modules/@capacitor/haptics"
   CapacitorLocalNotifications:
     :path: "../../../../node_modules/@capacitor/local-notifications"
+  CapacitorPreferences:
+    :path: "../../../../node_modules/@capacitor/preferences"
   CapacitorPushNotifications:
     :path: "../../../../node_modules/@capacitor/push-notifications"
   CapacitorShare:
@@ -46,13 +56,15 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Capacitor: c95400d761e376be9da6be5a05f226c0e865cebf
   CapacitorApp: e1e6b7d05e444d593ca16fd6d76f2b7c48b5aea7
+  CapacitorBrowser: b468ac2db928e594b4d319727f3874743f9bcf96
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
   CapacitorFilesystem: 59270a63c60836248812671aa3b15df673fbaf74
   CapacitorHaptics: 4fc15afe22b123d093e6ace24d95e8e3b1f261b9
   CapacitorLocalNotifications: 65d718c32cbcb753697627bea76dd4336ef85dc2
+  CapacitorPreferences: f3eadae2369ac3ab8e21743a2959145b0d1286a3
   CapacitorPushNotifications: b3f20973cb167cb8fee622e309ec521134798241
   CapacitorShare: d2a742baec21c8f3b92b361a2fbd2401cdd8288e
 
-PODFILE CHECKSUM: 77ccb4ff0542ae91b095300ed38b75885e3985e5
+PODFILE CHECKSUM: 9c1358c762572d91398eda0491bc9b5b4f7e9b89
 
 COCOAPODS: 1.16.2

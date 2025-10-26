@@ -74,12 +74,16 @@ export function useConnectGoogleCalendar() {
       console.log('🔑 Session token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
       console.log('🌐 Functions URL:', SUPABASE_FUNCTIONS_URL);
 
+      const supabase = getSupabaseClient();
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
       const response = await fetch(
         `${SUPABASE_FUNCTIONS_URL}/google-calendar-oauth?action=initiate`,
         {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: supabaseAnonKey,
           },
         }
       );
@@ -305,12 +309,15 @@ export function useSyncCalendarList() {
         connectionId,
       });
 
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
       const response = await fetch(
         `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`,
         {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: supabaseAnonKey,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ connectionId }),
@@ -334,6 +341,7 @@ export function useSyncCalendarList() {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: supabaseAnonKey,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ connectionId }),
@@ -408,12 +416,15 @@ export function useTriggerEventSync() {
       const timeoutId = controller ? setTimeout(() => controller.abort('Request timeout after 2 minutes'), 120000) : null; // 2 minute timeout
 
       try {
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
         const response = await fetch(
           `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
           {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
+              apikey: supabaseAnonKey,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(connectionId ? { connectionId } : {}),

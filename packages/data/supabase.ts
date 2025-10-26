@@ -1,10 +1,16 @@
 // packages/data/supabase.ts
 import { createBrowserClient } from '@supabase/ssr';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { capacitorStorage } from './capacitor-storage';
 
 // Supabase client instance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let supabaseInstance: SupabaseClient<any, 'public', any> | null = null;
+
+// Detect if we're running in Capacitor
+function isCapacitor(): boolean {
+  return typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+}
 
 // Initialize Supabase with config from the app
 export function initializeSupabase(url: string, anonKey: string) {
@@ -17,8 +23,22 @@ export function initializeSupabase(url: string, anonKey: string) {
   }
 
   if (!supabaseInstance) {
-    // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
-    supabaseInstance = createBrowserClient(url, anonKey);
+    // Use custom storage for Capacitor, standard browser client for web
+    if (isCapacitor()) {
+      console.log('🔧 Initializing Supabase with Capacitor storage adapter');
+      supabaseInstance = createClient(url, anonKey, {
+        auth: {
+          storage: capacitorStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+        },
+      });
+    } else {
+      console.log('🔧 Initializing Supabase with standard browser client');
+      // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
+      supabaseInstance = createBrowserClient(url, anonKey);
+    }
   }
   return supabaseInstance;
 }
