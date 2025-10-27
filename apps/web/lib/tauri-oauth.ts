@@ -189,13 +189,14 @@ export async function handleTauriGoogleOAuth(
     console.log(`✅ OAuth server started on port ${port}`);
 
     // 3. Get OAuth URL from Supabase with PKCE flow
-    // Supabase SDK will automatically generate PKCE parameters and store the code_verifier
+    // CRITICAL: For desktop apps, we need to override the redirect_uri in the OAuth URL
+    // to point to our localhost server instead of the production URL
     console.log('🔗 Getting OAuth URL from Supabase with PKCE flow...');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         skipBrowserRedirect: true,
-        redirectTo: `http://localhost:${port}/oauth-callback`,
+        redirectTo: `http://localhost:${port}`,
       },
     });
 
@@ -211,14 +212,26 @@ export async function handleTauriGoogleOAuth(
       throw new Error('No OAuth URL returned from Supabase');
     }
 
+    // CRITICAL FIX: Replace the production redirect_uri with localhost
+    // Supabase generates the URL with the production domain, but for desktop we need localhost
+    const oauthUrl = new URL(data.url);
+    const originalRedirectUri = oauthUrl.searchParams.get('redirect_uri');
+    console.log('📝 Original redirect_uri from Supabase:', originalRedirectUri);
+
+    // Replace the Supabase callback URL with our localhost server URL
+    oauthUrl.searchParams.set('redirect_uri', `http://localhost:${port}`);
+    console.log('📝 Updated redirect_uri for desktop:', `http://localhost:${port}`);
+
+    const finalOAuthUrl = oauthUrl.toString();
+
     console.log('🌐 Opening OAuth URL in system browser...');
 
-    // 4. Open OAuth URL in system browser
-    await tauriShell.open(data.url);
+    // 4. Open OAuth URL in system browser (using our modified URL with localhost redirect)
+    await tauriShell.open(finalOAuthUrl);
 
     // 5. Wait for the callback with auth code
     console.log('⏳ Waiting for OAuth callback...');
-    console.log('🌐 OAuth server is listening on: http://localhost:' + port + '/oauth-callback');
+    console.log('🌐 OAuth server is listening on: http://localhost:' + port);
     console.log('📝 When OAuth completes, Google will redirect your browser to this address');
     console.log('📝 Make sure no other services are running on port ' + port);
     console.log('📝 IMPORTANT: Close all browser tabs for localhost:' + port + ' to prevent cached content');
