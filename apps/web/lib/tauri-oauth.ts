@@ -308,8 +308,29 @@ export async function handleTauriGoogleOAuth(
             throw signInError;
           }
 
+          if (!sessionData?.session) {
+            console.error('❌ No session returned from signInWithIdToken');
+            throw new Error('No session returned from authentication');
+          }
+
           console.log('✅ Authentication successful!');
           console.log('👤 User:', sessionData.user?.email);
+          console.log('📦 Session received:', {
+            hasAccessToken: !!sessionData.session.access_token,
+            hasRefreshToken: !!sessionData.session.refresh_token,
+            expiresAt: sessionData.session.expires_at
+          });
+
+          // Wait a moment for the session to be persisted to storage
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Verify session is persisted
+          const { data: { session: verifySession } } = await supabase.auth.getSession();
+          console.log('✅ Session verification:', {
+            sessionPersisted: !!verifySession,
+            userId: verifySession?.user?.id,
+            email: verifySession?.user?.email
+          });
 
           // Clean up the OAuth server (ignore errors as server may already be closed)
           try {

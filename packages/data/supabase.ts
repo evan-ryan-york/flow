@@ -12,6 +12,11 @@ function isCapacitor(): boolean {
   return typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 }
 
+// Detect if we're running in Tauri
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+}
+
 // Initialize Supabase with config from the app
 export function initializeSupabase(url: string, anonKey: string) {
   // Trim whitespace and validate inputs
@@ -23,7 +28,7 @@ export function initializeSupabase(url: string, anonKey: string) {
   }
 
   if (!supabaseInstance) {
-    // Use custom storage for Capacitor, standard browser client for web
+    // Use custom storage for Capacitor
     if (isCapacitor()) {
       console.log('🔧 Initializing Supabase with Capacitor storage adapter');
       supabaseInstance = createClient(url, anonKey, {
@@ -34,7 +39,20 @@ export function initializeSupabase(url: string, anonKey: string) {
           detectSessionInUrl: true,
         },
       });
-    } else {
+    }
+    // Use regular client for Tauri (static export needs explicit storage)
+    else if (isTauri()) {
+      console.log('🔧 Initializing Supabase for Tauri with localStorage');
+      supabaseInstance = createClient(url, anonKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false, // No URL detection in Tauri
+        },
+      });
+    }
+    // Use SSR-aware client for web
+    else {
       console.log('🔧 Initializing Supabase with standard browser client');
       // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
       supabaseInstance = createBrowserClient(url, anonKey);
