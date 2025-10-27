@@ -58,14 +58,26 @@ function AuthCallbackContent() {
           return;
         }
 
-        // For PKCE flow, createBrowserClient handles code exchange automatically
-        // Just wait a moment for it to process, then check for session
+        // For PKCE flow, explicitly exchange the code for a session
         const code = searchParams.get('code');
         if (code) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log('🔄 Exchanging authorization code for session...');
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (exchangeError) {
+            console.error('❌ Code exchange failed:', exchangeError);
+            router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(exchangeError.message)}`);
+            return;
+          }
+
+          if (data.session) {
+            console.log('✅ Session established successfully');
+            router.push('/dashboard');
+            return;
+          }
         }
 
-        // Check if we have a session
+        // Fallback: check if we already have a session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           router.push('/dashboard');
