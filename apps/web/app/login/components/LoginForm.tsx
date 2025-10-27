@@ -255,17 +255,41 @@ export function LoginForm() {
           throw new Error(result.error || 'Failed to authenticate');
         }
 
-        // Verify session was set
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        console.log('🔍 Session check after OAuth:', {
+        // Verify session was set (with retry logic for timing issues)
+        console.log('🔍 Checking for session after OAuth...');
+        let session = null;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        while (!session && attempts < maxAttempts) {
+          attempts++;
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+          if (currentSession) {
+            session = currentSession;
+            console.log('✅ Session found after', attempts, 'attempt(s)');
+            break;
+          }
+
+          if (sessionError) {
+            console.error('❌ Session error:', sessionError);
+          }
+
+          // Wait 100ms before retrying
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        console.log('🔍 Final session check after OAuth:', {
           hasSession: !!session,
           userId: session?.user?.id,
           email: session?.user?.email,
-          error: sessionError
+          attempts
         });
 
         if (!session) {
-          console.error('❌ No session found after successful OAuth');
+          console.error('❌ No session found after successful OAuth (tried', attempts, 'times)');
           throw new Error('Authentication succeeded but no session was created');
         }
 

@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useSupabase } from '@/lib/providers';
 import { ThreeColumnLayout } from '@/components/ThreeColumnLayout';
 
+// Tell Next.js this is a client-only page (no SSR/SSG)
+export const dynamic = 'force-static';
+
 export default function AppPage() {
   const supabase = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);

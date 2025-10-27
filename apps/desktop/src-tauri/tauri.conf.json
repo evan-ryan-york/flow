@@ -1,7 +1,7 @@
 {
   "build": {
     "beforeDevCommand": "cd ../web && npm run dev",
-    "beforeBuildCommand": "cd ../web && NEXT_OUTPUT=export npm run build",
+    "beforeBuildCommand": "",
     "devPath": "http://localhost:3000",
     "distDir": "../../web/out",
     "withGlobalTauri": true
