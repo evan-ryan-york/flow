@@ -114,38 +114,35 @@ async function initTauriModules() {
 /**
  * Generate a cryptographically secure random string for PKCE code_verifier
  * Must be 43-128 characters, URL-safe base64 encoded
- *
- * Note: These functions are kept for potential future use but are currently
- * handled automatically by Supabase SDK's signInWithOAuth method.
  */
-// function _generateCodeVerifier(): string {
-//   const array = new Uint8Array(32);
-//   crypto.getRandomValues(array);
-//   return _base64URLEncode(array);
-// }
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return base64URLEncode(array);
+}
 
 /**
  * Base64 URL encode (without padding)
  * Converts binary data to URL-safe base64 string
  */
-// function _base64URLEncode(buffer: Uint8Array): string {
-//   const base64 = btoa(String.fromCharCode(...buffer));
-//   return base64
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=/g, '');
-// }
+function base64URLEncode(buffer: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...buffer));
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
 
 /**
  * Generate code_challenge from code_verifier using SHA-256
  * Required for PKCE S256 method
  */
-// async function _generateCodeChallenge(verifier: string): Promise<string> {
-//   const encoder = new TextEncoder();
-//   const data = encoder.encode(verifier);
-//   const hash = await crypto.subtle.digest('SHA-256', data);
-//   return _base64URLEncode(new Uint8Array(hash));
-// }
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return base64URLEncode(new Uint8Array(hash));
+}
 
 /**
  * Handle Google OAuth flow in Tauri desktop app
@@ -188,41 +185,37 @@ export async function handleTauriGoogleOAuth(
     const port = await tauriOAuth.start({ ports: [FIXED_PORT] });
     console.log(`✅ OAuth server started on port ${port}`);
 
-    // 3. Get OAuth URL from Supabase with PKCE flow
-    // CRITICAL: For desktop apps, we need to override the redirect_uri in the OAuth URL
-    // to point to our localhost server instead of the production URL
-    console.log('🔗 Getting OAuth URL from Supabase with PKCE flow...');
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        skipBrowserRedirect: true,
-        redirectTo: `http://localhost:${port}`,
-      },
-    });
+    // 3. Manually generate PKCE parameters (since we're bypassing Supabase's callback endpoint)
+    console.log('🔐 Generating PKCE parameters...');
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    console.log('✅ PKCE parameters generated');
 
-    if (error) {
-      console.error('❌ Failed to get OAuth URL:', error);
-      await tauriOAuth.cancel(port);
-      throw error;
+    // 4. Build Google OAuth URL manually with our PKCE parameters
+    // We need to get the Google client ID from Supabase config
+    console.log('🔗 Building Google OAuth URL with PKCE...');
+
+    // Get Supabase URL and construct the OAuth endpoint
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '';
+
+    if (!googleClientId) {
+      throw new Error('NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID not configured');
     }
 
-    if (!data?.url) {
-      console.error('❌ No OAuth URL returned');
-      await tauriOAuth.cancel(port);
-      throw new Error('No OAuth URL returned from Supabase');
-    }
+    // Build Google OAuth URL
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.set('client_id', googleClientId);
+    googleAuthUrl.searchParams.set('redirect_uri', `http://localhost:${port}`);
+    googleAuthUrl.searchParams.set('response_type', 'code');
+    googleAuthUrl.searchParams.set('scope', 'openid email profile');
+    googleAuthUrl.searchParams.set('code_challenge', codeChallenge);
+    googleAuthUrl.searchParams.set('code_challenge_method', 'S256');
+    googleAuthUrl.searchParams.set('access_type', 'offline');
+    googleAuthUrl.searchParams.set('prompt', 'consent');
 
-    // CRITICAL FIX: Replace the production redirect_uri with localhost
-    // Supabase generates the URL with the production domain, but for desktop we need localhost
-    const oauthUrl = new URL(data.url);
-    const originalRedirectUri = oauthUrl.searchParams.get('redirect_uri');
-    console.log('📝 Original redirect_uri from Supabase:', originalRedirectUri);
-
-    // Replace the Supabase callback URL with our localhost server URL
-    oauthUrl.searchParams.set('redirect_uri', `http://localhost:${port}`);
-    console.log('📝 Updated redirect_uri for desktop:', `http://localhost:${port}`);
-
-    const finalOAuthUrl = oauthUrl.toString();
+    const finalOAuthUrl = googleAuthUrl.toString();
+    console.log('✅ OAuth URL built with PKCE challenge');
 
     console.log('🌐 Opening OAuth URL in system browser...');
 
@@ -269,17 +262,43 @@ export async function handleTauriGoogleOAuth(
 
           console.log('🔑 Auth code received:', code.substring(0, 10) + '...');
 
-          // 6. Exchange code for session using Supabase SDK
-          // This will automatically handle PKCE using the stored code_verifier
-          console.log('🔄 Exchanging code for session via Supabase SDK...');
+          // 6. Exchange Google auth code for Google tokens using PKCE
+          console.log('🔄 Exchanging code with Google (PKCE)...');
 
-          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '';
+          const googleTokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              code,
+              client_id: googleClientId,
+              code_verifier: codeVerifier,
+              grant_type: 'authorization_code',
+              redirect_uri: `http://localhost:${port}`,
+            }),
+          });
 
-          if (sessionError) {
-            console.error('❌ Failed to set session:', sessionError);
-            await tauriOAuth!.cancel(port);
-            resolve({ success: false, error: sessionError.message });
-            return;
+          if (!googleTokenResponse.ok) {
+            const errorData = await googleTokenResponse.json();
+            console.error('❌ Google token exchange failed:', errorData);
+            throw new Error(errorData.error_description || errorData.error || 'Google token exchange failed');
+          }
+
+          const googleTokens = await googleTokenResponse.json();
+          console.log('✅ Received tokens from Google');
+
+          // 7. Sign in to Supabase using Google ID token
+          console.log('🔄 Signing in to Supabase with Google ID token...');
+          const { data: sessionData, error: signInError } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleTokens.id_token,
+          });
+
+          if (signInError) {
+            console.error('❌ Supabase sign-in failed:', signInError);
+            throw signInError;
           }
 
           console.log('✅ Authentication successful!');
