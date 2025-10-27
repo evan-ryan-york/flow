@@ -266,6 +266,12 @@ export async function handleTauriGoogleOAuth(
           console.log('🔄 Exchanging code with Google (PKCE)...');
 
           const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '';
+          const googleClientSecret = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
+
+          if (!googleClientSecret) {
+            throw new Error('GOOGLE_CLIENT_SECRET not configured in environment variables');
+          }
+
           const googleTokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: {
@@ -274,6 +280,7 @@ export async function handleTauriGoogleOAuth(
             body: new URLSearchParams({
               code,
               client_id: googleClientId,
+              client_secret: googleClientSecret,
               code_verifier: codeVerifier,
               grant_type: 'authorization_code',
               redirect_uri: `http://localhost:${port}`,
