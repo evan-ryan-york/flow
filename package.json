@@ -15,6 +15,7 @@
     "build:web:export": "cd apps/web && NEXT_OUTPUT=export pnpm run build",
     "build:mobile": "cd apps/mobile && pnpm run build",
     "build:desktop": "cd apps/desktop && pnpm run build",
+    "build:desktop:full": "pnpm build:web:export && pnpm build:desktop",
     "mobile:ios": "cd apps/mobile && pnpm run ios",
     "mobile:android": "cd apps/mobile && pnpm run android",
     "lint": "eslint . --max-warnings 0",
