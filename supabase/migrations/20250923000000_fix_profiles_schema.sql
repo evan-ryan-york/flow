@@ -1,11 +1,27 @@
 -- Fix profiles table schema to match build-spec and remove email column
 -- This migration adds full_name column and removes email column as requested
 
--- Add full_name column to profiles table
-ALTER TABLE public.profiles ADD COLUMN full_name text;
+-- Add full_name column to profiles table (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = 'public'
+                 AND table_name = 'profiles'
+                 AND column_name = 'full_name') THEN
+    ALTER TABLE public.profiles ADD COLUMN full_name text;
+  END IF;
+END $$;
 
 -- Remove email column as it's redundant (email is stored in auth.users)
-ALTER TABLE public.profiles DROP COLUMN email;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public'
+             AND table_name = 'profiles'
+             AND column_name = 'email') THEN
+    ALTER TABLE public.profiles DROP COLUMN email;
+  END IF;
+END $$;
 
 -- Update the trigger function to not insert email and prepare for full_name onboarding
 CREATE OR REPLACE FUNCTION public.handle_new_user()

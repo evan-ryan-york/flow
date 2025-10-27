@@ -56,8 +56,12 @@ export function ProjectItem({
             ) : (
               // Hollow circle for unselected projects
               <motion.div
-                className="w-3 h-3 rounded-full border-2"
-                style={{ borderColor: getProjectColorHex(project.color || 'blue') }}
+                className="w-3 h-3 rounded-full"
+                style={{
+                  borderWidth: '2px',
+                  borderStyle: 'solid',
+                  borderColor: getProjectColorHex(project.color || 'blue')
+                }}
                 initial={false}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}

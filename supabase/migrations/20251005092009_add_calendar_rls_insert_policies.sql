@@ -2,6 +2,7 @@
 -- This migration addresses RLS test failures by enabling INSERT operations
 
 -- Allow users to insert their own calendar connections
+DROP POLICY IF EXISTS "Users can insert their own calendar connections" ON google_calendar_connections;
 CREATE POLICY "Users can insert their own calendar connections"
 ON google_calendar_connections
 FOR INSERT
@@ -9,6 +10,7 @@ TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to insert subscriptions for their own connections
+DROP POLICY IF EXISTS "Users can insert subscriptions for own connections" ON calendar_subscriptions;
 CREATE POLICY "Users can insert subscriptions for own connections"
 ON calendar_subscriptions
 FOR INSERT
@@ -21,6 +23,7 @@ WITH CHECK (
 );
 
 -- Allow users to insert events for their own subscriptions
+DROP POLICY IF EXISTS "Users can insert events for own subscriptions" ON calendar_events;
 CREATE POLICY "Users can insert events for own subscriptions"
 ON calendar_events
 FOR INSERT

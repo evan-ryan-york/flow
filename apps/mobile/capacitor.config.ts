@@ -4,14 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.perfecttask.app',
   appName: 'Perfect Task App',
   webDir: '../web/out', // Points to Next.js static export
-  server: {
-    // For development, point to Next.js dev server
-    url: 'http://localhost:3000',
-    cleartext: true
-
-    // For production, use the static export
-    // androidScheme: 'https'
-  },
+  // server: {
+  //   // For development, point to Next.js dev server
+  //   url: 'http://localhost:3000',
+  //   cleartext: true
+  // },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
