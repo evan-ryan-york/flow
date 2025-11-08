@@ -78,7 +78,12 @@ Other Guidelines:
 - Ignore general discussion points or informational items
 - Descriptions should provide additional context, background, or meeting notes
 - If no due date is mentioned, set dueDate to null
-- If a relative date is mentioned (e.g., "by end of week"), calculate the actual date
+- IMPORTANT: You will be given TODAY'S DATE in the prompt. Use this to calculate relative dates accurately.
+  * "end of week" = the upcoming Friday (or same Friday if today is early in the week)
+  * "next week" = the following Monday
+  * "tomorrow" = the next day
+  * Always calculate dates relative to the provided TODAY'S DATE
+- Return all dates in ISO format (YYYY-MM-DD)
 
 Return your response as a JSON object with this structure:
 {
@@ -91,14 +96,21 @@ Return your response as a JSON object with this structure:
   ]
 }`;
 
-    const userPrompt = `Meeting Title: ${input.meetingTitle}
+    // Get today's date for accurate relative date parsing
+    const today = new Date();
+    const todayFormatted = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
+
+    const userPrompt = `TODAY'S DATE: ${todayFormatted} (${dayOfWeek})
+
+Meeting Title: ${input.meetingTitle}
 
 Meeting Notes:
 ${input.enhancedNotes}
 
 ${input.transcript ? `\nFull Transcript:\n${input.transcript}` : ''}
 
-Extract all actionable tasks from this meeting.`;
+Extract all actionable tasks from this meeting. Remember to calculate all relative dates (like "end of week", "next week", "tomorrow") based on TODAY'S DATE: ${todayFormatted}.`;
 
     const openai = getOpenAIClient();
 
@@ -143,8 +155,11 @@ Extract all actionable tasks from this meeting.`;
 /**
  * Helper function to parse relative dates mentioned in meetings
  * (e.g., "end of week", "tomorrow", "next Monday")
+ *
+ * Note: Currently unused as GPT-4 handles date parsing in the prompt.
+ * Keeping for potential future use if we need client-side date parsing.
  */
-function parseRelativeDate(dateString: string): string | null {
+function _parseRelativeDate(dateString: string): string | null {
   const today = new Date();
   const lowerDate = dateString.toLowerCase();
 
