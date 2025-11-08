@@ -56,15 +56,27 @@ export async function extractTasksFromMeetingNotes(
 
 Your job is to:
 1. Identify clear action items, to-dos, and assignments from meeting notes
-2. Extract the task name (concise, actionable)
-3. Create a helpful description with context from the meeting
+2. Extract the task name with FULL CONTEXT (include who, what, and key details)
+3. Create a helpful description with additional context from the meeting
 4. Determine if a due date was mentioned (return as ISO date string)
 
-Guidelines:
+Guidelines for Task Names:
+- Task names MUST include ALL key context: who is involved, what needs to be done, and any important details
+- Start with a verb and include the object AND relevant parties/details
+- Good examples:
+  * "Send Q4 report to stakeholders"
+  * "Schedule follow-up meeting with marketing team"
+  * "Review contract with legal team before Friday"
+  * "Update dashboard with latest sales metrics"
+- Bad examples (too vague):
+  * "Send report" ❌ (who to?)
+  * "Schedule meeting" ❌ (with whom?)
+  * "Review contract" ❌ (which contract? with whom?)
+
+Other Guidelines:
 - Only extract items that are clearly actionable tasks
 - Ignore general discussion points or informational items
-- Task names should be clear and start with a verb (e.g., "Send report to team")
-- Descriptions should include who is responsible and relevant context
+- Descriptions should provide additional context, background, or meeting notes
 - If no due date is mentioned, set dueDate to null
 - If a relative date is mentioned (e.g., "by end of week"), calculate the actual date
 
@@ -72,8 +84,8 @@ Return your response as a JSON object with this structure:
 {
   "tasks": [
     {
-      "name": "Task name",
-      "description": "Detailed context and who is responsible",
+      "name": "Specific, context-rich task name with all key details",
+      "description": "Additional context, background, or notes from the meeting",
       "dueDate": "2025-11-15" or null
     }
   ]
