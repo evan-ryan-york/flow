@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createTask } from '@perfect-task-app/data/services/taskService';
-import { getGeneralProject } from '@perfect-task-app/data/services/projectService';
+import { createServiceRoleClient } from '@/lib/supabase/server-simple';
+import { ProjectSchema, TaskSchema } from '@perfect-task-app/models';
 import { extractTasksFromMeetingNotes } from '@/lib/ai/taskExtractor';
 
 /**
@@ -53,15 +53,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the user's General project
-    const generalProject = await getGeneralProject(payload.userId);
+    // Create service role client (bypasses RLS for server-side operations)
+    const supabase = createServiceRoleClient();
 
-    if (!generalProject) {
+    // Get the user's General project
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', payload.userId)
+      .eq('is_general', true)
+      .single();
+
+    if (projectError || !projectData) {
       return NextResponse.json(
         { error: 'No General project found for user' },
         { status: 404 }
       );
     }
+
+    const generalProject = ProjectSchema.parse(projectData);
 
     // Extract tasks from the meeting notes using AI
     const extractedTasks = await extractTasksFromMeetingNotes({
@@ -71,18 +81,32 @@ export async function POST(request: NextRequest) {
     });
 
     // Create tasks in the database
-    const createdTasks = await Promise.all(
-      extractedTasks.map(task =>
-        createTask({
+    const createdTasksData = [];
+    for (const task of extractedTasks) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
           project_id: generalProject.id,
           name: task.name,
-          description: task.description || undefined,
-          due_date: task.dueDate || undefined,
+          description: task.description,
+          due_date: task.dueDate,
           created_by: payload.userId,
           assigned_to: payload.userId,
+          is_completed: false,
         })
-      )
-    );
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating task:', error);
+        throw new Error(`Failed to create task: ${error.message}`);
+      }
+
+      const validatedTask = TaskSchema.parse(data);
+      createdTasksData.push(validatedTask);
+    }
+
+    const createdTasks = createdTasksData;
 
     // Return success response with created tasks
     return NextResponse.json({
