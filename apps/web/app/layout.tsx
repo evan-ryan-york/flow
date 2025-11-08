@@ -1,10 +1,19 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Providers } from '../lib/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Current',
   description: 'Ultimate task and project management with calendar integration',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover', // Extends to full screen, respecting safe areas
+  interactiveWidget: 'overlays-content', // Keyboard overlays content instead of pushing it up
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, Settings, NavArrowLeft, NavArrowRight } from 'iconoir-react';
 import { format, addDays } from 'date-fns';
+import { initializeKeyboard } from '../../lib/keyboard';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileTopActionBar } from './MobileTopActionBar';
 import { MobileSearchOverlay } from './MobileSearchOverlay';
@@ -219,6 +220,11 @@ export function MobileTaskView({
     }
   }, [visibleProjectIds, selectedProjectForTasks]);
 
+  // Initialize keyboard configuration for Capacitor
+  useEffect(() => {
+    initializeKeyboard();
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Top Action Bar - Only shown on tasks tab */}
@@ -364,23 +370,27 @@ export function MobileTaskView({
       {/* Main Content Area - Tab-based routing */}
       <div className="flex-1 overflow-hidden pb-20">
         {activeTab === 'tasks' && (
-          <TaskList
-            tasks={filteredTasks}
-            selectedProjectIds={visibleProjectIds}
-            customPropertyDefinitions={customPropertyDefinitions}
-            userId={userId}
-            isLoading={false}
-            isDraggingActive={false}
-            groupedTasks={groupedTasks}
-            showGroupHeaders={groupBy !== null && groupBy !== "none"}
-            groupBy={groupBy}
-            userMapping={userMapping}
-            projectMapping={projectMapping}
-            projects={projects}
-            profiles={allProfiles}
-            customPropertyValues={allPropertyValues}
-            onTaskEditClick={handleTaskClick}
-          />
+          <div className="h-full overflow-y-auto">
+            <TaskList
+              tasks={filteredTasks}
+              selectedProjectIds={visibleProjectIds}
+              customPropertyDefinitions={customPropertyDefinitions}
+              userId={userId}
+              isLoading={false}
+              isDraggingActive={false}
+              groupedTasks={groupedTasks}
+              showGroupHeaders={groupBy !== null && groupBy !== "none"}
+              groupBy={groupBy}
+              userMapping={userMapping}
+              projectMapping={projectMapping}
+              projects={projects}
+              profiles={allProfiles}
+              customPropertyValues={allPropertyValues}
+              onTaskEditClick={handleTaskClick}
+            />
+            {/* Spacer to ensure last task is visible above fixed add task input + bottom nav */}
+            <div style={{ height: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }} />
+          </div>
         )}
         {activeTab === 'projects' && (
           <MobileProjectsView
@@ -405,9 +415,12 @@ export function MobileTaskView({
         )}
       </div>
 
-      {/* Quick Add Input - Only shown on tasks tab */}
+      {/* Quick Add Input - Only shown on tasks tab - Fixed position above bottom nav */}
       {activeTab === 'tasks' && (
-        <div className="sticky bottom-16 bg-white border-t border-gray-200 p-4 shadow-lg">
+        <div
+          className="fixed left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-10"
+          style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <TaskQuickAdd
             userId={userId}
             defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
