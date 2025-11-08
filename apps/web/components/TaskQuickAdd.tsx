@@ -24,9 +24,10 @@ interface TaskQuickAddProps {
   userId: string;
   defaultProjectId: string;
   showAdvancedOptions?: boolean; // Default true for desktop, false for mobile
+  onFocusChange?: (isFocused: boolean) => void; // Callback when input focus changes
 }
 
-export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true }: TaskQuickAddProps) {
+export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true, onFocusChange }: TaskQuickAddProps) {
   const [taskName, setTaskName] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [dueDate, setDueDate] = useState<string>("");
@@ -40,7 +41,19 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
   const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0);
   const [showCustomPropertyManager, setShowCustomPropertyManager] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Handle input focus/blur
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocusChange?.(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onFocusChange?.(false);
+  };
 
   // Hooks
   const { data: projectsData = [] } = useProjectsForUser(userId);
@@ -79,6 +92,18 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManualProjectSelection, selectedProject?.id, lastUsedProjectId]);
+
+  // Sync defaultProjectId prop to internal state (for mobile chip selection)
+  useEffect(() => {
+    if (defaultProjectId && projects && projects.length > 0) {
+      const project = projects.find((p) => p.id === defaultProjectId);
+      if (project && (!selectedProject || selectedProject.id !== project.id)) {
+        setSelectedProject(project);
+        setIsManualProjectSelection(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultProjectId, projects]);
 
   // Set default assignee to current user
   useEffect(() => {
@@ -290,6 +315,8 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
                 value={taskName}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 placeholder="Add a task..."
                 className="pr-2"
                 data-testid="task-input"
@@ -347,6 +374,8 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
               value={taskName}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               placeholder="Add a task..."
               className="flex-1"
               data-testid="task-input"

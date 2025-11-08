@@ -70,6 +70,9 @@ importers:
       '@capacitor/ios':
         specifier: ^6.0.0
         version: 6.2.1(@capacitor/core@6.2.1)
+      '@capacitor/keyboard':
+        specifier: ^6.0.3
+        version: 6.0.3(@capacitor/core@6.2.1)
       '@capacitor/local-notifications':
         specifier: ^6.0.0
         version: 6.1.2(@capacitor/core@6.2.1)
@@ -540,6 +543,11 @@ packages:
     resolution: {integrity: sha512-tbMlQdQjxe1wyaBvYVU1yTojKJjgluZQsJkALuJxv/6F8QTw5b6vd7X785O/O7cMpIAZfUWo/vtAHzFkRV+kXw==}
     peerDependencies:
       '@capacitor/core': ^6.2.0
+
+  '@capacitor/keyboard@6.0.3':
+    resolution: {integrity: sha512-V/mURxBI68HvClYjrGBlOriWkwYN7r+cWid/igJz/3scNc/V81DgQ9fpoLr4W0I5NY7YxOesjIJLuLO+LT18mQ==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
 
   '@capacitor/local-notifications@6.1.2':
     resolution: {integrity: sha512-LZrwkuh+EaIbpIOeqotUUB31MWA3BF+Hdf9ZdOK9MVJyHG7hL27ja/mx50tO6VW3+nlaXSeygkRZPIuuV4UQRQ==}
@@ -4918,6 +4926,10 @@ snapshots:
       '@capacitor/core': 6.2.1
 
   '@capacitor/ios@6.2.1(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capacitor/keyboard@6.0.3(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
 
