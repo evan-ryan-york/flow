@@ -41,17 +41,14 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
   const [customPropertyValues, setCustomPropertyValues] = useState<Record<string, string>>({});
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0);
   const [showCustomPropertyManager, setShowCustomPropertyManager] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Handle input focus/blur
   const handleFocus = () => {
-    setIsFocused(true);
     onFocusChange?.(true);
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
     onFocusChange?.(false);
   };
 

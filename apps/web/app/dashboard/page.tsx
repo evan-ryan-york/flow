@@ -61,7 +61,7 @@ export default function Dashboard() {
 
               console.log('✅ User authenticated from stored data:', user.email);
               if (isMounted) {
-                setUser(user as any);
+                setUser(user as User);
                 setLoading(false);
               }
               return; // Skip Supabase session loading

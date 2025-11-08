@@ -173,6 +173,7 @@ export function initializeSupabase(url: string, anonKey: string) {
           init = init || {};
 
           // IMPORTANT: Preserve existing headers (like apikey) and add Authorization
+          // eslint-disable-next-line no-undef
           const existingHeaders = new Headers(init.headers);
           existingHeaders.set('Authorization', `Bearer ${accessToken}`);
           init.headers = existingHeaders;
