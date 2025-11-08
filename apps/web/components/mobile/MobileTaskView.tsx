@@ -57,6 +57,7 @@ export function MobileTaskView({
 
   // Selected project for new tasks (long-press on project chip)
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string | null>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   // Create project state (for projects tab)
   const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -364,6 +365,7 @@ export function MobileTaskView({
           selectedProjectId={selectedProjectForTasks}
           onVisibilityChange={handleVisibilityChange}
           onProjectSelect={setSelectedProjectForTasks}
+          isInputFocused={isInputFocused}
         />
       )}
 
@@ -425,6 +427,7 @@ export function MobileTaskView({
             userId={userId}
             defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
             showAdvancedOptions={false}
+            onFocusChange={setIsInputFocused}
           />
         </div>
       )}

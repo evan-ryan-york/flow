@@ -9,7 +9,8 @@ interface ProjectChipsBarProps {
   visibleProjectIds: string[]; // Filled state chips
   selectedProjectId: string | null; // Selected project for new tasks (blue border)
   onVisibilityChange: (projectId: string, visible: boolean) => void;
-  onProjectSelect: (projectId: string) => void; // Long-press to select
+  onProjectSelect: (projectId: string) => void; // Click to select when input focused
+  isInputFocused: boolean; // Whether add task input is focused
 }
 
 export function ProjectChipsBar({
@@ -18,11 +19,11 @@ export function ProjectChipsBar({
   selectedProjectId,
   onVisibilityChange,
   onProjectSelect,
+  isInputFocused,
 }: ProjectChipsBarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Check if scrollable and update fade indicators
   const updateFadeIndicators = () => {
@@ -49,36 +50,17 @@ export function ProjectChipsBar({
     };
   }, [projects]);
 
-  // Handle chip click - toggles visibility
+  // Handle chip click - behavior depends on input focus state
   const handleChipClick = (projectId: string) => {
-    const isVisible = visibleProjectIds.includes(projectId);
-    onVisibilityChange(projectId, !isVisible);
-  };
-
-  // Handle long-press start
-  const handlePressStart = (projectId: string) => {
-    const timer = setTimeout(() => {
+    if (isInputFocused) {
+      // Input is focused - select this project for the new task
       onProjectSelect(projectId);
-    }, 500); // 500ms for long-press
-    setLongPressTimer(timer);
-  };
-
-  // Handle long-press end
-  const handlePressEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    } else {
+      // Input not focused - toggle visibility
+      const isVisible = visibleProjectIds.includes(projectId);
+      onVisibilityChange(projectId, !isVisible);
     }
   };
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-      }
-    };
-  }, [longPressTimer]);
 
   // Get chip state
   const getChipState = (projectId: string): { visible: boolean; selected: boolean } => {
@@ -137,13 +119,24 @@ export function ProjectChipsBar({
             <button
               key={project.id}
               onClick={() => handleChipClick(project.id)}
-              onTouchStart={() => handlePressStart(project.id)}
-              onTouchEnd={handlePressEnd}
-              onTouchCancel={handlePressEnd}
-              onMouseDown={() => handlePressStart(project.id)}
-              onMouseUp={handlePressEnd}
-              onMouseLeave={handlePressEnd}
-              style={chipStyles.style}
+              onMouseDown={(e) => {
+                // Prevent input blur when clicking chip
+                if (isInputFocused) {
+                  e.preventDefault();
+                }
+              }}
+              onTouchStart={(e) => {
+                // Prevent input blur on mobile
+                if (isInputFocused) {
+                  e.preventDefault();
+                }
+              }}
+              style={{
+                ...chipStyles.style,
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+                WebkitTouchCallout: 'none',
+              }}
               className={`
                 px-4 py-2 rounded-full text-sm font-medium
                 min-h-[44px] flex items-center justify-center
