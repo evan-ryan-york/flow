@@ -41,11 +41,31 @@ const getSupabaseFunctionsUrl = () => {
 };
 
 // Helper to get current user session token
+// NOTE: In Capacitor, getSession() hangs, so we read from storage directly
 const getSessionToken = async () => {
-  const supabase = getSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('No active session');
-  return session.access_token;
+  // Detect if we're in Capacitor
+  const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+  if (isCapacitor) {
+    // Read session directly from Capacitor Preferences
+    const { Preferences } = await import('@capacitor/preferences');
+    const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
+    const { value } = await Preferences.get({ key: storageKey });
+
+    if (!value) throw new Error('No active session');
+
+    const session = JSON.parse(value);
+    const accessToken = session.access_token;
+
+    if (!accessToken) throw new Error('No access token in session');
+    return accessToken;
+  } else {
+    // For web/desktop, getSession() works fine
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('No active session');
+    return session.access_token;
+  }
 };
 
 // ---------------------------------
@@ -74,7 +94,7 @@ export function useConnectGoogleCalendar() {
       console.log('🔑 Session token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
       console.log('🌐 Functions URL:', SUPABASE_FUNCTIONS_URL);
 
-      const supabase = getSupabaseClient();
+      const _supabase = getSupabaseClient();
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const response = await fetch(

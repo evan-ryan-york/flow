@@ -34,8 +34,12 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect authenticated routes
-  if (request.nextUrl.pathname.startsWith('/app') && !user) {
+  // For localhost/development (including Tauri), rely on client-side auth for /app routes
+  // Server-side middleware can't reliably see Tauri auth cookies
+  const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1';
+
+  // Protect authenticated routes (skip for localhost to support Tauri)
+  if (request.nextUrl.pathname.startsWith('/app') && !user && !isLocalhost) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

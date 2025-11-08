@@ -1,35 +1,66 @@
 'use client';
 
+console.log('📦 ThreeColumnLayout MODULE loading - Step 1: Starting imports');
+
 import { useState, useEffect } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
+
+console.log('📦 ThreeColumnLayout MODULE loading - Step 2: React imports done');
+
 import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
 import { MobileTaskView } from './mobile/MobileTaskView';
+
+console.log('📦 ThreeColumnLayout MODULE loading - Step 3: Component imports done');
+
 import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
+
+console.log('📦 ThreeColumnLayout MODULE loaded at:', new Date().toISOString());
 
 interface ThreeColumnLayoutProps {
   userId: string;
 }
 
 export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
+  console.log('🏗️  ThreeColumnLayout component rendering with userId:', userId);
+  console.log('⏰ ThreeColumnLayout render time:', new Date().toISOString());
+
+  console.log('🎣 About to call useState hooks in ThreeColumnLayout');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  console.log('✅ useState hooks completed in ThreeColumnLayout');
 
   // Load user's saved project visibility preferences
+  console.log('🎣 About to call useGeneralProject');
   const { data: generalProject } = useGeneralProject(userId);
+  console.log('✅ useGeneralProject completed:', { hasData: !!generalProject });
+
+  console.log('🎣 About to call useVisibleProjectIds');
   const { data: visibleProjectIds, isLoading: isLoadingVisibleProjects } = useVisibleProjectIds(userId);
+  console.log('✅ useVisibleProjectIds completed:', { hasData: !!visibleProjectIds, isLoading: isLoadingVisibleProjects });
+
+  console.log('🎣 About to call useUpdateVisibleProjectIds');
   const updateVisibleProjectsMutation = useUpdateVisibleProjectIds();
+  console.log('✅ useUpdateVisibleProjectIds completed');
 
   // Fetch user views to get active view data
+  console.log('🎣 About to call useUserViews');
   const { data: userViews = [], isLoading: isLoadingViews } = useUserViews(userId);
+  console.log('✅ useUserViews completed:', { count: userViews.length, isLoading: isLoadingViews });
+
   const activeView = userViews.find(v => v.id === selectedViewId);
+
+  console.log('🎣 About to call useDefaultView');
   const defaultView = useDefaultView(userId);
+  console.log('✅ useDefaultView completed:', { hasData: !!defaultView });
 
   // Fetch all projects to validate selectedProjectIds
+  console.log('🎣 About to call useProjectsForUser');
   const { data: allProjects = [] } = useProjectsForUser(userId);
+  console.log('✅ useProjectsForUser completed:', { count: allProjects.length });
 
   // Initialize with saved visible projects and selected view from localStorage
   useEffect(() => {
@@ -145,6 +176,8 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const handleViewChange = (viewId: string | null) => {
     setSelectedViewId(viewId);
   };
+
+  console.log('✅ All hooks completed, about to render ThreeColumnLayout JSX');
 
   return (
     <>

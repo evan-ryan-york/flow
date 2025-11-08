@@ -16,15 +16,27 @@ import {
  * Get all calendar connections for the current user
  */
 export async function getCalendarConnections(): Promise<GoogleCalendarConnection[]> {
+  console.log('🔍 [CalendarService] getCalendarConnections called');
   const supabase = getSupabaseClient();
+  console.log('📊 [CalendarService] About to query google_calendar_connections');
+
   const { data, error } = await supabase
     .from('google_calendar_connections')
     .select('*')
     .order('created_at', { ascending: true });
 
+  console.log('📊 [CalendarService] Calendar connections query result:', {
+    count: data?.length || 0,
+    error: error?.message,
+    errorCode: error?.code,
+    data: data,
+  });
+
   if (error) throw error;
 
-  return data?.map(conn => GoogleCalendarConnectionSchema.parse(conn)) || [];
+  const result = data?.map(conn => GoogleCalendarConnectionSchema.parse(conn)) || [];
+  console.log('✅ [CalendarService] Returning calendar connections:', { count: result.length });
+  return result;
 }
 
 /**
@@ -91,7 +103,10 @@ export async function updateCalendarConnectionLabel(
 export async function getCalendarSubscriptions(
   connectionId?: string
 ): Promise<CalendarSubscription[]> {
+  console.log('🔍 [CalendarService] getCalendarSubscriptions called', { connectionId });
   const supabase = getSupabaseClient();
+  console.log('📊 [CalendarService] About to query calendar_subscriptions');
+
   let query = supabase
     .from('calendar_subscriptions')
     .select('*')
@@ -103,9 +118,18 @@ export async function getCalendarSubscriptions(
 
   const { data, error } = await query;
 
+  console.log('📊 [CalendarService] Calendar subscriptions query result:', {
+    count: data?.length || 0,
+    error: error?.message,
+    errorCode: error?.code,
+    data: data,
+  });
+
   if (error) throw error;
 
-  return data?.map(sub => CalendarSubscriptionSchema.parse(sub)) || [];
+  const result = data?.map(sub => CalendarSubscriptionSchema.parse(sub)) || [];
+  console.log('✅ [CalendarService] Returning calendar subscriptions:', { count: result.length });
+  return result;
 }
 
 /**
