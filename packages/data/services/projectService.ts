@@ -53,16 +53,46 @@ export const createProject = async (data: CreateProjectData & { ownerId: string 
 };
 
 export const getProjectsForUser = async (userId: string): Promise<ProjectWithRole[]> => {
+  console.log('🔍 [ProjectService] getProjectsForUser called with userId:', userId);
   try {
     const supabase = getSupabaseClient();
+    console.log('📊 [ProjectService] Supabase client obtained, about to query owned projects');
+
     // Get projects where user is owner OR member
     // We need to do this in two separate queries and merge the results
 
     // First, get projects where user is the owner
-    const { data: ownedProjects, error: ownedError } = await supabase
+    console.log('🚨 [ProjectService] ABOUT TO AWAIT owned projects query');
+
+    const queryPromise = supabase
       .from('projects')
       .select('*')
       .eq('owner_id', userId);
+
+    console.log('🚨 [ProjectService] Query promise created, now awaiting...');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let response: any;
+    try {
+      response = await Promise.race([
+        queryPromise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Query timeout after 10s')), 10000))
+      ]);
+    } catch (timeoutError) {
+      console.error('🚨 [ProjectService] Query TIMED OUT or FAILED:', timeoutError);
+      throw timeoutError;
+    }
+
+    console.log('🚨 [ProjectService] Query returned!', response);
+
+    const { data: ownedProjects, error: ownedError } = response;
+
+    console.log('📊 [ProjectService] Owned projects query result:', {
+      count: ownedProjects?.length || 0,
+      error: ownedError?.message,
+      errorCode: ownedError?.code,
+      data: ownedProjects,
+    });
 
     if (ownedError) {
       throw new Error(`Failed to fetch owned projects: ${ownedError.message}`);
@@ -70,6 +100,7 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
 
 
     // Second, get projects where user is a member
+    console.log('📊 [ProjectService] About to query member projects');
     const { data: memberProjects, error: memberError } = await supabase
       .from('projects')
       .select(`
@@ -79,15 +110,28 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
       .eq('project_users.user_id', userId)
       .neq('owner_id', userId); // Exclude owned projects to avoid duplicates
 
+    console.log('📊 [ProjectService] Member projects query result:', {
+      count: memberProjects?.length || 0,
+      error: memberError?.message,
+      errorCode: memberError?.code,
+      data: memberProjects,
+    });
+
     if (memberError) {
       throw new Error(`Failed to fetch member projects: ${memberError.message}`);
     }
 
     // Combine and deduplicate results
     const allProjects = [
-      ...(ownedProjects || []).map(project => ({ ...project, project_users: [] })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(ownedProjects || []).map((project: any) => ({ ...project, project_users: [] })),
       ...(memberProjects || [])
     ];
+
+    console.log('📊 [ProjectService] Combined projects before sorting:', {
+      count: allProjects.length,
+      projects: allProjects.map(p => ({ id: p.id, name: p.name, is_general: p.is_general }))
+    });
 
     // Sort the combined results
     const sortedProjects = allProjects.sort((a, b) => {
@@ -117,6 +161,11 @@ export const getProjectsForUser = async (userId: string): Promise<ProjectWithRol
         ...project,
         userRole,
       };
+    });
+
+    console.log('✅ [ProjectService] Returning projects:', {
+      count: projectsWithRole.length,
+      projects: projectsWithRole.map(p => ({ id: p.id, name: p.name, userRole: p.userRole }))
     });
 
     return projectsWithRole;

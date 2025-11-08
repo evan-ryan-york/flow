@@ -73,21 +73,48 @@ export const signOut = async (): Promise<void> => {
 
 export const getSession = async () => {
   try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.getSession();
+    // Detect if we're in Capacitor
+    const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
-    console.log('AuthService.getSession debug:', {
-      hasSession: !!data.session,
-      hasUser: !!data.session?.user,
-      userId: data.session?.user?.id,
-      error: error?.message
-    });
+    if (isCapacitor) {
+      // In Capacitor, getSession() hangs, so we read from storage directly
+      const { Preferences } = await import('@capacitor/preferences');
+      const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
+      const { value } = await Preferences.get({ key: storageKey });
 
-    if (error) {
-      throw new Error(`Get session failed: ${error.message}`);
+      if (!value) {
+        console.log('AuthService.getSession: No session in storage');
+        return null;
+      }
+
+      const session = JSON.parse(value);
+
+      console.log('AuthService.getSession (Capacitor) debug:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id,
+        hasAccessToken: !!session?.access_token,
+      });
+
+      return session;
+    } else {
+      // For web/desktop, getSession() works fine
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.getSession();
+
+      console.log('AuthService.getSession (web) debug:', {
+        hasSession: !!data.session,
+        hasUser: !!data.session?.user,
+        userId: data.session?.user?.id,
+        error: error?.message
+      });
+
+      if (error) {
+        throw new Error(`Get session failed: ${error.message}`);
+      }
+
+      return data.session;
     }
-
-    return data.session;
   } catch (error) {
     console.error('AuthService.getSession error:', error);
     throw error;
@@ -96,14 +123,24 @@ export const getSession = async () => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.getUser();
+    // Detect if we're in Capacitor
+    const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
 
-    if (error) {
-      throw new Error(`Get current user failed: ${error.message}`);
+    if (isCapacitor) {
+      // In Capacitor, getUser() might hang, so we get user from session storage
+      const session = await getSession();
+      return session?.user || null;
+    } else {
+      // For web/desktop, getUser() works fine
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        throw new Error(`Get current user failed: ${error.message}`);
+      }
+
+      return data.user;
     }
-
-    return data.user;
   } catch (error) {
     console.error('AuthService.getCurrentUser error:', error);
     throw error;

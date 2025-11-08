@@ -7,6 +7,8 @@
  * Based on: https://github.com/JeaneC/tauri-oauth-supabase
  */
 
+/* eslint-disable no-undef */
+
 import { SupabaseClient } from '@supabase/supabase-js';
 
 // Dynamically import Tauri modules only when in Tauri context
@@ -196,7 +198,7 @@ export async function handleTauriGoogleOAuth(
     console.log('🔗 Building Google OAuth URL with PKCE...');
 
     // Get Supabase URL and construct the OAuth endpoint
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const _supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || '';
 
     if (!googleClientId) {
