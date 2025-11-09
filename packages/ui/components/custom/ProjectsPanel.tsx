@@ -41,11 +41,16 @@ export function ProjectsPanel({
 
     // Both regular clicks and Ctrl/Cmd+clicks toggle project selection
     // This allows for multiple projects to be selected at once
-    const newSelection = selectedProjectIds.includes(projectId)
+    const isCurrentlySelected = selectedProjectIds.includes(projectId);
+    const newSelection = isCurrentlySelected
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
-    console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection);
-    onProjectSelectionChange(newSelection, projectId);
+
+    // Only pass clickedProjectId when ENABLING a project, not when disabling it
+    const clickedProject = isCurrentlySelected ? undefined : projectId;
+
+    console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection, 'clickedProject:', clickedProject);
+    onProjectSelectionChange(newSelection, clickedProject);
   };
 
   const handleCreateProject = async (projectName: string) => {

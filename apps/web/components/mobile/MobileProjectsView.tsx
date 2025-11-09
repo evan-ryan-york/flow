@@ -50,13 +50,20 @@ export function MobileProjectsView({
     }
 
     // Regular click: Toggle project selection
-    const newSelection = selectedProjectIds.includes(projectId)
+    const isCurrentlySelected = selectedProjectIds.includes(projectId);
+    const newSelection = isCurrentlySelected
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
-    onProjectSelectionChange(newSelection, projectId);
 
-    // Also update the project for task creation
-    onProjectClickForTask?.(projectId);
+    // Only pass clickedProjectId when ENABLING a project, not when disabling it
+    const clickedProject = isCurrentlySelected ? undefined : projectId;
+
+    onProjectSelectionChange(newSelection, clickedProject);
+
+    // Also update the project for task creation when enabling
+    if (!isCurrentlySelected) {
+      onProjectClickForTask?.(projectId);
+    }
   };
 
   const handleCreateProject = async (projectName: string) => {
