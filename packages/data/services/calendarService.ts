@@ -16,26 +16,16 @@ import {
  * Get all calendar connections for the current user
  */
 export async function getCalendarConnections(): Promise<GoogleCalendarConnection[]> {
-  console.log('🔍 [CalendarService] getCalendarConnections called');
   const supabase = getSupabaseClient();
-  console.log('📊 [CalendarService] About to query google_calendar_connections');
 
   const { data, error } = await supabase
     .from('google_calendar_connections')
     .select('*')
     .order('created_at', { ascending: true });
 
-  console.log('📊 [CalendarService] Calendar connections query result:', {
-    count: data?.length || 0,
-    error: error?.message,
-    errorCode: error?.code,
-    data: data,
-  });
-
   if (error) throw error;
 
   const result = data?.map(conn => GoogleCalendarConnectionSchema.parse(conn)) || [];
-  console.log('✅ [CalendarService] Returning calendar connections:', { count: result.length });
   return result;
 }
 
@@ -103,9 +93,7 @@ export async function updateCalendarConnectionLabel(
 export async function getCalendarSubscriptions(
   connectionId?: string
 ): Promise<CalendarSubscription[]> {
-  console.log('🔍 [CalendarService] getCalendarSubscriptions called', { connectionId });
   const supabase = getSupabaseClient();
-  console.log('📊 [CalendarService] About to query calendar_subscriptions');
 
   let query = supabase
     .from('calendar_subscriptions')
@@ -118,17 +106,9 @@ export async function getCalendarSubscriptions(
 
   const { data, error } = await query;
 
-  console.log('📊 [CalendarService] Calendar subscriptions query result:', {
-    count: data?.length || 0,
-    error: error?.message,
-    errorCode: error?.code,
-    data: data,
-  });
-
   if (error) throw error;
 
   const result = data?.map(sub => CalendarSubscriptionSchema.parse(sub)) || [];
-  console.log('✅ [CalendarService] Returning calendar subscriptions:', { count: result.length });
   return result;
 }
 
@@ -205,12 +185,6 @@ export async function getCalendarEvents(
 ): Promise<CalendarEvent[]> {
   const supabase = getSupabaseClient();
 
-  console.log('🔍 getCalendarEvents called with filters:', {
-    startDate: filters.startDate.toISOString(),
-    endDate: filters.endDate.toISOString(),
-    visibleOnly: filters.visibleOnly,
-  });
-
   // If we need to filter by visibility, we need to join with subscriptions
   if (filters.visibleOnly) {
     const { data, error } = await supabase
@@ -220,12 +194,6 @@ export async function getCalendarEvents(
       .gte('end_time', filters.startDate.toISOString())
       .eq('calendar_subscriptions.is_visible', true)
       .order('start_time', { ascending: true });
-
-    console.log('🔍 Query result (visibleOnly):', {
-      count: data?.length || 0,
-      error: error?.message,
-      sampleEvent: data?.[0]
-    });
 
     if (error) throw error;
 
@@ -253,12 +221,6 @@ export async function getCalendarEvents(
   }
 
   const { data, error } = await query;
-
-  console.log('🔍 Query result (all):', {
-    count: data?.length || 0,
-    error: error?.message,
-    sampleEvent: data?.[0]
-  });
 
   if (error) throw error;
 

@@ -173,18 +173,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   const isLoading = isLoadingEvents || isLoadingBlocks;
   const error = eventsError || blocksError;
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('📅 CalendarPanel Debug:', {
-      dateRange,
-      calendarEventsCount: calendarEvents.length,
-      timeBlocksCount: timeBlocks.length,
-      isLoading,
-      error: error?.message,
-      syncPending: triggerEventSync.isPending,
-    });
-  }, [calendarEvents, timeBlocks, isLoading, error, dateRange, triggerEventSync.isPending]);
-
   // Trigger automatic event sync every 5 minutes
   const lastAutoSyncRef = React.useRef<Date | null>(null);
   const [previousVisibleCount, setPreviousVisibleCount] = React.useState(0);
@@ -199,10 +187,8 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     if (connections.length === 0 || isLoading) return;
     if (lastAutoSyncRef.current) return; // Only sync once
 
-    console.log('🔄 Initial automatic event sync (visible calendars only)...');
     triggerEventSync.mutate(undefined, {
-      onSuccess: (result) => {
-        console.log('🔄 Sync completed:', result);
+      onSuccess: () => {
         lastAutoSyncRef.current = new Date();
       },
       onError: (error) => {
@@ -216,10 +202,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   // Sync when visible calendars change (user toggles visibility)
   React.useEffect(() => {
     if (previousVisibleCount > 0 && visibleCalendarCount > previousVisibleCount) {
-      console.log('🔄 New calendar made visible, triggering sync...', {
-        previousCount: previousVisibleCount,
-        currentCount: visibleCalendarCount
-      });
       triggerEventSync.mutate(undefined);
     }
     setPreviousVisibleCount(visibleCalendarCount);
@@ -231,12 +213,10 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
     const handleTaskDragStart = (e: Event) => {
       const customEvent = e as CustomEvent<Task>;
       setDraggedTask(customEvent.detail);
-      console.log('🎯 Task drag started:', customEvent.detail.name);
     };
 
     const handleTaskDragEnd = () => {
       setDraggedTask(null);
-      console.log('🎯 Task drag ended');
     };
 
     window.addEventListener('task-drag-start', handleTaskDragStart);
@@ -253,12 +233,7 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
 
   // Callback to force calendar re-render when tasks change (stable reference)
   const handleTaskChange = useCallback(() => {
-    console.log('🔄 handleTaskChange called - forcing calendar re-render');
-    setCalendarKey(prev => {
-      const newKey = prev + 1;
-      console.log('🔄 Calendar key updated:', prev, '->', newKey);
-      return newKey;
-    });
+    setCalendarKey(prev => prev + 1);
   }, []);
 
   // Transform and merge events for react-big-calendar
@@ -284,7 +259,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   // Handle dropping a task onto the calendar
   const handleDropFromOutside = ({ start, end }: { start: Date | string; end: Date | string }) => {
     if (!draggedTask) {
-      console.log('⚠️ No task being dragged');
       return;
     }
 
@@ -301,13 +275,11 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
 
     if (existingBlock) {
       // Assign task to existing block
-      console.log('✅ Assigning task to existing block:', existingBlock.title);
       assignTaskMutation.mutate({
         taskId: draggedTask.id,
         timeBlockId: existingBlock.id,
       }, {
         onSuccess: () => {
-          console.log('✅ Task assigned successfully');
           // Force calendar re-render to show new task
           setCalendarKey(prev => prev + 1);
         },
@@ -318,7 +290,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
       });
     } else {
       // No work block at this time - do nothing per requirements
-      console.log('⚠️ No work block at drop location - ignoring drop');
       alert('Please drop the task on an existing work block. Create a work block first.');
     }
 
@@ -334,9 +305,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         start_time: start.toISOString(),
         end_time: end.toISOString(),
       }, {
-        onSuccess: (newBlock) => {
-          console.log('✅ Work block created successfully:', newBlock);
-        },
         onError: (error) => {
           console.error('❌ Failed to create work block:', error);
           alert('Failed to create work block. Please try again.');
@@ -346,8 +314,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
   };
 
   const handleSelectEvent = (event: CalendarEventType) => {
-    console.log('Selected event:', event);
-
     // Only allow deletion of work blocks (not Google Calendar events)
     if (event.resource?.type === 'work-block') {
       const confirmDelete = window.confirm(
@@ -356,9 +322,6 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
 
       if (confirmDelete) {
         deleteTimeBlock.mutate(event.id, {
-          onSuccess: () => {
-            console.log('✅ Work block deleted successfully');
-          },
           onError: (error) => {
             console.error('❌ Failed to delete work block:', error);
             alert('Failed to delete work block. Please try again.');

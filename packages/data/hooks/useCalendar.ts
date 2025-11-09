@@ -91,9 +91,6 @@ export function useConnectGoogleCalendar() {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
-      console.log('🔑 Session token:', token ? `${token.substring(0, 20)}...` : 'MISSING');
-      console.log('🌐 Functions URL:', SUPABASE_FUNCTIONS_URL);
-
       const _supabase = getSupabaseClient();
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -322,13 +319,6 @@ export function useSyncCalendarList() {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
-      console.log('🔍 Sync Calendar List Debug:', {
-        url: `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`,
-        hasToken: !!token,
-        tokenPrefix: token ? token.substring(0, 20) : 'NONE',
-        connectionId,
-      });
-
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const response = await fetch(
@@ -343,8 +333,6 @@ export function useSyncCalendarList() {
           body: JSON.stringify({ connectionId }),
         }
       );
-
-      console.log('🔍 Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -400,17 +388,11 @@ export function useCalendarEvents(
       options?.visibleOnly
     ),
     queryFn: async () => {
-      console.log('🔍 useCalendarEvents queryFn called', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        visibleOnly: options?.visibleOnly,
-      });
       const events = await getCalendarEvents({
         startDate,
         endDate,
         visibleOnly: options?.visibleOnly,
       });
-      console.log('🔍 useCalendarEvents queryFn result:', events.length, 'events');
       return events;
     },
     refetchOnWindowFocus: true, // Refresh when user returns to tab
@@ -428,8 +410,6 @@ export function useTriggerEventSync() {
     mutationFn: async (connectionId?: string) => {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
-
-      console.log('🔄 Triggering event sync...', { connectionId, url: `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events` });
 
       // eslint-disable-next-line no-undef
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -454,8 +434,6 @@ export function useTriggerEventSync() {
 
         if (timeoutId) clearTimeout(timeoutId);
 
-        console.log('🔄 Event sync response status:', response.status);
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error('🔄 Event sync failed:', errorText);
@@ -463,7 +441,6 @@ export function useTriggerEventSync() {
         }
 
         const result = await response.json();
-        console.log('🔄 Event sync result:', result);
         return result;
       } catch (error) {
         if (timeoutId) clearTimeout(timeoutId);
@@ -471,8 +448,7 @@ export function useTriggerEventSync() {
         throw error;
       }
     },
-    onSuccess: (_result) => {
-      console.log('🔄 Event sync successful, invalidating queries');
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.events.all });
     },
     onError: (error) => {

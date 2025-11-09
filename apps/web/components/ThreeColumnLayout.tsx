@@ -1,11 +1,7 @@
 'use client';
 
-console.log('📦 ThreeColumnLayout MODULE loading - Step 1: Starting imports');
-
 import { useState, useEffect } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
-
-console.log('📦 ThreeColumnLayout MODULE loading - Step 2: React imports done');
 
 import { ProjectsPanel } from '@perfect-task-app/ui/custom';
 import { TaskHub } from './TaskHub';
@@ -13,55 +9,34 @@ import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
 import { MobileTaskView } from './mobile/MobileTaskView';
 
-console.log('📦 ThreeColumnLayout MODULE loading - Step 3: Component imports done');
-
 import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
-
-console.log('📦 ThreeColumnLayout MODULE loaded at:', new Date().toISOString());
 
 interface ThreeColumnLayoutProps {
   userId: string;
 }
 
 export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
-  console.log('🏗️  ThreeColumnLayout component rendering with userId:', userId);
-  console.log('⏰ ThreeColumnLayout render time:', new Date().toISOString());
-
-  console.log('🎣 About to call useState hooks in ThreeColumnLayout');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [projectForTaskCreation, setProjectForTaskCreation] = useState<string | undefined>(undefined);
-  console.log('✅ useState hooks completed in ThreeColumnLayout');
 
   // Load user's saved project visibility preferences
-  console.log('🎣 About to call useGeneralProject');
   const { data: generalProject } = useGeneralProject(userId);
-  console.log('✅ useGeneralProject completed:', { hasData: !!generalProject });
 
-  console.log('🎣 About to call useVisibleProjectIds');
   const { data: visibleProjectIds, isLoading: isLoadingVisibleProjects } = useVisibleProjectIds(userId);
-  console.log('✅ useVisibleProjectIds completed:', { hasData: !!visibleProjectIds, isLoading: isLoadingVisibleProjects });
 
-  console.log('🎣 About to call useUpdateVisibleProjectIds');
   const updateVisibleProjectsMutation = useUpdateVisibleProjectIds();
-  console.log('✅ useUpdateVisibleProjectIds completed');
 
   // Fetch user views to get active view data
-  console.log('🎣 About to call useUserViews');
   const { data: userViews = [], isLoading: isLoadingViews } = useUserViews(userId);
-  console.log('✅ useUserViews completed:', { count: userViews.length, isLoading: isLoadingViews });
 
   const activeView = userViews.find(v => v.id === selectedViewId);
 
-  console.log('🎣 About to call useDefaultView');
   const defaultView = useDefaultView(userId);
-  console.log('✅ useDefaultView completed:', { hasData: !!defaultView });
 
   // Fetch all projects to validate selectedProjectIds
-  console.log('🎣 About to call useProjectsForUser');
   const { data: allProjects = [] } = useProjectsForUser(userId);
-  console.log('✅ useProjectsForUser completed:', { count: allProjects.length });
 
   // Initialize with saved visible projects and selected view from localStorage
   useEffect(() => {
@@ -71,24 +46,14 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
       // eslint-disable-next-line no-undef
       const savedViewId = typeof localStorage !== 'undefined' ? localStorage.getItem(`selectedViewId_${userId}`) : null;
 
-      console.log('[ThreeColumnLayout] Initializing view selection:', {
-        savedViewId,
-        userViewIds: userViews.map(v => v.id),
-        userViewNames: userViews.map(v => v.name),
-        defaultViewId: defaultView?.id,
-      });
-
       if (savedViewId === 'none') {
         // User explicitly deselected view - keep it deselected
-        console.log('[ThreeColumnLayout] ⭕ No view selected (user preference)');
         setSelectedViewId(null);
       } else if (savedViewId && userViews.some(v => v.id === savedViewId)) {
         // Use saved view if it exists
-        console.log('[ThreeColumnLayout] ✅ Using saved view:', savedViewId);
         setSelectedViewId(savedViewId);
       } else if (defaultView) {
         // Fall back to default view for first-time users or if saved view no longer exists
-        console.log('[ThreeColumnLayout] ⚠️ Falling back to default view:', defaultView.id);
         setSelectedViewId(defaultView.id);
       }
 
@@ -107,12 +72,10 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
       if (selectedViewId) {
         // eslint-disable-next-line no-undef
         localStorage.setItem(`selectedViewId_${userId}`, selectedViewId);
-        console.log('[ThreeColumnLayout] 💾 Saved view to localStorage:', selectedViewId);
       } else {
         // Save 'none' to indicate user explicitly deselected view
         // eslint-disable-next-line no-undef
         localStorage.setItem(`selectedViewId_${userId}`, 'none');
-        console.log('[ThreeColumnLayout] 💾 Saved "no view selected" state to localStorage');
       }
     }
   }, [selectedViewId, userId, hasInitialized]);
@@ -124,11 +87,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
       const cleanedProjectIds = selectedProjectIds.filter(id => validProjectIds.includes(id));
 
       if (cleanedProjectIds.length !== selectedProjectIds.length) {
-        console.log('[ThreeColumnLayout] Cleaning up invalid project IDs:', {
-          before: selectedProjectIds,
-          after: cleanedProjectIds,
-          removed: selectedProjectIds.filter(id => !validProjectIds.includes(id)),
-        });
         setSelectedProjectIds(cleanedProjectIds);
         // Also update the database to remove ghost projects
         updateVisibleProjectsMutation.mutate({ projectIds: cleanedProjectIds, userId });
@@ -173,7 +131,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
         !newProjectIds.every(id => viewProjectIds.includes(id));
 
       if (isDifferent) {
-        console.log('[ThreeColumnLayout] Projects changed, deselecting view');
         setSelectedViewId(null);
       }
     }
@@ -182,8 +139,6 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const handleViewChange = (viewId: string | null) => {
     setSelectedViewId(viewId);
   };
-
-  console.log('✅ All hooks completed, about to render ThreeColumnLayout JSX');
 
   return (
     <>
