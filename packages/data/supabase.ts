@@ -10,7 +10,7 @@ let supabaseInstance: SupabaseClient<any, 'public', any> | null = null;
 // Track operation timing to detect hangs
 const operationTimers = new Map<string, number>();
 
-// Logging wrapper to instrument auth operations
+// Logging wrapper to instrument auth operations (minimal logging)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function wrapAuthWithLogging(client: SupabaseClient<any, 'public', any>) {
   const originalAuth = client.auth;
@@ -25,29 +25,19 @@ function wrapAuthWithLogging(client: SupabaseClient<any, 'public', any>) {
         return original;
       }
 
-      // Return a wrapped version that logs before/after
+      // Return a wrapped version that logs only errors
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return function (...args: any[]) {
         const operationId = `${prop}-${Date.now()}`;
-        const timestamp = new Date().toISOString();
-
-        console.log(`🔵 [Supabase.auth.${prop}] STARTING at ${timestamp}`, {
-          operationId,
-          isCapacitor: isCapacitor(),
-          args: prop === 'setSession' ? '[REDACTED]' : args,
-          stackTrace: new Error().stack?.split('\n').slice(2, 5).join('\n  '), // Show caller
-        });
-
         operationTimers.set(operationId, Date.now());
 
-        // Set up a timeout warning
+        // Set up a timeout warning (only for slow operations)
         const timeoutWarning = setTimeout(() => {
           const elapsed = Date.now() - (operationTimers.get(operationId) || 0);
-          console.warn(`⚠️  [Supabase.auth.${prop}] STILL RUNNING after ${elapsed}ms`, {
-            operationId,
-            likelyHung: elapsed > 5000,
-          });
-        }, 3000);
+          if (elapsed > 5000) {
+            console.warn(`⚠️ [Supabase.auth.${prop}] Slow operation: ${elapsed}ms`);
+          }
+        }, 5000);
 
         try {
           // Bind to target to preserve correct 'this' context
@@ -60,24 +50,18 @@ function wrapAuthWithLogging(client: SupabaseClient<any, 'public', any>) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (value: any) => {
                 clearTimeout(timeoutWarning);
-                const elapsed = Date.now() - (operationTimers.get(operationId) || 0);
-                console.log(`✅ [Supabase.auth.${prop}] COMPLETED in ${elapsed}ms`, {
-                  operationId,
-                  hasError: value?.error ? true : false,
-                  errorMessage: value?.error?.message,
-                });
                 operationTimers.delete(operationId);
+                // Only log errors
+                if (value?.error) {
+                  console.error(`❌ [Supabase.auth.${prop}] Error:`, value.error.message);
+                }
                 return value;
               },
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (error: any) => {
                 clearTimeout(timeoutWarning);
-                const elapsed = Date.now() - (operationTimers.get(operationId) || 0);
-                console.error(`❌ [Supabase.auth.${prop}] FAILED in ${elapsed}ms`, {
-                  operationId,
-                  error: error?.message || error,
-                });
                 operationTimers.delete(operationId);
+                console.error(`❌ [Supabase.auth.${prop}] Failed:`, error?.message || error);
                 throw error;
               }
             );
@@ -85,20 +69,12 @@ function wrapAuthWithLogging(client: SupabaseClient<any, 'public', any>) {
 
           // Non-promise return
           clearTimeout(timeoutWarning);
-          const elapsed = Date.now() - (operationTimers.get(operationId) || 0);
-          console.log(`✅ [Supabase.auth.${prop}] COMPLETED (sync) in ${elapsed}ms`, {
-            operationId,
-          });
           operationTimers.delete(operationId);
           return result;
         } catch (error) {
           clearTimeout(timeoutWarning);
-          const elapsed = Date.now() - (operationTimers.get(operationId) || 0);
-          console.error(`❌ [Supabase.auth.${prop}] THREW ERROR in ${elapsed}ms`, {
-            operationId,
-            error,
-          });
           operationTimers.delete(operationId);
+          console.error(`❌ [Supabase.auth.${prop}] Threw error:`, error);
           throw error;
         }
       };
@@ -160,8 +136,6 @@ export function initializeSupabase(url: string, anonKey: string) {
   if (!supabaseInstance) {
     // Use custom storage for Capacitor
     if (isCapacitor()) {
-      console.log('🔧 Initializing Supabase FOR CAPACITOR with custom auth bypass');
-
       // CAPACITOR FIX: Create client with custom fetch that injects auth token
       // This bypasses Supabase's broken session loading in Capacitor
       const originalFetch = fetch;
@@ -169,7 +143,6 @@ export function initializeSupabase(url: string, anonKey: string) {
         const accessToken = await getCapacitorAccessToken();
 
         if (accessToken) {
-          console.log('🔐 Injecting access token into Supabase request');
           init = init || {};
 
           // IMPORTANT: Preserve existing headers (like apikey) and add Authorization
@@ -177,8 +150,6 @@ export function initializeSupabase(url: string, anonKey: string) {
           const existingHeaders = new Headers(init.headers);
           existingHeaders.set('Authorization', `Bearer ${accessToken}`);
           init.headers = existingHeaders;
-        } else {
-          console.warn('⚠️  No access token found for Capacitor request');
         }
 
         return originalFetch(input, init);
@@ -196,13 +167,10 @@ export function initializeSupabase(url: string, anonKey: string) {
         },
       });
 
-      console.log('✅ Supabase client initialized for Capacitor with auth bypass');
-      console.log('🔍 Wrapping client with logging proxy...');
       supabaseInstance = wrapAuthWithLogging(client);
     }
     // Use regular client for Tauri (static export needs explicit storage)
     else if (isTauri()) {
-      console.log('🔧 Initializing Supabase for Tauri with localStorage');
       const client = createClient(url, anonKey, {
         auth: {
           autoRefreshToken: true,
@@ -214,7 +182,6 @@ export function initializeSupabase(url: string, anonKey: string) {
     }
     // Use SSR-aware client for web
     else {
-      console.log('🔧 Initializing Supabase with standard browser client');
       // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
       const client = createBrowserClient(url, anonKey);
       supabaseInstance = wrapAuthWithLogging(client);
@@ -225,18 +192,9 @@ export function initializeSupabase(url: string, anonKey: string) {
 
 // Helper function to get the current Supabase client
 export function getSupabaseClient() {
-  console.log('🔍 [Supabase] getSupabaseClient called', {
-    hasInstance: !!supabaseInstance,
-    isCapacitor: isCapacitor(),
-    isTauri: isTauri(),
-    isSSR: typeof window === 'undefined',
-    hasCachedCredentials: !!(cachedUrl && cachedAnonKey),
-  });
-
   // During SSR/build, initialize the client but it won't have a real session
   // This allows static export to work - the actual auth will happen client-side
   if (typeof window === 'undefined' && !supabaseInstance) {
-    console.log('🔍 [Supabase] SSR: Creating browser client for build');
     // Get env vars for SSR context
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -252,7 +210,6 @@ export function getSupabaseClient() {
     throw new Error('Supabase client not initialized. Call initializeSupabase() first.');
   }
 
-  console.log('✅ [Supabase] Returning existing client instance');
   return supabaseInstance;
 }
 
@@ -263,26 +220,15 @@ export function getSupabase() {
 
 // Force reinitialize the Supabase client (generally not needed, but available)
 export function reinitializeSupabaseClient() {
-  console.log('🔄 [Supabase] Forcing client reinitialization...', {
-    timestamp: new Date().toISOString(),
-    hasCachedCredentials: !!(cachedUrl && cachedAnonKey),
-    isCapacitor: isCapacitor(),
-    stackTrace: new Error().stack?.split('\n').slice(2, 5).join('\n  '),
-  });
-
   if (!cachedUrl || !cachedAnonKey) {
     throw new Error('Cannot reinitialize: Supabase was never initialized with credentials');
   }
 
-  console.log('🔄 [Supabase] Clearing existing instance...');
   // Clear the existing instance
   supabaseInstance = null;
 
-  console.log('🔄 [Supabase] Calling initializeSupabase() with cached credentials...');
   // Reinitialize with cached credentials
   const client = initializeSupabase(cachedUrl, cachedAnonKey);
-
-  console.log('✅ [Supabase] Client reinitialized successfully');
 
   return client;
 }

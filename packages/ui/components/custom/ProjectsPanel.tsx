@@ -13,7 +13,7 @@ import type { ProjectWithRole } from '@perfect-task-app/data';
 interface ProjectsPanelProps {
   userId: string;
   selectedProjectIds: string[];
-  onProjectSelectionChange: (projectIds: string[]) => void;
+  onProjectSelectionChange: (projectIds: string[], clickedProjectId?: string) => void;
   className?: string;
 }
 
@@ -31,14 +31,26 @@ export function ProjectsPanel({
   const [newProjectName, setNewProjectName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const handleProjectClick = (projectId: string, _isCtrlClick: boolean) => {
-    // Both regular clicks and Ctrl/Cmd+clicks now toggle project selection
+  const handleProjectClick = (projectId: string, _isCtrlClick: boolean, isShiftClick: boolean) => {
+    // Shift+click: Select ONLY this project (deselect all others)
+    if (isShiftClick) {
+      console.log('[ProjectsPanel] Shift+click detected, selecting only project:', projectId);
+      onProjectSelectionChange([projectId], projectId);
+      return;
+    }
+
+    // Both regular clicks and Ctrl/Cmd+clicks toggle project selection
     // This allows for multiple projects to be selected at once
-    const newSelection = selectedProjectIds.includes(projectId)
+    const isCurrentlySelected = selectedProjectIds.includes(projectId);
+    const newSelection = isCurrentlySelected
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
-    console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection);
-    onProjectSelectionChange(newSelection);
+
+    // Only pass clickedProjectId when ENABLING a project, not when disabling it
+    const clickedProject = isCurrentlySelected ? undefined : projectId;
+
+    console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection, 'clickedProject:', clickedProject);
+    onProjectSelectionChange(newSelection, clickedProject);
   };
 
   const handleCreateProject = async (projectName: string) => {
@@ -49,7 +61,7 @@ export function ProjectsPanel({
       });
 
       // Add the new project to existing selection
-      onProjectSelectionChange([...selectedProjectIds, newProject.id]);
+      onProjectSelectionChange([...selectedProjectIds, newProject.id], newProject.id);
     } catch {
       // Error is handled by the mutation
     }

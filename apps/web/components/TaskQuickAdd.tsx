@@ -25,9 +25,10 @@ interface TaskQuickAddProps {
   defaultProjectId: string;
   showAdvancedOptions?: boolean; // Default true for desktop, false for mobile
   onFocusChange?: (isFocused: boolean) => void; // Callback when input focus changes
+  externalProjectId?: string; // When set externally (e.g., clicking project in sidebar)
 }
 
-export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true, onFocusChange }: TaskQuickAddProps) {
+export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true, onFocusChange, externalProjectId }: TaskQuickAddProps) {
   const [taskName, setTaskName] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [dueDate, setDueDate] = useState<string>("");
@@ -66,17 +67,27 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
 
   // Set default project based on sticky behavior - only when not manually overridden
   useEffect(() => {
+    console.log('🟣 [TaskQuickAdd] Sticky behavior effect triggered', {
+      isManualProjectSelection,
+      lastUsedProjectId,
+      generalProjectId: generalProject?.id,
+      currentSelectedProject: selectedProject?.id,
+    });
+
     // Don't override manual project selections
     if (isManualProjectSelection) {
+      console.log('🟣 [TaskQuickAdd] ⏭️ Skipping - manual selection active');
       return;
     }
 
     if (lastUsedProjectId && projects && projects.length > 0) {
       const lastUsedProject = projects.find((p) => p.id === lastUsedProjectId);
       if (lastUsedProject && (!selectedProject || selectedProject.id !== lastUsedProject.id)) {
+        console.log('🟣 [TaskQuickAdd] Setting from lastUsedProject:', lastUsedProject.name);
         setSelectedProject(lastUsedProject);
       }
     } else if (generalProject && (!selectedProject || selectedProject.id !== generalProject.id)) {
+      console.log('🟣 [TaskQuickAdd] Setting from generalProject:', generalProject.name);
       setSelectedProject(generalProject);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,11 +101,44 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManualProjectSelection, selectedProject?.id, lastUsedProjectId]);
 
+  // When project is clicked in sidebar, update selected project for task creation
+  useEffect(() => {
+    console.log('🟢 [TaskQuickAdd] externalProjectId effect triggered', {
+      externalProjectId,
+      projectsCount: projects?.length,
+      currentSelectedProject: selectedProject?.id,
+      currentSelectedProjectName: selectedProject?.name,
+    });
+
+    if (externalProjectId && projects && projects.length > 0) {
+      const project = projects.find((p) => p.id === externalProjectId);
+      console.log('🟢 [TaskQuickAdd] Found project for externalProjectId:', project?.name);
+
+      if (project && (!selectedProject || selectedProject.id !== project.id)) {
+        console.log('🟢 [TaskQuickAdd] ✅ Setting selectedProject to:', project.name);
+        setSelectedProject(project);
+        setIsManualProjectSelection(true); // Mark as manual to prevent sticky behavior override
+      } else {
+        console.log('🟢 [TaskQuickAdd] ⏭️ Skipping - already selected or project not found');
+      }
+    } else {
+      console.log('🟢 [TaskQuickAdd] ⏭️ Skipping - no externalProjectId or no projects loaded');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalProjectId, projects?.length]);
+
   // Sync defaultProjectId prop to internal state (for mobile chip selection)
   useEffect(() => {
+    console.log('🔶 [TaskQuickAdd] defaultProjectId effect triggered', {
+      defaultProjectId,
+      projectsCount: projects?.length,
+      currentSelectedProject: selectedProject?.id,
+    });
+
     if (defaultProjectId && projects && projects.length > 0) {
       const project = projects.find((p) => p.id === defaultProjectId);
       if (project && (!selectedProject || selectedProject.id !== project.id)) {
+        console.log('🔶 [TaskQuickAdd] Setting selectedProject from defaultProjectId to:', project.name);
         setSelectedProject(project);
         setIsManualProjectSelection(true);
       }

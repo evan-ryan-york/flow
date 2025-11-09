@@ -13,7 +13,8 @@ import type { ProjectWithRole } from '@perfect-task-app/data';
 interface MobileProjectsViewProps {
   userId: string;
   selectedProjectIds: string[];
-  onProjectSelectionChange: (projectIds: string[]) => void;
+  onProjectSelectionChange: (projectIds: string[], clickedProjectId?: string) => void;
+  onProjectClickForTask?: (projectId: string) => void;
   isCreatingProject?: boolean;
   onCreateProjectToggle?: () => void;
 }
@@ -22,6 +23,7 @@ export function MobileProjectsView({
   userId,
   selectedProjectIds,
   onProjectSelectionChange,
+  onProjectClickForTask,
   isCreatingProject: externalIsCreatingProject,
   onCreateProjectToggle,
 }: MobileProjectsViewProps) {
@@ -39,11 +41,29 @@ export function MobileProjectsView({
   const [deleteDialogProject, setDeleteDialogProject] = useState<ProjectWithRole | null>(null);
   const [renameDialogProject, setRenameDialogProject] = useState<ProjectWithRole | null>(null);
 
-  const handleProjectClick = (projectId: string) => {
-    const newSelection = selectedProjectIds.includes(projectId)
+  const handleProjectClick = (projectId: string, isShiftClick: boolean = false) => {
+    // Shift+click: Select ONLY this project (deselect all others)
+    if (isShiftClick) {
+      onProjectSelectionChange([projectId], projectId);
+      onProjectClickForTask?.(projectId); // Update project for task creation
+      return;
+    }
+
+    // Regular click: Toggle project selection
+    const isCurrentlySelected = selectedProjectIds.includes(projectId);
+    const newSelection = isCurrentlySelected
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
-    onProjectSelectionChange(newSelection);
+
+    // Only pass clickedProjectId when ENABLING a project, not when disabling it
+    const clickedProject = isCurrentlySelected ? undefined : projectId;
+
+    onProjectSelectionChange(newSelection, clickedProject);
+
+    // Also update the project for task creation when enabling
+    if (!isCurrentlySelected) {
+      onProjectClickForTask?.(projectId);
+    }
   };
 
   const handleCreateProject = async (projectName: string) => {
@@ -235,7 +255,7 @@ export function MobileProjectsView({
               <div className="flex items-center justify-between py-2">
                 {/* Left: Color indicator + Project name (clickable area) */}
                 <button
-                  onClick={() => handleProjectClick(project.id)}
+                  onClick={(e) => handleProjectClick(project.id, e.shiftKey)}
                   className="flex items-center flex-1 min-w-0 active:bg-gray-50 rounded-lg p-2 -ml-2"
                 >
                   {/* Color indicator with color picker */}

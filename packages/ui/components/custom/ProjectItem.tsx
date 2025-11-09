@@ -10,7 +10,7 @@ import type { Project } from '@perfect-task-app/models';
 interface ProjectItemProps {
   project: Project;
   isSelected: boolean;
-  onClick: (projectId: string, isCtrlClick: boolean) => void;
+  onClick: (projectId: string, isCtrlClick: boolean, isShiftClick: boolean) => void;
   onColorChange?: (projectId: string, color: ProjectColor) => void;
   userId: string;
   className?: string;
@@ -26,7 +26,8 @@ export function ProjectItem({
 }: ProjectItemProps) {
   const handleClick = (event: React.MouseEvent) => {
     const isCtrlClick = event.ctrlKey || event.metaKey;
-    onClick(project.id, isCtrlClick);
+    const isShiftClick = event.shiftKey;
+    onClick(project.id, isCtrlClick, isShiftClick);
   };
 
   const handleColorChange = (color: ProjectColor) => {
