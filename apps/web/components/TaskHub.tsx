@@ -39,11 +39,12 @@ import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping
 interface TaskHubProps {
   userId: string;
   selectedProjectIds: string[];
+  projectForTaskCreation?: string;
   selectedViewId: string | null;
   onViewChange: (viewId: string | null) => void;
 }
 
-export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChange }: TaskHubProps) {
+export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, selectedViewId, onViewChange }: TaskHubProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   // Track tasks that are currently completing (to show them for 2 seconds)
@@ -501,7 +502,7 @@ export function TaskHub({ userId, selectedProjectIds, selectedViewId, onViewChan
             <TaskQuickAdd
               userId={userId}
               defaultProjectId={selectedProjectIds[0] || "1"}
-              externalProjectId={selectedProjectIds[0]}
+              externalProjectId={projectForTaskCreation}
             />
           </div>
         </div>

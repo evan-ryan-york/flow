@@ -31,6 +31,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [projectForTaskCreation, setProjectForTaskCreation] = useState<string | undefined>(undefined);
   console.log('✅ useState hooks completed in ThreeColumnLayout');
 
   // Load user's saved project visibility preferences
@@ -156,6 +157,9 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
     setSelectedProjectIds(newProjectIds);
     updateVisibleProjectsMutation.mutate({ projectIds: newProjectIds, userId });
 
+    // Update project for task creation (use first selected project)
+    setProjectForTaskCreation(newProjectIds[0] || undefined);
+
     // If a view is active and projects are manually changed, deselect the view
     if (activeView) {
       const viewProjectIds = activeView.config.projectIds.length === 0
@@ -209,6 +213,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
               <TaskHub
                 userId={userId}
                 selectedProjectIds={selectedProjectIds}
+                projectForTaskCreation={projectForTaskCreation}
                 selectedViewId={selectedViewId}
                 onViewChange={handleViewChange}
               />
