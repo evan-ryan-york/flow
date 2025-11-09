@@ -45,6 +45,8 @@ interface TaskHubProps {
 }
 
 export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, selectedViewId, onViewChange }: TaskHubProps) {
+  console.log('🟡 [TaskHub] Rendered with projectForTaskCreation:', projectForTaskCreation);
+
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   // Track tasks that are currently completing (to show them for 2 seconds)
