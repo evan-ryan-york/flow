@@ -31,8 +31,15 @@ export function ProjectsPanel({
   const [newProjectName, setNewProjectName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const handleProjectClick = (projectId: string, _isCtrlClick: boolean) => {
-    // Both regular clicks and Ctrl/Cmd+clicks now toggle project selection
+  const handleProjectClick = (projectId: string, _isCtrlClick: boolean, isShiftClick: boolean) => {
+    // Shift+click: Select ONLY this project (deselect all others)
+    if (isShiftClick) {
+      console.log('[ProjectsPanel] Shift+click detected, selecting only project:', projectId);
+      onProjectSelectionChange([projectId]);
+      return;
+    }
+
+    // Both regular clicks and Ctrl/Cmd+clicks toggle project selection
     // This allows for multiple projects to be selected at once
     const newSelection = selectedProjectIds.includes(projectId)
       ? selectedProjectIds.filter(id => id !== projectId)

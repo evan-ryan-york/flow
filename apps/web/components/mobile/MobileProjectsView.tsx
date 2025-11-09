@@ -39,7 +39,14 @@ export function MobileProjectsView({
   const [deleteDialogProject, setDeleteDialogProject] = useState<ProjectWithRole | null>(null);
   const [renameDialogProject, setRenameDialogProject] = useState<ProjectWithRole | null>(null);
 
-  const handleProjectClick = (projectId: string) => {
+  const handleProjectClick = (projectId: string, isShiftClick: boolean = false) => {
+    // Shift+click: Select ONLY this project (deselect all others)
+    if (isShiftClick) {
+      onProjectSelectionChange([projectId]);
+      return;
+    }
+
+    // Regular click: Toggle project selection
     const newSelection = selectedProjectIds.includes(projectId)
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
@@ -235,7 +242,7 @@ export function MobileProjectsView({
               <div className="flex items-center justify-between py-2">
                 {/* Left: Color indicator + Project name (clickable area) */}
                 <button
-                  onClick={() => handleProjectClick(project.id)}
+                  onClick={(e) => handleProjectClick(project.id, e.shiftKey)}
                   className="flex items-center flex-1 min-w-0 active:bg-gray-50 rounded-lg p-2 -ml-2"
                 >
                   {/* Color indicator with color picker */}
