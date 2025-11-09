@@ -56,8 +56,8 @@ export function BatchActionBar({
               </button>
             </>
           ) : (
-            <span className="text-sm text-gray-300">
-              Select tasks to perform batch actions
+            <span className="text-sm font-medium">
+              0 tasks selected
             </span>
           )}
         </div>
