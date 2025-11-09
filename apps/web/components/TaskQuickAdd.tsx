@@ -25,9 +25,10 @@ interface TaskQuickAddProps {
   defaultProjectId: string;
   showAdvancedOptions?: boolean; // Default true for desktop, false for mobile
   onFocusChange?: (isFocused: boolean) => void; // Callback when input focus changes
+  externalProjectId?: string; // When set externally (e.g., clicking project in sidebar)
 }
 
-export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true, onFocusChange }: TaskQuickAddProps) {
+export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = true, onFocusChange, externalProjectId }: TaskQuickAddProps) {
   const [taskName, setTaskName] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [dueDate, setDueDate] = useState<string>("");
@@ -89,6 +90,18 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManualProjectSelection, selectedProject?.id, lastUsedProjectId]);
+
+  // When project is clicked in sidebar, update selected project for task creation
+  useEffect(() => {
+    if (externalProjectId && projects && projects.length > 0) {
+      const project = projects.find((p) => p.id === externalProjectId);
+      if (project && (!selectedProject || selectedProject.id !== project.id)) {
+        setSelectedProject(project);
+        setIsManualProjectSelection(true); // Mark as manual to prevent sticky behavior override
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalProjectId, projects?.length]);
 
   // Sync defaultProjectId prop to internal state (for mobile chip selection)
   useEffect(() => {

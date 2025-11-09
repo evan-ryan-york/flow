@@ -399,6 +399,7 @@ export function MobileTaskView({
             userId={userId}
             selectedProjectIds={visibleProjectIds}
             onProjectSelectionChange={handleProjectSelectionChange}
+            onProjectClickForTask={setSelectedProjectForTasks}
             isCreatingProject={isCreatingProject}
             onCreateProjectToggle={() => setIsCreatingProject(!isCreatingProject)}
           />
@@ -426,6 +427,7 @@ export function MobileTaskView({
           <TaskQuickAdd
             userId={userId}
             defaultProjectId={selectedProjectForTasks || visibleProjectIds[0] || ''}
+            externalProjectId={selectedProjectForTasks || undefined}
             showAdvancedOptions={false}
             onFocusChange={setIsInputFocused}
           />

@@ -14,6 +14,7 @@ interface MobileProjectsViewProps {
   userId: string;
   selectedProjectIds: string[];
   onProjectSelectionChange: (projectIds: string[]) => void;
+  onProjectClickForTask?: (projectId: string) => void;
   isCreatingProject?: boolean;
   onCreateProjectToggle?: () => void;
 }
@@ -22,6 +23,7 @@ export function MobileProjectsView({
   userId,
   selectedProjectIds,
   onProjectSelectionChange,
+  onProjectClickForTask,
   isCreatingProject: externalIsCreatingProject,
   onCreateProjectToggle,
 }: MobileProjectsViewProps) {
@@ -43,6 +45,7 @@ export function MobileProjectsView({
     // Shift+click: Select ONLY this project (deselect all others)
     if (isShiftClick) {
       onProjectSelectionChange([projectId]);
+      onProjectClickForTask?.(projectId); // Update project for task creation
       return;
     }
 
@@ -51,6 +54,9 @@ export function MobileProjectsView({
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
     onProjectSelectionChange(newSelection);
+
+    // Also update the project for task creation
+    onProjectClickForTask?.(projectId);
   };
 
   const handleCreateProject = async (projectName: string) => {
