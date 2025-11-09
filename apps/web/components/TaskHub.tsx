@@ -22,6 +22,8 @@ import {
   useTasksPropertyValues,
   useSetPropertyValue,
   useUserViews,
+  useBulkUpdateTasks,
+  useBulkDeleteTasks,
 } from "@perfect-task-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
@@ -30,6 +32,10 @@ import { KanbanView } from "./KanbanView";
 import { SavedViews } from "./SavedViews";
 import { TaskItem } from "./TaskItem";
 import { TaskFiltersBar } from "./TaskFiltersBar";
+import { BatchActionBar } from "./BatchActionBar";
+import { BatchProjectSelectorDialog } from "./BatchProjectSelectorDialog";
+import { BatchDueDateDialog } from "./BatchDueDateDialog";
+import { BatchOwnerSelectorDialog } from "./BatchOwnerSelectorDialog";
 import { TaskEditPullover } from "./TaskEditPullover";
 import { CreateViewDialog } from "./CreateViewDialog";
 import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
@@ -42,9 +48,10 @@ interface TaskHubProps {
   projectForTaskCreation?: string;
   selectedViewId: string | null;
   onViewChange: (viewId: string | null) => void;
+  onProjectSelectionChange?: (projectIds: string[]) => void;
 }
 
-export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, selectedViewId, onViewChange }: TaskHubProps) {
+export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, selectedViewId, onViewChange, onProjectSelectionChange }: TaskHubProps) {
   console.log('🟡 [TaskHub] Rendered with projectForTaskCreation:', projectForTaskCreation);
 
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -54,6 +61,15 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
 
   // View dialog state
   const [isCreateViewDialogOpen, setIsCreateViewDialogOpen] = useState(false);
+
+  // Batch actions state
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+
+  // Batch dialog states
+  const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false);
+  const [isDueDateDialogOpen, setIsDueDateDialogOpen] = useState(false);
+  const [isOwnerSelectorOpen, setIsOwnerSelectorOpen] = useState(false);
 
   // Fetch all views for user and the active view
   const { data: userViews = [] } = useUserViews(userId);
@@ -107,11 +123,14 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
   const userMapping = useMemo(() => {
     const mapping: Record<string, string> = {};
     allProfiles.forEach((profile) => {
-      // Use first_name if available, otherwise show "Unknown User"
+      // Use first_name, last_name, or full_name
       if (profile.id === userId) {
         mapping[profile.id] = "You";
       } else {
-        mapping[profile.id] = profile.first_name || profile.last_name || "Unknown User";
+        const fullName = profile.first_name && profile.last_name
+          ? `${profile.first_name} ${profile.last_name}`.trim()
+          : profile.first_name || profile.last_name || profile.full_name || "Unknown User";
+        mapping[profile.id] = fullName;
       }
     });
     return mapping;
@@ -129,6 +148,8 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
   // Task update hook for cross-group drops
   const updateTaskMutation = useUpdateTask();
   const setPropertyValueMutation = useSetPropertyValue();
+  const bulkUpdateTasksMutation = useBulkUpdateTasks();
+  const bulkDeleteTasksMutation = useBulkDeleteTasks();
   const queryClient = useQueryClient();
 
   // Real-time synchronization
@@ -490,6 +511,151 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
     );
   }
 
+  // Batch mode handlers
+  const handleBatchModeToggle = () => {
+    setIsBatchMode(!isBatchMode);
+    // Clear selection when toggling batch mode off
+    if (isBatchMode) {
+      setSelectedTaskIds(new Set());
+    }
+  };
+
+  const handleTaskSelectionToggle = (taskId: string) => {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTaskIds(new Set());
+  };
+
+  // Batch action handlers
+  const handleBatchMarkComplete = () => {
+    const taskIds = Array.from(selectedTaskIds);
+    bulkUpdateTasksMutation.mutate(
+      {
+        taskIds,
+        updates: {
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+        },
+      },
+      {
+        onSuccess: () => {
+          // Clear selection after successful update
+          setSelectedTaskIds(new Set());
+        },
+      }
+    );
+  };
+
+  const handleBatchMarkIncomplete = () => {
+    const taskIds = Array.from(selectedTaskIds);
+    bulkUpdateTasksMutation.mutate(
+      {
+        taskIds,
+        updates: {
+          is_completed: false,
+          completed_at: null,
+        },
+      },
+      {
+        onSuccess: () => {
+          // Clear selection after successful update
+          setSelectedTaskIds(new Set());
+        },
+      }
+    );
+  };
+
+  const handleBatchSetProject = () => {
+    setIsProjectSelectorOpen(true);
+  };
+
+  const handleBatchSetProjectConfirm = (projectId: string) => {
+    const taskIds = Array.from(selectedTaskIds);
+
+    // Check if the target project is not currently visible
+    if (!selectedProjectIds.includes(projectId) && onProjectSelectionChange) {
+      // Add the project to visible projects
+      const newProjectIds = [...selectedProjectIds, projectId];
+      onProjectSelectionChange(newProjectIds);
+    }
+
+    bulkUpdateTasksMutation.mutate(
+      {
+        taskIds,
+        updates: { project_id: projectId },
+      },
+      {
+        onSuccess: () => {
+          setSelectedTaskIds(new Set());
+        },
+      }
+    );
+  };
+
+  const handleBatchSetDueDate = () => {
+    setIsDueDateDialogOpen(true);
+  };
+
+  const handleBatchSetDueDateConfirm = (dueDate: string) => {
+    const taskIds = Array.from(selectedTaskIds);
+    bulkUpdateTasksMutation.mutate(
+      {
+        taskIds,
+        updates: { due_date: dueDate || undefined },
+      },
+      {
+        onSuccess: () => {
+          setSelectedTaskIds(new Set());
+        },
+      }
+    );
+  };
+
+  const handleBatchSetOwner = () => {
+    setIsOwnerSelectorOpen(true);
+  };
+
+  const handleBatchSetOwnerConfirm = (ownerId: string) => {
+    const taskIds = Array.from(selectedTaskIds);
+    bulkUpdateTasksMutation.mutate(
+      {
+        taskIds,
+        updates: { assigned_to: ownerId || undefined },
+      },
+      {
+        onSuccess: () => {
+          setSelectedTaskIds(new Set());
+        },
+      }
+    );
+  };
+
+  const handleBatchDelete = () => {
+    // Simple confirmation using browser confirm for now
+    const taskIds = Array.from(selectedTaskIds);
+    const taskCount = taskIds.length;
+    const taskLabel = taskCount === 1 ? 'task' : 'tasks';
+
+    if (window.confirm(`Are you sure you want to delete ${taskCount} ${taskLabel}? This action cannot be undone.`)) {
+      bulkDeleteTasksMutation.mutate(taskIds, {
+        onSuccess: () => {
+          // Clear selection and exit batch mode after successful delete
+          setSelectedTaskIds(new Set());
+        },
+      });
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -517,6 +683,8 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
           onFiltersChange={setSelectedFilters}
           groupBy={groupBy}
           onGroupByChange={setGroupBy}
+          isBatchMode={isBatchMode}
+          onBatchModeToggle={handleBatchModeToggle}
           tasks={baseTasks}
           selectedProjectIds={selectedProjectIds}
           profiles={allProfiles}
@@ -524,6 +692,21 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
           customPropertyDefinitions={allCustomProperties}
           totalTasks={baseTasks.length}
           filteredTasks={filteredTasks.length}
+        />
+
+        {/* Batch Action Bar - Shows when in batch mode */}
+        <BatchActionBar
+          isBatchMode={isBatchMode}
+          selectedTaskIds={selectedTaskIds}
+          onMarkComplete={handleBatchMarkComplete}
+          onMarkIncomplete={handleBatchMarkIncomplete}
+          onSetProject={handleBatchSetProject}
+          onSetDueDate={handleBatchSetDueDate}
+          onSetOwner={handleBatchSetOwner}
+          onDelete={handleBatchDelete}
+          onClearSelection={handleClearSelection}
+          profiles={allProfiles}
+          projects={allProjects}
         />
 
         {/* Task List or Kanban View */}
@@ -556,6 +739,9 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
               onVisibleColumnIdsChange={setVisibleColumnIds}
               onVisibleBuiltInColumnsChange={setVisibleBuiltInColumns}
               customPropertyValues={allPropertyValues}
+              isBatchMode={isBatchMode}
+              selectedTaskIds={selectedTaskIds}
+              onTaskSelectionToggle={handleTaskSelectionToggle}
               onTaskEditClick={(taskId) => {
                 if (isEditPanelOpen && selectedTaskId === taskId) {
                   // If same task is clicked, close the panel
@@ -608,6 +794,31 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
           // Switch to the newly created view
           onViewChange(viewId);
         }}
+      />
+
+      {/* Batch Action Dialogs */}
+      <BatchProjectSelectorDialog
+        isOpen={isProjectSelectorOpen}
+        onClose={() => setIsProjectSelectorOpen(false)}
+        onConfirm={handleBatchSetProjectConfirm}
+        projects={allProjects}
+        selectedTaskCount={selectedTaskIds.size}
+      />
+
+      <BatchDueDateDialog
+        isOpen={isDueDateDialogOpen}
+        onClose={() => setIsDueDateDialogOpen(false)}
+        onConfirm={handleBatchSetDueDateConfirm}
+        selectedTaskCount={selectedTaskIds.size}
+      />
+
+      <BatchOwnerSelectorDialog
+        isOpen={isOwnerSelectorOpen}
+        onClose={() => setIsOwnerSelectorOpen(false)}
+        onConfirm={handleBatchSetOwnerConfirm}
+        profiles={allProfiles}
+        currentUserId={userId}
+        selectedTaskCount={selectedTaskIds.size}
       />
 
 

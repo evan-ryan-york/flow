@@ -9,6 +9,8 @@ import {
   updateTask,
   deleteTask,
   getTaskById,
+  bulkUpdateTasks,
+  bulkDeleteTasks,
   type CreateTaskData,
   type UpdateTaskData
 } from '../services/taskService';
@@ -192,6 +194,47 @@ export const useDeleteTask = () => {
       queryClient.removeQueries({ queryKey: TASK_KEYS.task(taskId) });
 
       // Invalidate all project tasks queries to ensure the task is removed from lists
+      queryClient.invalidateQueries({ queryKey: TASK_KEYS.all });
+    },
+  });
+};
+
+/**
+ * Bulk update multiple tasks with the same updates
+ */
+export const useBulkUpdateTasks = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ taskIds, updates }: { taskIds: string[]; updates: UpdateTaskData }) =>
+      bulkUpdateTasks(taskIds, updates),
+    onSuccess: (updatedTasks) => {
+      // Update each task in the individual cache
+      updatedTasks.forEach(task => {
+        queryClient.setQueryData(TASK_KEYS.task(task.id), task);
+      });
+
+      // Invalidate all task lists to ensure they reflect the bulk update
+      queryClient.invalidateQueries({ queryKey: TASK_KEYS.all });
+    },
+  });
+};
+
+/**
+ * Bulk delete multiple tasks
+ */
+export const useBulkDeleteTasks = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (taskIds: string[]) => bulkDeleteTasks(taskIds),
+    onSuccess: (_, taskIds) => {
+      // Remove each task from individual cache
+      taskIds.forEach(taskId => {
+        queryClient.removeQueries({ queryKey: TASK_KEYS.task(taskId) });
+      });
+
+      // Invalidate all task lists to ensure deleted tasks are removed
       queryClient.invalidateQueries({ queryKey: TASK_KEYS.all });
     },
   });

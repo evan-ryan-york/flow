@@ -47,6 +47,10 @@ interface TaskListProps {
   onVisibleBuiltInColumnsChange?: (cols: Set<BuiltInColumn>) => void;
   // Custom property values for sorting
   customPropertyValues?: Array<{ task_id: string; definition_id: string; value: string }>;
+  // Batch actions support
+  isBatchMode?: boolean;
+  selectedTaskIds?: Set<string>;
+  onTaskSelectionToggle?: (taskId: string) => void;
 }
 
 const BUILT_IN_COLUMNS: { id: BuiltInColumn; label: string }[] = [
@@ -384,7 +388,10 @@ const TaskList = memo(function TaskList({
   visibleBuiltInColumns: controlledVisibleBuiltInColumns,
   onVisibleColumnIdsChange,
   onVisibleBuiltInColumnsChange,
-  customPropertyValues = []
+  customPropertyValues = [],
+  isBatchMode = false,
+  selectedTaskIds = new Set(),
+  onTaskSelectionToggle
 }: TaskListProps) {
   // State for managing collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -730,7 +737,7 @@ const TaskList = memo(function TaskList({
           strategy={verticalListSortingStrategy}
         >
           {displayedTasks.map((task) => (
-            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} projectMapping={projectMapping} projects={projects} profiles={profiles} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} showDragHandle={showGroupHeaders} />
+            <SortableTaskItem key={task.id} task={task} customPropertyDefinitions={visibleColumns} userId={userId} userMapping={userMapping} projectMapping={projectMapping} projects={projects} profiles={profiles} visibleBuiltInColumns={visibleBuiltInColumns} onTaskEditClick={onTaskEditClick} showDragHandle={showGroupHeaders} isBatchMode={isBatchMode} isSelected={selectedTaskIds.has(task.id)} onSelectionToggle={() => onTaskSelectionToggle?.(task.id)} />
           ))}
         </SortableContext>
       </div>
@@ -740,7 +747,7 @@ const TaskList = memo(function TaskList({
 
 export { TaskList };
 
-function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, projectMapping, projects, profiles, visibleBuiltInColumns, onTaskEditClick, showDragHandle }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; projectMapping?: Record<string, string>; projects?: Project[]; profiles?: Profile[]; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void; showDragHandle?: boolean }) {
+function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping, projectMapping, projects, profiles, visibleBuiltInColumns, onTaskEditClick, showDragHandle, isBatchMode, isSelected, onSelectionToggle }: { task: Task; customPropertyDefinitions: CustomPropertyDefinition[]; userId: string; userMapping?: Record<string, string>; projectMapping?: Record<string, string>; projects?: Project[]; profiles?: Profile[]; visibleBuiltInColumns: Set<BuiltInColumn>; onTaskEditClick?: (taskId: string) => void; showDragHandle?: boolean; isBatchMode?: boolean; isSelected?: boolean; onSelectionToggle?: () => void }) {
   const {
     attributes,
     listeners,
@@ -779,6 +786,9 @@ function SortableTaskItem({ task, customPropertyDefinitions, userId, userMapping
         visibleBuiltInColumns={visibleBuiltInColumns}
         onEditClick={onTaskEditClick}
         showDragHandle={showDragHandle}
+        isBatchMode={isBatchMode}
+        isSelected={isSelected}
+        onSelectionToggle={onSelectionToggle}
       />
     </div>
   );

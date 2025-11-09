@@ -21,7 +21,7 @@ interface TaskGroupProps {
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
   projects?: Project[];
-  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null; full_name?: string | null }>;
   visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;
 }
@@ -234,7 +234,7 @@ function SortableTaskItem({
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
   projects?: Project[];
-  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null; full_name?: string | null }>;
   visibleBuiltInColumns?: Set<'assigned_to' | 'due_date' | 'project' | 'created_at'>;
   onTaskEditClick?: (taskId: string) => void;
 }) {

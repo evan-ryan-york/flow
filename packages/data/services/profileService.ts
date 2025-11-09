@@ -186,16 +186,14 @@ export const getAllProfiles = async (): Promise<Profile[]> => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .order('first_name', { ascending: true });
+      .order('first_name', { ascending: true, nullsFirst: false });
 
     if (error) {
       throw new Error(`Failed to fetch profiles: ${error.message}`);
     }
 
-    // Filter out profiles without names and validate against Zod schema
-    const validatedProfiles = data
-      .filter(profile => profile.first_name || profile.last_name)
-      .map(profile => ProfileSchema.parse(profile));
+    // Validate all profiles against Zod schema (no filtering)
+    const validatedProfiles = (data || []).map(profile => ProfileSchema.parse(profile));
 
     return validatedProfiles;
   } catch (error) {

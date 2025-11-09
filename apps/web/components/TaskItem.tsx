@@ -19,15 +19,18 @@ interface TaskItemProps {
   userMapping?: Record<string, string>;
   projectMapping?: Record<string, string>;
   projects?: Project[];
-  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null; full_name?: string | null }>;
   visibleBuiltInColumns?: Set<BuiltInColumn>;
   onEditClick?: (taskId: string) => void;
   showDragHandle?: boolean;
+  isBatchMode?: boolean;
+  isSelected?: boolean;
+  onSelectionToggle?: () => void;
 }
 
 // Removed unused projectNames constant
 
-const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick, showDragHandle = true }: TaskItemProps) {
+const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], userId, isDragging = false, dragAttributes, dragListeners, userMapping = {}, projectMapping: _projectMapping = {}, projects = [], profiles = [], visibleBuiltInColumns = new Set(['assigned_to', 'due_date', 'project', 'created_at']), onEditClick, showDragHandle = true, isBatchMode = false, isSelected = false, onSelectionToggle }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -125,6 +128,12 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
   };
 
   const handleRowClick = () => {
+    // In batch mode, toggle selection instead of opening edit panel
+    if (isBatchMode && onSelectionToggle) {
+      onSelectionToggle();
+      return;
+    }
+
     // Only trigger if not dragging and onEditClick is provided
     if (!isDraggingActive && onEditClick) {
       onEditClick(task.id);
@@ -176,41 +185,55 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
       </div>
       {/* Table Row Layout */}
       <div className="relative flex items-center gap-2 px-2 lg:gap-3 lg:px-4 py-3">
-        {/* Drag Handle - Only show when grouping is active */}
-        {showDragHandle && (
-          <button
-            {...dragAttributes}
-            {...dragListeners}
-            onClick={(e) => {
+        {/* Batch Mode Checkbox */}
+        {isBatchMode ? (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
               e.stopPropagation();
-              handleDragHandleClick(e);
+              onSelectionToggle?.();
             }}
-            onPointerDown={(e) => {
-              handleDragHandlePointerDown(e);
-              // Call the original listener if it exists
-              if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
-                (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
-              }
-            }}
-            onPointerUp={(e) => {
-              handleDragHandlePointerUp(e);
-              // Call the original listener if it exists
-              if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
-                (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
-              }
-            }}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
-            title="Drag to reorder"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="9" cy="5" r="1"/>
-              <circle cx="15" cy="5" r="1"/>
-              <circle cx="9" cy="12" r="1"/>
-              <circle cx="15" cy="12" r="1"/>
-              <circle cx="9" cy="19" r="1"/>
-              <circle cx="15" cy="19" r="1"/>
-            </svg>
-          </button>
+            onClick={(e) => e.stopPropagation()}
+            className="flex-shrink-0 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+        ) : (
+          /* Drag Handle - Only show when grouping is active and not in batch mode */
+          showDragHandle && (
+            <button
+              {...dragAttributes}
+              {...dragListeners}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDragHandleClick(e);
+              }}
+              onPointerDown={(e) => {
+                handleDragHandlePointerDown(e);
+                // Call the original listener if it exists
+                if (dragListeners && 'onPointerDown' in dragListeners && typeof dragListeners.onPointerDown === 'function') {
+                  (dragListeners.onPointerDown as (e: React.PointerEvent) => void)(e);
+                }
+              }}
+              onPointerUp={(e) => {
+                handleDragHandlePointerUp(e);
+                // Call the original listener if it exists
+                if (dragListeners && 'onPointerUp' in dragListeners && typeof dragListeners.onPointerUp === 'function') {
+                  (dragListeners.onPointerUp as (e: React.PointerEvent) => void)(e);
+                }
+              }}
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing p-1"
+              title="Drag to reorder"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="5" r="1"/>
+                <circle cx="15" cy="5" r="1"/>
+                <circle cx="9" cy="12" r="1"/>
+                <circle cx="15" cy="12" r="1"/>
+                <circle cx="9" cy="19" r="1"/>
+                <circle cx="15" cy="19" r="1"/>
+              </svg>
+            </button>
+          )
         )}
 
         {/* Completion Circle */}
@@ -311,6 +334,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
                     return firstInitial;
                   } else if (lastInitial) {
                     return lastInitial;
+                  } else if (profile.full_name) {
+                    // Use first letter of full_name as fallback
+                    return profile.full_name[0].toUpperCase();
                   }
                   return 'U';
                 })()}
