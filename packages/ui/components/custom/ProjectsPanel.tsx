@@ -13,7 +13,7 @@ import type { ProjectWithRole } from '@perfect-task-app/data';
 interface ProjectsPanelProps {
   userId: string;
   selectedProjectIds: string[];
-  onProjectSelectionChange: (projectIds: string[]) => void;
+  onProjectSelectionChange: (projectIds: string[], clickedProjectId?: string) => void;
   className?: string;
 }
 
@@ -35,7 +35,7 @@ export function ProjectsPanel({
     // Shift+click: Select ONLY this project (deselect all others)
     if (isShiftClick) {
       console.log('[ProjectsPanel] Shift+click detected, selecting only project:', projectId);
-      onProjectSelectionChange([projectId]);
+      onProjectSelectionChange([projectId], projectId);
       return;
     }
 
@@ -45,7 +45,7 @@ export function ProjectsPanel({
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
     console.log('[ProjectsPanel] Project clicked, calling onProjectSelectionChange with:', newSelection);
-    onProjectSelectionChange(newSelection);
+    onProjectSelectionChange(newSelection, projectId);
   };
 
   const handleCreateProject = async (projectName: string) => {
@@ -56,7 +56,7 @@ export function ProjectsPanel({
       });
 
       // Add the new project to existing selection
-      onProjectSelectionChange([...selectedProjectIds, newProject.id]);
+      onProjectSelectionChange([...selectedProjectIds, newProject.id], newProject.id);
     } catch {
       // Error is handled by the mutation
     }

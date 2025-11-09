@@ -13,7 +13,7 @@ import type { ProjectWithRole } from '@perfect-task-app/data';
 interface MobileProjectsViewProps {
   userId: string;
   selectedProjectIds: string[];
-  onProjectSelectionChange: (projectIds: string[]) => void;
+  onProjectSelectionChange: (projectIds: string[], clickedProjectId?: string) => void;
   onProjectClickForTask?: (projectId: string) => void;
   isCreatingProject?: boolean;
   onCreateProjectToggle?: () => void;
@@ -44,7 +44,7 @@ export function MobileProjectsView({
   const handleProjectClick = (projectId: string, isShiftClick: boolean = false) => {
     // Shift+click: Select ONLY this project (deselect all others)
     if (isShiftClick) {
-      onProjectSelectionChange([projectId]);
+      onProjectSelectionChange([projectId], projectId);
       onProjectClickForTask?.(projectId); // Update project for task creation
       return;
     }
@@ -53,7 +53,7 @@ export function MobileProjectsView({
     const newSelection = selectedProjectIds.includes(projectId)
       ? selectedProjectIds.filter(id => id !== projectId)
       : [...selectedProjectIds, projectId];
-    onProjectSelectionChange(newSelection);
+    onProjectSelectionChange(newSelection, projectId);
 
     // Also update the project for task creation
     onProjectClickForTask?.(projectId);

@@ -110,13 +110,13 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
   }, [activeView?.id, activeView?.config.projectIds, allProjects.length, userId]);
 
   // Save project selection changes to the database
-  const handleProjectSelectionChange = (newProjectIds: string[]) => {
-    console.log('🔵 [ThreeColumnLayout] Project clicked - newProjectIds:', newProjectIds);
+  const handleProjectSelectionChange = (newProjectIds: string[], clickedProjectId?: string) => {
+    console.log('🔵 [ThreeColumnLayout] Project clicked - newProjectIds:', newProjectIds, 'clickedProjectId:', clickedProjectId);
     setSelectedProjectIds(newProjectIds);
     updateVisibleProjectsMutation.mutate({ projectIds: newProjectIds, userId });
 
-    // Update project for task creation (use first selected project)
-    const newProjectForTask = newProjectIds[0] || undefined;
+    // Update project for task creation (use clicked project, or first selected project if no click info)
+    const newProjectForTask = clickedProjectId || newProjectIds[0] || undefined;
     console.log('🔵 [ThreeColumnLayout] Setting projectForTaskCreation to:', newProjectForTask);
     setProjectForTaskCreation(newProjectForTask);
 
