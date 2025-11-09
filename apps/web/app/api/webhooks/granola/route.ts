@@ -3,6 +3,11 @@ import { createServiceRoleClient } from '@/lib/supabase/server-simple';
 import { ProjectSchema, TaskSchema } from '@perfect-task-app/models';
 import { extractTasksFromMeetingNotes } from '@/lib/ai/taskExtractor';
 
+// Configure for static export compatibility (desktop builds)
+// Note: This webhook is only functional in server deployments, not in desktop/static builds
+export const dynamic = 'force-static';
+export const revalidate = false;
+
 /**
  * Granola Webhook Handler
  *
