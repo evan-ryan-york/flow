@@ -17,6 +17,7 @@ interface ColumnFilterDropdownProps {
   };
   selectedFilters: FilterState;
   onChange: (filters: FilterState) => void;
+  isBatchMode?: boolean;
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export function ColumnFilterDropdown({
   availableFilters,
   selectedFilters,
   onChange,
+  isBatchMode = false,
   className
 }: ColumnFilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -235,35 +237,40 @@ export function ColumnFilterDropdown({
               />
             )}
 
-            <FilterSection
-              title="Completion Status"
-              options={availableFilters.completion}
-              selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
-              onToggle={handleCompletionToggle}
-            />
+            {/* Hide completion filter when in batch mode */}
+            {!isBatchMode && (
+              <>
+                <FilterSection
+                  title="Completion Status"
+                  options={availableFilters.completion}
+                  selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
+                  onToggle={handleCompletionToggle}
+                />
 
-            {/* Show timeframe options when completed or all tasks are selected */}
-            {selectedFilters.completion &&
-             (selectedFilters.completion.status === 'completed' || selectedFilters.completion.status === 'all') && (() => {
-               // Dynamically generate timeframe options based on selected status
-               const status = selectedFilters.completion.status;
-               const timeframeOptions: FilterOption[] = [
-                 { key: 'all-time', label: 'All time', type: 'completion' as const, value: { status, timeframe: 'all-time' } as CompletionFilter },
-                 { key: 'last-month', label: 'Last month', type: 'completion' as const, value: { status, timeframe: 'last-month' } as CompletionFilter },
-                 { key: 'last-week', label: 'Last week', type: 'completion' as const, value: { status, timeframe: 'last-week' } as CompletionFilter },
-               ];
+                {/* Show timeframe options when completed or all tasks are selected */}
+                {selectedFilters.completion &&
+                 (selectedFilters.completion.status === 'completed' || selectedFilters.completion.status === 'all') && (() => {
+                   // Dynamically generate timeframe options based on selected status
+                   const status = selectedFilters.completion.status;
+                   const timeframeOptions: FilterOption[] = [
+                     { key: 'all-time', label: 'All time', type: 'completion' as const, value: { status, timeframe: 'all-time' } as CompletionFilter },
+                     { key: 'last-month', label: 'Last month', type: 'completion' as const, value: { status, timeframe: 'last-month' } as CompletionFilter },
+                     { key: 'last-week', label: 'Last week', type: 'completion' as const, value: { status, timeframe: 'last-week' } as CompletionFilter },
+                   ];
 
-               return (
-                 <div className="ml-4 pl-4 border-l-2 border-gray-200">
-                   <FilterSection
-                     title="Completed Timeframe"
-                     options={timeframeOptions}
-                     selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
-                     onToggle={handleCompletionToggle}
-                   />
-                 </div>
-               );
-             })()}
+                   return (
+                     <div className="ml-4 pl-4 border-l-2 border-gray-200">
+                       <FilterSection
+                         title="Completed Timeframe"
+                         options={timeframeOptions}
+                         selectedValues={selectedFilters.completion ? [selectedFilters.completion] : []}
+                         onToggle={handleCompletionToggle}
+                       />
+                     </div>
+                   );
+                 })()}
+              </>
+            )}
 
             {Object.values(availableFilters).every(arr => arr.length === 0) && (
               <div className="text-center py-8 text-gray-500">

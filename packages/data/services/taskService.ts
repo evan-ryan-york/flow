@@ -210,3 +210,65 @@ export const getTaskById = async (taskId: string): Promise<Task | null> => {
   }
 };
 
+/**
+ * Bulk update multiple tasks with the same updates
+ * @param taskIds - Array of task IDs to update
+ * @param updates - Updates to apply to all tasks
+ * @returns Array of updated tasks
+ */
+export const bulkUpdateTasks = async (taskIds: string[], updates: UpdateTaskData): Promise<Task[]> => {
+  try {
+    const supabase = getSupabaseClient();
+
+    if (taskIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', taskIds)
+      .select();
+
+    if (error) {
+      throw new Error(`Failed to bulk update tasks: ${error.message}`);
+    }
+
+    // Zod validation
+    const validatedTasks = TaskSchema.array().parse(data || []);
+    return validatedTasks;
+  } catch (error) {
+    console.error('TaskService.bulkUpdateTasks error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bulk delete multiple tasks
+ * @param taskIds - Array of task IDs to delete
+ */
+export const bulkDeleteTasks = async (taskIds: string[]): Promise<void> => {
+  try {
+    const supabase = getSupabaseClient();
+
+    if (taskIds.length === 0) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', taskIds);
+
+    if (error) {
+      throw new Error(`Failed to bulk delete tasks: ${error.message}`);
+    }
+  } catch (error) {
+    console.error('TaskService.bulkDeleteTasks error:', error);
+    throw error;
+  }
+};
+

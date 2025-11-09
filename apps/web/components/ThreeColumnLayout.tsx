@@ -173,6 +173,7 @@ export function ThreeColumnLayout({ userId }: ThreeColumnLayoutProps) {
                 projectForTaskCreation={projectForTaskCreation}
                 selectedViewId={selectedViewId}
                 onViewChange={handleViewChange}
+                onProjectSelectionChange={handleProjectSelectionChange}
               />
             </div>
           </Panel>

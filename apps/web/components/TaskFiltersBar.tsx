@@ -8,6 +8,7 @@ import { TaskSearchInput } from './filters/TaskSearchInput';
 import { ColumnFilterDropdown } from './filters/ColumnFilterDropdown';
 import { GroupByDropdown } from './filters/GroupByDropdown';
 import { ActiveFiltersBar } from './filters/ActiveFiltersBar';
+import { List } from 'iconoir-react';
 
 interface TaskFiltersBarProps {
   // Search functionality
@@ -22,10 +23,14 @@ interface TaskFiltersBarProps {
   groupBy: GroupByOption | null;
   onGroupByChange: (groupBy: GroupByOption | null) => void;
 
+  // Batch mode functionality
+  isBatchMode?: boolean;
+  onBatchModeToggle?: () => void;
+
   // Data for filter options
   tasks: Task[];
   selectedProjectIds: string[];
-  profiles?: { id: string; first_name?: string | null; last_name?: string | null }[];
+  profiles?: { id: string; first_name?: string | null; last_name?: string | null; full_name?: string | null }[];
   projects?: { id: string; name: string }[];
   customPropertyDefinitions?: CustomPropertyDefinition[];
 
@@ -41,6 +46,8 @@ export function TaskFiltersBar({
   onFiltersChange,
   groupBy,
   onGroupByChange,
+  isBatchMode = false,
+  onBatchModeToggle,
   tasks,
   selectedProjectIds,
   profiles = [],
@@ -145,6 +152,7 @@ export function TaskFiltersBar({
               availableFilters={enhancedAvailableFilters}
               selectedFilters={selectedFilters}
               onChange={onFiltersChange}
+              isBatchMode={isBatchMode}
             />
 
             <GroupByDropdown
@@ -154,6 +162,20 @@ export function TaskFiltersBar({
               selectedProjectIds={selectedProjectIds}
               customPropertyDefinitions={customPropertyDefinitions}
             />
+
+            {onBatchModeToggle && (
+              <button
+                onClick={onBatchModeToggle}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  isBatchMode
+                    ? 'bg-gray-700 text-white border-gray-700 hover:bg-gray-800'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Batch Actions
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ interface ActiveFiltersBarProps {
   onFilterClear: (filterType: keyof FilterState) => void;
   onGroupByClear: () => void;
   onClearAll: () => void;
-  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null }>;
+  profiles?: Array<{ id: string; first_name?: string | null; last_name?: string | null; full_name?: string | null }>;
   projects?: Array<{ id: string; name: string }>;
 }
 
@@ -46,7 +46,11 @@ export function ActiveFiltersBar({
   const getProfileName = (assigneeId: string) => {
     if (assigneeId === 'unassigned') return 'Unassigned';
     const profile = profiles.find(p => p.id === assigneeId);
-    return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User' : 'Unknown User';
+    if (!profile) return 'Unknown User';
+    const fullName = profile.first_name && profile.last_name
+      ? `${profile.first_name} ${profile.last_name}`.trim()
+      : profile.first_name || profile.last_name || profile.full_name || 'Unknown User';
+    return fullName;
   };
 
   const getProjectName = (projectId: string) => {
