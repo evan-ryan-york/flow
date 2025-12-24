@@ -3,18 +3,21 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useUserTimeBlocks,
-  useTimeBlockTasks,
   useCreateTimeBlock,
   useUpdateTimeBlock,
   useDeleteTimeBlock,
   useLinkTaskToTimeBlock,
   useUnlinkTaskFromTimeBlock
 } from '../../hooks/useTimeBlock';
+import { useTimeBlockTasks } from '../../hooks/useTimeBlockTasks';
 import * as timeBlockService from '../../services/timeBlockService';
+import * as timeBlockTaskService from '../../services/timeBlockTaskService';
 
-// Mock the entire time block service
+// Mock the services
 jest.mock('../../services/timeBlockService');
+jest.mock('../../services/timeBlockTaskService');
 const mockedTimeBlockService = timeBlockService as jest.Mocked<typeof timeBlockService>;
+const mockedTimeBlockTaskService = timeBlockTaskService as jest.Mocked<typeof timeBlockTaskService>;
 
 // Helper to create a test wrapper with QueryClient
 const createWrapper = () => {
@@ -128,7 +131,7 @@ describe('useTimeBlock hooks unit tests', () => {
         },
       ];
 
-      mockedTimeBlockService.getTasksForTimeBlock.mockResolvedValue(mockTasks);
+      mockedTimeBlockTaskService.getTimeBlockTasks.mockResolvedValue(mockTasks);
 
       const { result } = renderHook(
         () => useTimeBlockTasks('block-1'),
@@ -140,7 +143,7 @@ describe('useTimeBlock hooks unit tests', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockTasks);
-      expect(mockedTimeBlockService.getTasksForTimeBlock).toHaveBeenCalledWith('block-1');
+      expect(mockedTimeBlockTaskService.getTimeBlockTasks).toHaveBeenCalledWith('block-1');
     });
 
     it('should not fetch when blockId is not provided', () => {
@@ -149,7 +152,7 @@ describe('useTimeBlock hooks unit tests', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(mockedTimeBlockService.getTasksForTimeBlock).not.toHaveBeenCalled();
+      expect(mockedTimeBlockTaskService.getTimeBlockTasks).not.toHaveBeenCalled();
     });
   });
 

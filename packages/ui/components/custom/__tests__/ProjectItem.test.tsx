@@ -110,9 +110,11 @@ describe('ProjectItem', () => {
         />
       );
 
-      // Check for hollow circle indicator (has border)
-      const hollowCircle = container.querySelector('.w-3.h-3.rounded-full.border-2');
+      // Check for hollow circle indicator (uses inline border style, not class)
+      const hollowCircle = container.querySelector('.w-3.h-3.rounded-full');
       expect(hollowCircle).toBeInTheDocument();
+      // Verify it has border style (inline)
+      expect(hollowCircle).toHaveStyle({ borderWidth: '2px' });
     });
 
     it('should show lock icon only for General project', () => {
@@ -163,7 +165,8 @@ describe('ProjectItem', () => {
       const projectButton = screen.getByText('Marketing Campaign').closest('button');
       fireEvent.click(projectButton!);
 
-      expect(mockOnClick).toHaveBeenCalledWith('proj1', false);
+      // onClick receives (projectId, isCtrlClick, isShiftClick)
+      expect(mockOnClick).toHaveBeenCalledWith('proj1', false, false);
     });
 
     it('should pass isCtrlClick flag when Ctrl+Click', () => {
@@ -179,7 +182,8 @@ describe('ProjectItem', () => {
       const projectButton = screen.getByText('Marketing Campaign').closest('button');
       fireEvent.click(projectButton!, { ctrlKey: true });
 
-      expect(mockOnClick).toHaveBeenCalledWith('proj1', true);
+      // onClick receives (projectId, isCtrlClick, isShiftClick)
+      expect(mockOnClick).toHaveBeenCalledWith('proj1', true, false);
     });
 
     it('should pass isCtrlClick flag when Cmd+Click on Mac', () => {
@@ -195,7 +199,8 @@ describe('ProjectItem', () => {
       const projectButton = screen.getByText('Marketing Campaign').closest('button');
       fireEvent.click(projectButton!, { metaKey: true });
 
-      expect(mockOnClick).toHaveBeenCalledWith('proj1', true);
+      // onClick receives (projectId, isCtrlClick, isShiftClick)
+      expect(mockOnClick).toHaveBeenCalledWith('proj1', true, false);
     });
   });
 
@@ -216,7 +221,7 @@ describe('ProjectItem', () => {
       expect(colorPickerOverlay).toBeInTheDocument();
     });
 
-    it('should NOT render color picker for General project', () => {
+    it('should render color picker for General project (color customization allowed)', () => {
       const generalProject: Project = { ...mockProject, is_general: true };
 
       const { container } = render(
@@ -229,9 +234,9 @@ describe('ProjectItem', () => {
         />
       );
 
-      // Color picker overlay should NOT be present for General project
+      // Color picker overlay should be present for General project (colors are customizable)
       const colorPickerOverlay = container.querySelector('.absolute.inset-0.w-full.h-full.rounded-full');
-      expect(colorPickerOverlay).not.toBeInTheDocument();
+      expect(colorPickerOverlay).toBeInTheDocument();
     });
 
     it('should call onColorChange when provided', () => {

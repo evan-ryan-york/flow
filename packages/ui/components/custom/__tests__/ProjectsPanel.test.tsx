@@ -247,7 +247,8 @@ describe('ProjectsPanel', () => {
       const marketingButton = screen.getByText('Marketing').closest('button');
       fireEvent.click(marketingButton!);
 
-      expect(mockOnProjectSelectionChange).toHaveBeenCalledWith(['proj1']);
+      // Second param is the clicked project ID (for enabling selection)
+      expect(mockOnProjectSelectionChange).toHaveBeenCalledWith(['proj1'], 'proj1');
     });
 
     it('should toggle selection when clicking selected project', () => {
@@ -263,7 +264,8 @@ describe('ProjectsPanel', () => {
       const marketingButton = screen.getByText('Marketing').closest('button');
       fireEvent.click(marketingButton!);
 
-      expect(mockOnProjectSelectionChange).toHaveBeenCalledWith([]);
+      // Second param is undefined when deselecting (toggling off)
+      expect(mockOnProjectSelectionChange).toHaveBeenCalledWith([], undefined);
     });
   });
 
@@ -502,7 +504,8 @@ describe('ProjectsPanel', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       await waitFor(() => {
-        expect(mockOnProjectSelectionChange).toHaveBeenCalledWith(['new-proj']);
+        // Second param is the new project ID (for auto-selecting after creation)
+        expect(mockOnProjectSelectionChange).toHaveBeenCalledWith(['new-proj'], 'new-proj');
       });
     });
   });

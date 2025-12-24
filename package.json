@@ -1,6 +1,6 @@
 {
   "name": "perfect-task-app",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "description": "",
   "main": "index.js",
   "private": true,
@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
-    "db:execute": "supabase db execute"
+    "db:execute": "supabase db execute",
+    "deploy:all": "./deploy.sh --all --patch --skip-checks"
   },
   "keywords": [],
   "author": "",
