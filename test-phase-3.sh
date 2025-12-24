@@ -13,7 +13,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_URL="https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1"
+# Set your Supabase project URL here or via environment variable
+BASE_URL="${SUPABASE_URL:-https://<your-supabase-project>.supabase.co}/functions/v1"
 
 # Check if jq is installed
 if ! command -v jq &> /dev/null; then

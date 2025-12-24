@@ -511,14 +511,14 @@ ORDER BY ce.start_time;
 **Test OAuth Initiate:**
 ```bash
 curl -X GET \
-  'https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth?action=initiate' \
+  'https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth?action=initiate' \
   -H 'Authorization: Bearer YOUR_ACCESS_TOKEN'
 ```
 
 **Test Token Refresh:**
 ```bash
 curl -X POST \
-  'https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-refresh-token' \
+  'https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-refresh-token' \
   -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"connectionId": "connection-uuid"}'
@@ -527,7 +527,7 @@ curl -X POST \
 **Test Event Sync:**
 ```bash
 curl -X POST \
-  'https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-events' \
+  'https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-sync-events' \
   -H 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"connectionId": "connection-uuid"}'

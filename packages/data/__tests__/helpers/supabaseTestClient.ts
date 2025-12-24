@@ -1,8 +1,14 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 
-// Test Supabase configuration - connects to production Supabase
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ewuhxqbfwbenkhnkzokp.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3dWh4cWJmd2Jlbmtobmt6b2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NTAzMjIsImV4cCI6MjA3NDAyNjMyMn0.2UiFSCR2dUumXQMo2qSkqJBVPTOjx0BphdcZWZEqea8';
+// Test Supabase configuration - requires environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set for tests'
+  );
+}
 
 // Global test client instance
 let testClient: SupabaseClient | null = null;

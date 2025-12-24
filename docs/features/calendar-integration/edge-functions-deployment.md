@@ -14,7 +14,7 @@
 
 3. **Link to your project**:
    ```bash
-   supabase link --project-ref ewuhxqbfwbenkhnkzokp
+   supabase link --project-ref <your-project-ref>
    ```
 
 ## Environment Variables Setup
@@ -67,7 +67,7 @@ supabase functions deploy google-calendar-sync-events
 
 3. **Test OAuth initiate endpoint**:
    ```bash
-   curl "https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth?action=initiate" \
+   curl "https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth?action=initiate" \
      -H "Authorization: Bearer YOUR_USER_JWT_TOKEN"
    ```
 
@@ -88,7 +88,7 @@ supabase functions serve google-calendar-oauth --env-file .env
 Create `supabase/.env`:
 
 ```env
-SUPABASE_URL=https://ewuhxqbfwbenkhnkzokp.supabase.co
+SUPABASE_URL=https://<your-supabase-project>.supabase.co
 SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 GOOGLE_OAUTH_CLIENT_ID=YOUR_CLIENT_ID
@@ -125,10 +125,10 @@ curl -X POST "http://localhost:54321/functions/v1/google-calendar-sync-events" \
 
 After deployment, the functions are available at:
 
-- **OAuth**: `https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth`
-- **Token Refresh**: `https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-refresh-token`
-- **Sync Calendars**: `https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-calendars`
-- **Sync Events**: `https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-events`
+- **OAuth**: `https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth`
+- **Token Refresh**: `https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-refresh-token`
+- **Sync Calendars**: `https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-sync-calendars`
+- **Sync Events**: `https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-sync-events`
 
 ## Troubleshooting
 
@@ -150,7 +150,7 @@ After deployment, the functions are available at:
 
 1. Verify redirect URI in Google Cloud Console matches:
    ```
-   https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth
+   https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth
    ```
 
 2. Check that OAuth consent screen is configured correctly

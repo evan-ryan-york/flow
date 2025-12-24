@@ -84,7 +84,7 @@ ORDER BY expires_at;
 ### Manual Token Refresh
 ```bash
 curl -X POST \
-  https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-refresh-token \
+  https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-refresh-token \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{"connectionId": "CONNECTION_ID"}'
@@ -105,7 +105,7 @@ SELECT cron.unschedule('sync-calendar-events-every-5-minutes');
 - Edge functions updated and deployed (Oct 9, 2025)
 - pg_cron jobs created and active (Oct 9, 2025)
 
-**Production URL:** `https://ewuhxqbfwbenkhnkzokp.supabase.co`
+**Production URL:** `https://<your-supabase-project>.supabase.co`
 
 ## Testing
 

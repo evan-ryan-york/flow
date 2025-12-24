@@ -63,7 +63,7 @@ This guide walks through setting up Google Cloud OAuth credentials for multi-acc
 
    **Production:**
    ```
-   https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth-callback
+   https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth-callback
    ```
 
    **Local Development (if using Supabase locally):**
@@ -87,7 +87,7 @@ You need to add the OAuth credentials as Supabase secrets so your Edge Functions
 
 ### Option A: Using Supabase Dashboard (Recommended)
 
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/ewuhxqbfwbenkhnkzokp
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/<your-project-ref>
 2. Navigate to **Project Settings** (gear icon in sidebar)
 3. Click **Edge Functions** in the left menu
 4. Scroll to **Secrets** section

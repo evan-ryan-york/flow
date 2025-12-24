@@ -178,7 +178,7 @@ WITH CHECK (
 
 **Apply migration:**
 ```bash
-psql "postgresql://postgres.ewuhxqbfwbenkhnkzokp:bVK*uKBtLv\$pnL8@aws-1-us-east-2.pooler.supabase.com:6543/postgres" -f supabase/migrations/YYYYMMDDHHMMSS_add_calendar_rls_insert_policies.sql
+psql "postgresql://postgres:$DATABASE_PASSWORD@db.<your-supabase-project>.supabase.co:5432/postgres" -f supabase/migrations/YYYYMMDDHHMMSS_add_calendar_rls_insert_policies.sql
 ```
 
 ---

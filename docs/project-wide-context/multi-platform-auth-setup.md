@@ -83,8 +83,8 @@ http://localhost:3210   # ⚠️ CRITICAL for Tauri desktop auth
 #### OAuth Credentials
 
 ```
-Client ID: 542151415865-7hdkbgmtq6ernhdlpscrm66dgpjjv74b.apps.googleusercontent.com
-Client Secret: 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 (shown as ****kgW in console)
+Client ID: <your-google-client-id>.apps.googleusercontent.com
+Client Secret: <your-google-client-secret> (get from Google Cloud Console)
 ```
 
 **Screenshot Reference**: See "Screenshot 2025-10-28 at 8.08.37 AM.png" - Shows client ID and partially hidden secret.
@@ -101,10 +101,10 @@ Client Secret: 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 (shown as ****kgW in console)
 Enable Sign in with Google: ✓ Enabled
 
 Client IDs:
-  542151415865-7hdkbgmtq6ernhdlpscrm66dgpjjv74b.apps.googleusercontent.com
+  <your-google-client-id>.apps.googleusercontent.com
 
 Client Secret (for OAuth):
-  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
+  <your-google-client-secret>
 
 Skip nonce checks: ✗ Disabled
   # Security feature - keeps token validation strict
@@ -113,7 +113,7 @@ Allow users without an email: ✗ Disabled
   # Requires email address for all authenticated users
 
 Callback URL (for OAuth):
-  https://sprjddkfkwrrebazjxvf.supabase.co/auth/v1/callback
+  https://<your-supabase-project>.supabase.co/auth/v1/callback
   # Supabase's OAuth callback endpoint
 ```
 
@@ -149,9 +149,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://sprjddkfkwrrebazjxvf.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Google OAuth Configuration (Desktop Only)
-NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID=542151415865-7hdkbgmtq6ernhdlpscrm66dgpjjv74b.apps.googleusercontent.com
-NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=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
-GOOGLE_CLIENT_SECRET=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
+NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID=<your-google-client-id>.apps.googleusercontent.com
+NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 ```
 
 **Note**: Desktop OAuth requires explicit client secret because Tauri exchanges the authorization code directly with Google (not through Supabase).
@@ -1086,8 +1086,8 @@ If you see "No API key found in request" errors, the custom fetch wrapper isn't 
 
 **Solution**: Add both environment variables to `.env.local`:
 ```bash
-NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=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
-GOOGLE_CLIENT_SECRET=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
+NEXT_PUBLIC_GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 ```
 
 ### 3. Tauri API Not Ready

@@ -1,9 +1,14 @@
 // Jest setup file for @perfect-task-app/data package
 require('@testing-library/jest-dom');
 
-// Set up environment variables for tests
-process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ewuhxqbfwbenkhnkzokp.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3dWh4cWJmd2Jlbmtobmt6b2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NTAzMjIsImV4cCI6MjA3NDAyNjMyMn0.2UiFSCR2dUumXQMo2qSkqJBVPTOjx0BphdcZWZEqea8';
+// Validate required environment variables for tests
+// These must be set in your environment or .env.local file
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  console.warn('Warning: NEXT_PUBLIC_SUPABASE_URL not set. Tests requiring Supabase will fail.');
+}
+if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn('Warning: NEXT_PUBLIC_SUPABASE_ANON_KEY not set. Tests requiring Supabase will fail.');
+}
 
 // Mock console.error and console.warn to keep test output clean
 const originalError = console.error;

@@ -54,8 +54,9 @@ pnpm test             # Run complete test suite
 pnpm test:watch       # Tests in watch mode
 
 # Database Migrations (ALWAYS use psql, NEVER copy/paste to dashboard)
-psql "postgresql://postgres:WDYuVNusZcm6Lc97@db.sprjddkfkwrrebazjxvf.supabase.co:5432/postgres" \
+psql "postgresql://postgres:$DATABASE_PASSWORD@db.sprjddkfkwrrebazjxvf.supabase.co:5432/postgres" \
   -f supabase/migrations/YOUR_MIGRATION_FILE.sql
+# Note: Set DATABASE_PASSWORD env var from your .env file or Supabase dashboard
 ```
 
 ## Critical Rules - READ FIRST

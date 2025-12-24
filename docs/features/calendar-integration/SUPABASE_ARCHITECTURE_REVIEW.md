@@ -73,7 +73,7 @@ ORDER BY tablename;
 
 ```bash
 # Standard migration application
-psql "postgresql://postgres.ewuhxqbfwbenkhnkzokp:bVK*uKBtLv\$pnL8@aws-1-us-east-2.pooler.supabase.com:6543/postgres" \
+psql "postgresql://postgres:$DATABASE_PASSWORD@db.<your-supabase-project>.supabase.co:5432/postgres" \
   -f supabase/migrations/MIGRATION_FILE.sql
 ```
 
