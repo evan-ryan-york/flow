@@ -132,12 +132,15 @@ export function TaskEditPullover({
       initializedTaskIdRef.current = task.id;
 
       // Auto-grow textarea after task name is set
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-        }
-      }, 0);
+      // Use multiple rAF calls to ensure layout is complete (fixes Tauri/WebKit timing)
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+          }
+        });
+      });
     }
   }, [task, propertyValues]); // Only re-run when task ID changes or propertyValues updates
 
@@ -187,6 +190,26 @@ export function TaskEditPullover({
   useEffect(() => {
     setHasUnsavedChanges(isTaskNamePending || isDescriptionPending);
   }, [isTaskNamePending, isDescriptionPending, setHasUnsavedChanges]);
+
+  // Re-trigger auto-grow when panel opens or task name changes
+  useEffect(() => {
+    if (isOpen && textareaRef.current && localTaskName) {
+      // Use rAF to ensure layout is complete
+      const resizeTextarea = () => {
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+      };
+
+      // Immediate resize
+      resizeTextarea();
+
+      // Also resize after a short delay (handles animation timing in Tauri)
+      const timer = setTimeout(resizeTextarea, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, localTaskName]);
 
   // Handlers
   const handleTaskNameChange = (value: string) => {
@@ -273,10 +296,9 @@ export function TaskEditPullover({
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                   }}
-                  className="w-full font-semibold text-lg border-0 px-0 focus:ring-0 focus:border-b focus:border-blue-500 resize-none overflow-y-hidden leading-tight"
+                  className="w-full font-semibold text-lg border-0 px-0 py-2 focus:ring-0 focus:border-b focus:border-blue-500 resize-none leading-normal"
                   placeholder="Task name"
-                  rows={1}
-                  style={{ minHeight: '28px' }}
+                  style={{ minHeight: '40px', fieldSizing: 'content' } as React.CSSProperties}
                 />
                 {currentProject && (
                   <div>
