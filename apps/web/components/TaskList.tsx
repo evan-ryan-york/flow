@@ -277,7 +277,7 @@ function TableHeaders({
       <div className="flex-shrink-0" style={{ width: '20px', height: '20px' }}></div>
       {/* Name Column */}
       <div className="flex-1 min-w-0 flex items-center">
-        <span>Name</span>
+        <span className="text-[12px]">Name</span>
         <SortMenu
           columnId="name"
           currentSort={sortConfig}
@@ -288,9 +288,9 @@ function TableHeaders({
       </div>
       {/* Assigned To Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('assigned_to') && (
-        <div className="hidden lg:flex flex-shrink-0 w-24 items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-[48px] items-center justify-end">
           <div className="flex items-center text-right">
-            <span>Assigned</span>
+            <span className="text-[12px]">Owner</span>
             <SortMenu
               columnId="assigned_to"
               currentSort={sortConfig}
@@ -302,9 +302,9 @@ function TableHeaders({
       )}
       {/* Due Date Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('due_date') && (
-        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-[48px] items-center justify-end">
           <div className="flex items-center text-right">
-            <span>Due Date</span>
+            <span className="text-[12px]">Due</span>
             <SortMenu
               columnId="due_date"
               currentSort={sortConfig}
@@ -316,9 +316,9 @@ function TableHeaders({
       )}
       {/* Project Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('project') && (
-        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-[96px] items-center justify-end">
           <div className="flex items-center text-right">
-            <span>Project</span>
+            <span className="text-[12px]">Project</span>
             <SortMenu
               columnId="project"
               currentSort={sortConfig}
@@ -330,9 +330,9 @@ function TableHeaders({
       )}
       {/* Created Column - Hidden on mobile */}
       {visibleBuiltInColumns.has('created_at') && (
-        <div className="hidden lg:flex flex-shrink-0 w-28 items-center justify-end">
+        <div className="hidden lg:flex flex-shrink-0 w-[96px] items-center justify-end">
           <div className="flex items-center text-right">
-            <span>Created</span>
+            <span className="text-[12px]">Created</span>
             <SortMenu
               columnId="created_at"
               currentSort={sortConfig}
@@ -344,9 +344,9 @@ function TableHeaders({
       )}
       {/* Custom Property Columns - Hidden on mobile (< 1024px), shown on desktop (≥ 1024px) */}
       {visibleColumns.map((property) => (
-        <div key={property.id} className="hidden lg:flex flex-shrink-0 w-32 items-center justify-end">
+        <div key={property.id} className="hidden lg:flex flex-shrink-0 w-[96px] items-center justify-end">
           <div className="flex items-center text-right">
-            <span>{property.name}</span>
+            <span className="text-[12px]">{property.name}</span>
             <SortMenu
               columnId={property.id}
               currentSort={sortConfig}

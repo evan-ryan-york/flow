@@ -305,6 +305,87 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
     }
   };
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+
+    // Check if pasted content has multiple items
+    // Split by newlines (bullet lists, numbered lists) or tabs (spreadsheet cells)
+    const hasNewlines = pastedText.includes("\n");
+    const hasTabs = pastedText.includes("\t");
+
+    if (!hasNewlines && !hasTabs) {
+      // Single item, let default paste behavior handle it
+      return;
+    }
+
+    // Prevent default paste
+    e.preventDefault();
+
+    // Split by newlines first, then by tabs within each line
+    let items: string[] = [];
+
+    if (hasNewlines) {
+      // Split by newlines (handles bullet lists, numbered lists)
+      items = pastedText.split("\n");
+    } else if (hasTabs) {
+      // Split by tabs (handles spreadsheet row paste)
+      items = pastedText.split("\t");
+    }
+
+    // Clean up each item
+    const cleanedItems = items
+      .map((item) => {
+        let cleaned = item.trim();
+        // Remove common bullet markers: -, *, •, ▪, ▸, >, □, ☐
+        cleaned = cleaned.replace(/^[-*•▪▸>□☐]\s*/, "");
+        // Remove numbered list markers: 1., 2., 1), 2), etc.
+        cleaned = cleaned.replace(/^\d+[.)]\s*/, "");
+        // Remove checkbox markers: [ ], [x], [X]
+        cleaned = cleaned.replace(/^\[[ xX]?\]\s*/, "");
+        return cleaned.trim();
+      })
+      .filter((item) => item.length > 0); // Remove empty items
+
+    if (cleanedItems.length === 0) {
+      return;
+    }
+
+    if (cleanedItems.length === 1) {
+      // Only one valid item after cleaning, just set it as the task name
+      setTaskName(cleanedItems[0]);
+      return;
+    }
+
+    // Multiple items - create tasks for each
+    const projectId = selectedProject?.id || lastUsedProjectId || generalProject?.id || defaultProjectId;
+
+    try {
+      // Create all tasks
+      await Promise.all(
+        cleanedItems.map((itemName) =>
+          createTaskMutation.mutateAsync({
+            name: itemName,
+            project_id: projectId,
+            assigned_to: assignedUser || userId,
+            created_by: userId,
+            due_date: dueDate || undefined,
+          })
+        )
+      );
+
+      // Reset form after successful creation
+      setTaskName("");
+      setDueDate("");
+      setShowDueDatePicker(false);
+      setCustomPropertyValues({});
+      setShowAdvanced(false);
+      setShowAutocomplete(false);
+      setProjectQuery("");
+    } catch (error) {
+      console.error("Failed to create tasks from paste:", error);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Handle keyboard shortcuts for autocomplete
     if (showAutocomplete && filteredProjects.length > 0) {
@@ -356,6 +437,7 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
                 value={taskName}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 placeholder="Add a task..."
@@ -415,6 +497,7 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
               value={taskName}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               onFocus={handleFocus}
               onBlur={handleBlur}
               placeholder="Add a task..."

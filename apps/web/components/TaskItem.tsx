@@ -184,7 +184,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         )}
       </div>
       {/* Table Row Layout */}
-      <div className="relative flex items-center gap-2 px-2 lg:gap-3 lg:px-4 py-3">
+      <div className="relative flex items-start gap-2 px-2 lg:gap-3 lg:px-4 py-3">
         {/* Batch Mode Checkbox */}
         {isBatchMode ? (
           <input
@@ -195,7 +195,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
               onSelectionToggle?.();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-shrink-0 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            className="flex-shrink-0 w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
         ) : (
           /* Drag Handle - Only show when grouping is active and not in batch mode */
@@ -259,20 +259,22 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
         </button>
 
         {/* Name Column - clickable to open details */}
-        <div className="flex-1 min-w-0 flex items-center gap-2 group/title relative">
-          <span className={`font-medium text-sm block lg:truncate ${
+        <div className="flex-1 min-w-0 flex items-start gap-2 group/title relative mr-1">
+          <span className={`font-medium text-[13px] block whitespace-normal break-words ${
             isDone ? 'text-gray-500 line-through' : 'text-gray-900'
           }`}>
-            {task.name}
+            {task.name.length > 200 ? `${task.name.slice(0, 200)}...` : task.name}
           </span>
-          {/* Tooltip - shows full task name on hover, positioned below to avoid header overlap */}
-          <div className="absolute left-0 top-full mt-2 invisible group-hover/title:visible opacity-0 group-hover/title:opacity-100 transition-opacity duration-200 z-[9999] pointer-events-none">
-            <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 max-w-md whitespace-normal break-words">
-              {task.name}
-              {/* Arrow pointing up to task */}
-              <div className="absolute bottom-full left-8 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+          {/* Tooltip - shows full task name on hover, only if truncated */}
+          {task.name.length > 200 && (
+            <div className="absolute left-0 top-full mt-2 invisible group-hover/title:visible opacity-0 group-hover/title:opacity-100 transition-opacity duration-200 z-[9999] pointer-events-none">
+              <div className="bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 max-w-md whitespace-normal break-words">
+                {task.name}
+                {/* Arrow pointing up to task */}
+                <div className="absolute bottom-full left-8 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+              </div>
             </div>
-          </div>
+          )}
           {/* Action Icons - appear on hover */}
           {isHovered && (
             <div className="flex items-center gap-1">
@@ -313,7 +315,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
 
         {/* Assigned To Column - Fixed width, hidden on mobile */}
         {visibleBuiltInColumns.has('assigned_to') && (
-          <div className="hidden lg:flex flex-shrink-0 w-24 justify-end">
+          <div className="hidden lg:flex flex-shrink-0 w-[48px] justify-end">
             {task.assigned_to ? (
               <div
                 className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium"
@@ -347,9 +349,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Due Date Column - Fixed width, hidden on mobile */}
+        {/* Due Date Column - hidden on mobile */}
         {visibleBuiltInColumns.has('due_date') && (
-          <div className="hidden lg:block flex-shrink-0 w-28 text-right">
+          <div className="hidden lg:block flex-shrink-0 w-[48px] text-right">
             {task.due_date ? (
               <span className={`text-sm truncate block ${
                 isOverdue && !isDone ? 'text-red-600 font-medium' : 'text-gray-600'
@@ -365,9 +367,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Project Column - Fixed width, hidden on mobile */}
+        {/* Project Column - hidden on mobile */}
         {visibleBuiltInColumns.has('project') && (
-          <div className="hidden lg:flex flex-shrink-0 w-28 justify-end">
+          <div className="hidden lg:flex flex-shrink-0 w-[96px] justify-end">
             {(() => {
               const project = projects.find(p => p.id === task.project_id);
               if (!project) {
@@ -397,9 +399,9 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           </div>
         )}
 
-        {/* Created Column - Fixed width, hidden on mobile */}
+        {/* Created Column - hidden on mobile */}
         {visibleBuiltInColumns.has('created_at') && (
-          <div className="hidden lg:block flex-shrink-0 w-28 text-right">
+          <div className="hidden lg:block flex-shrink-0 w-[96px] text-right">
             <span className="text-sm text-gray-600">
               {(() => {
                 const createdDate = new Date(task.created_at);
@@ -431,7 +433,7 @@ const TaskItem = memo(function TaskItem({ task, customPropertyDefinitions = [], 
           const isEditing = editingPropertyId === property.id;
 
           return (
-            <div key={property.id} className="hidden lg:flex flex-shrink-0 w-32 text-right">
+            <div key={property.id} className="hidden lg:flex flex-shrink-0 w-[96px] text-right">
               {isEditing ? (
                 <div className="px-1">
                   {property.type === 'select' ? (
