@@ -183,7 +183,13 @@ export function initializeSupabase(url: string, anonKey: string) {
     // Use SSR-aware client for web
     else {
       // Use createBrowserClient from @supabase/ssr - the official Next.js pattern
-      const client = createBrowserClient(url, anonKey);
+      // flowType: 'implicit' allows magic links to work across different browsers/windows
+      // (PKCE requires the same browser that initiated the request)
+      const client = createBrowserClient(url, anonKey, {
+        auth: {
+          flowType: 'implicit',
+        },
+      });
       supabaseInstance = wrapAuthWithLogging(client);
     }
   }
@@ -200,7 +206,11 @@ export function getSupabaseClient() {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (url && anonKey) {
-      const client = createBrowserClient(url, anonKey);
+      const client = createBrowserClient(url, anonKey, {
+        auth: {
+          flowType: 'implicit',
+        },
+      });
       supabaseInstance = wrapAuthWithLogging(client);
     }
   }

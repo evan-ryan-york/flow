@@ -431,7 +431,21 @@ export function LoginForm() {
       console.log('Sending magic link to:', email);
       console.log('Redirect URL:', redirectTo);
 
-      const { error } = await supabase.auth.signInWithOtp({
+      // Create a direct client with implicit flow to bypass SSR's PKCE default
+      const { createClient } = await import('@supabase/supabase-js');
+      const directClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: {
+            flowType: 'implicit',
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      );
+
+      const { error } = await directClient.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: redirectTo,

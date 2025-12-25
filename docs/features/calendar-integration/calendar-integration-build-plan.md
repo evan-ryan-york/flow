@@ -44,7 +44,7 @@ Build a complete Google Calendar integration supporting multiple Google accounts
   - `https://www.googleapis.com/auth/calendar.events`
   - `https://www.googleapis.com/auth/userinfo.email`
 - OAuth 2.0 Client ID created
-- Redirect URI added: `https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-oauth-callback`
+- Redirect URI added: `https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-oauth-callback`
 
 #### 2.3 Credentials Stored ✅
 - Client ID and Client Secret stored as Supabase secrets
@@ -791,7 +791,7 @@ GOOGLE_OAUTH_CLIENT_SECRET="YOUR_CLIENT_SECRET"
 Add to `apps/web/.env.local`:
 ```env
 NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID="YOUR_CLIENT_ID"
-NEXT_PUBLIC_SUPABASE_URL="https://ewuhxqbfwbenkhnkzokp.supabase.co"
+NEXT_PUBLIC_SUPABASE_URL="https://<your-supabase-project>.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_ANON_KEY"
 ```
 

@@ -9,7 +9,7 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-      url := 'https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-events',
+      url := 'https://sprjddkfkwrrebazjxvf.supabase.co/functions/v1/google-calendar-sync-events',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
@@ -26,7 +26,7 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-      url := 'https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-refresh-token',
+      url := 'https://sprjddkfkwrrebazjxvf.supabase.co/functions/v1/google-calendar-refresh-token',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)

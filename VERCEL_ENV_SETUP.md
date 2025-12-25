@@ -12,15 +12,17 @@ You need to add these environment variables to your Vercel project settings:
 
 **NEXT_PUBLIC_SUPABASE_URL**
 ```
-https://ewuhxqbfwbenkhnkzokp.supabase.co
+https://<your-supabase-project>.supabase.co
 ```
 - Environment: Production, Preview, Development (check all)
+- Get from: Supabase Dashboard → Settings → API → Project URL
 
 **NEXT_PUBLIC_SUPABASE_ANON_KEY**
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3dWh4cWJmd2Jlbmtobmt6b2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0NTAzMjIsImV4cCI6MjA3NDAyNjMyMn0.2UiFSCR2dUumXQMo2qSkqJBVPTOjx0BphdcZWZEqea8
+<your-supabase-anon-key>
 ```
 - Environment: Production, Preview, Development (check all)
+- Get from: Supabase Dashboard → Settings → API → anon public key
 
 ### 3. Redeploy
 

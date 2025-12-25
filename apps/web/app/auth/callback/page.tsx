@@ -16,14 +16,10 @@ function AuthCallbackContent() {
       const { isTauri } = await import('@/lib/tauri-oauth');
       const supabase = getSupabaseClient();
 
-      // Special handling for Tauri: if we're here, it means the OAuth server
-      // didn't intercept the callback (browser loaded cached content)
-      // We need to manually trigger the PKCE flow
+      // Special handling for Tauri
       const isTauriEnv = isTauri();
       if (isTauriEnv) {
         console.log('⚠️  Tauri environment detected in web callback page');
-        console.log('⚠️  This means the OAuth server did not intercept the callback');
-        console.log('⚠️  Falling back to manual PKCE flow...');
       }
 
       try {
@@ -37,12 +33,13 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Check for hash fragments (magic link/some OAuth flows)
+        // Check for hash fragments (implicit flow - magic links use this)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
         if (accessToken) {
+          console.log('🔄 Setting session from hash tokens...');
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
@@ -54,24 +51,33 @@ function AuthCallbackContent() {
             return;
           }
 
+          console.log('✅ Session established from hash tokens');
           router.push('/dashboard');
           return;
         }
 
-        // For PKCE flow, explicitly exchange the code for a session
+        // For PKCE flow with code parameter - only works if opened in same browser
         const code = searchParams.get('code');
         if (code) {
-          console.log('🔄 Exchanging authorization code for session...');
+          console.log('🔄 Auth code detected, attempting exchange...');
+          // Try to exchange the code - this will only work if code_verifier exists
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (exchangeError) {
-            console.error('❌ Code exchange failed:', exchangeError);
-            router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(exchangeError.message)}`);
+            // If exchange fails, it's likely a cross-browser issue
+            console.error('❌ Code exchange failed:', exchangeError.message);
+
+            // Check if it's the PKCE verifier error
+            if (exchangeError.message.includes('code verifier')) {
+              router.push(`/login?error=auth_callback_error&message=${encodeURIComponent('Magic link must be opened in the same browser where it was requested. Please request a new link.')}`);
+            } else {
+              router.push(`/login?error=auth_callback_error&message=${encodeURIComponent(exchangeError.message)}`);
+            }
             return;
           }
 
           if (data.session) {
-            console.log('✅ Session established successfully');
+            console.log('✅ Session established from code exchange');
             router.push('/dashboard');
             return;
           }

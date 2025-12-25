@@ -21,7 +21,7 @@ ALTER DATABASE postgres SET app.settings.service_role_key = 'YOUR_SERVICE_ROLE_K
 
 3. **Apply the cron migration**:
 ```bash
-psql "postgresql://postgres.ewuhxqbfwbenkhnkzokp:bVK*uKBtLv\$pnL8@aws-1-us-east-2.pooler.supabase.com:6543/postgres" -f supabase/migrations/20251002000003_setup_calendar_sync_cron.sql
+psql "postgresql://postgres:$DATABASE_PASSWORD@db.<your-supabase-project>.supabase.co:5432/postgres" -f supabase/migrations/20251002000003_setup_calendar_sync_cron.sql
 ```
 
 4. **Verify cron jobs are scheduled**:
@@ -100,7 +100,7 @@ jobs:
       - name: Trigger Event Sync
         run: |
           curl -X POST \
-            https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-events \
+            https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-sync-events \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{}'
@@ -115,7 +115,7 @@ jobs:
 **Sync Events**:
 ```bash
 curl -X POST \
-  https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-sync-events \
+  https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-sync-events \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -124,7 +124,7 @@ curl -X POST \
 **Refresh Tokens**:
 ```bash
 curl -X POST \
-  https://ewuhxqbfwbenkhnkzokp.supabase.co/functions/v1/google-calendar-refresh-token \
+  https://<your-supabase-project>.supabase.co/functions/v1/google-calendar-refresh-token \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
