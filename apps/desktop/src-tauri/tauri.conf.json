@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Flow",
-    "version": "1.0.11"
+    "version": "1.0.12"
   },
   "tauri": {
     "allowlist": {
@@ -41,7 +41,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.flow.app",
+      "identifier": "com.perfecttask.app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

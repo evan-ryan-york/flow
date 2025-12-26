@@ -252,7 +252,7 @@ export function LoginForm() {
       console.log('📱 Processing auth URL:', url);
 
       // Check if it's our auth callback
-      if (url.startsWith('com.flow.app://auth/callback')) {
+      if (url.startsWith('com.perfecttask.app://auth/callback')) {
         // We are back in the app!
         // The URL has the hash fragment with auth tokens.
 

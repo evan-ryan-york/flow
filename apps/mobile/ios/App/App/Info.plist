@@ -49,10 +49,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.flow.app</string>
+			<string>com.perfecttask.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.flow.app</string>
+				<string>com.perfecttask.app</string>
 			</array>
 		</dict>
 	</array>

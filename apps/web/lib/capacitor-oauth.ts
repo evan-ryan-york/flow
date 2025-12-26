@@ -23,7 +23,7 @@ export async function handleCapacitorGoogleOAuth(_supabase: SupabaseClient) {
     }
 
     // Use the custom deep link scheme as the redirect URL.
-    const redirectUrl = encodeURIComponent('com.flow.app://auth/callback');
+    const redirectUrl = encodeURIComponent('com.perfecttask.app://auth/callback');
 
     const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectUrl}`;
 
