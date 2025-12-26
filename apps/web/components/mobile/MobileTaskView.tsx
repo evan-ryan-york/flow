@@ -242,7 +242,7 @@ export function MobileTaskView({
       {/* Projects Top Action Bar */}
       {activeTab === 'projects' && (
         <div className="flex items-center justify-between px-4 h-14 bg-white border-b border-gray-200">
-          <h1 className="text-lg font-semibold text-blue-600">Current</h1>
+          <h1 className="text-lg font-semibold text-blue-600">Flow</h1>
           <button
             onClick={() => setIsCreatingProject(!isCreatingProject)}
             className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
@@ -258,7 +258,7 @@ export function MobileTaskView({
         <div className="flex flex-col bg-white border-b border-gray-200">
           {/* First row: Title and action buttons */}
           <div className="flex items-center justify-between px-4 h-14">
-            <h1 className="text-lg font-semibold text-blue-600">Current</h1>
+            <h1 className="text-lg font-semibold text-blue-600">Flow</h1>
             <div className="flex items-center gap-2">
               {/* Day/Week Toggle */}
               <div className="flex gap-1">
