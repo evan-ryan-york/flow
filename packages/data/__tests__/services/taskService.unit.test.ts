@@ -36,8 +36,8 @@ const mockTask = {
   name: 'Test Task',
   description: 'Test Description',
   due_date: '2024-12-31',
-  status: 'todo',
   is_completed: false,
+  completed_at: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };

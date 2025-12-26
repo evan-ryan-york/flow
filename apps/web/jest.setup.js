@@ -38,6 +38,12 @@ jest.mock('next/navigation', () => ({
   },
 }));
 
+// Mock window.scrollTo for jsdom (used by motion-dom/framer-motion)
+Object.defineProperty(window, 'scrollTo', {
+  value: jest.fn(),
+  writable: true,
+});
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -62,7 +68,10 @@ beforeAll(() => {
     if (
       args[0]?.includes?.('Warning: ReactDOM.render') ||
       args[0]?.includes?.('Warning: useLayoutEffect') ||
-      args[0]?.includes?.('Not implemented: HTMLFormElement.prototype.requestSubmit')
+      args[0]?.includes?.('Not implemented: HTMLFormElement.prototype.requestSubmit') ||
+      args[0]?.includes?.('Not implemented: window.scrollTo') ||
+      args[0]?.message?.includes?.('Not implemented: window.scrollTo') ||
+      args[0]?.type === 'not implemented'
     ) {
       return;
     }
