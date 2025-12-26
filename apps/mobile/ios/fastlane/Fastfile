@@ -1,4 +1,4 @@
-# Fastfile for Perfect Task App iOS deployment
+# Fastfile for Flow iOS deployment
 # https://docs.fastlane.tools
 
 default_platform(:ios)
@@ -22,7 +22,7 @@ platform :ios do
       scheme: "App",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "PerfectTaskApp.ipa",
+      output_name: "FlowApp.ipa",
       clean: true,
       xcargs: "-allowProvisioningUpdates"
     )
@@ -49,7 +49,7 @@ platform :ios do
       scheme: "App",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "PerfectTaskApp.ipa",
+      output_name: "FlowApp.ipa",
       clean: true,
       xcargs: "-allowProvisioningUpdates"
     )

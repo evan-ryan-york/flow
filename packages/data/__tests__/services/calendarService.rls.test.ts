@@ -9,7 +9,7 @@ import {
   GoogleCalendarConnectionSchema,
   CalendarSubscriptionSchema,
   CalendarEventSchema,
-} from '@perfect-task-app/models';
+} from '@flow-app/models';
 import {
   createTestUsers,
   globalCleanup,

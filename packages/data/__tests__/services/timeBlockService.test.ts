@@ -12,7 +12,7 @@ import {
   type DateRange
 } from '../../services/timeBlockService';
 import { createTask } from '../../services/taskService';
-import { TimeBlockSchema, TaskSchema } from '@perfect-task-app/models';
+import { TimeBlockSchema, TaskSchema } from '@flow-app/models';
 
 // Test users and data
 let testUserA: any;

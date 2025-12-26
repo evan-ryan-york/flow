@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CalendarView } from '../CalendarView';
-import * as dataHooks from '@perfect-task-app/data';
+import * as dataHooks from '@flow-app/data';
 
-jest.mock('@perfect-task-app/data', () => ({
+jest.mock('@flow-app/data', () => ({
   useCalendarEvents: jest.fn(),
   useCalendarEventsRealtime: jest.fn(),
   useTriggerEventSync: jest.fn(),

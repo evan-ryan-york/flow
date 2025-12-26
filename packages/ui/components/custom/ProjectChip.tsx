@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project } from '@perfect-task-app/models';
+import { Project } from '@flow-app/models';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';

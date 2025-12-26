@@ -327,7 +327,7 @@ Tauri v2 has better deep linking support:
 - Improved security
 
 When upgrading to Tauri v2:
-1. Register custom URL scheme (e.g., `perfecttask://`)
+1. Register custom URL scheme (e.g., `flow://`)
 2. Update redirect URLs to use custom scheme
 3. Remove localhost server dependency
 4. Enable magic links (will work with deep links)

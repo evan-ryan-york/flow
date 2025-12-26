@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,9 +18,9 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fabianlars/tauri-plugin-oauth": "^2.0.0",
-    "@perfect-task-app/data": "workspace:*",
-    "@perfect-task-app/models": "workspace:*",
-    "@perfect-task-app/ui": "workspace:*",
+    "@flow-app/data": "workspace:*",
+    "@flow-app/models": "workspace:*",
+    "@flow-app/ui": "workspace:*",
     "@tanstack/react-query": "^5.89.0",
     "@tauri-apps/api": "^1.6.0",
     "date-fns": "^3.6.0",

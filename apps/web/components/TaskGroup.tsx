@@ -3,12 +3,12 @@
 import React from 'react';
 import { NavArrowDown, NavArrowRight } from 'iconoir-react';
 import { TaskItem } from './TaskItem';
-import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
-import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
+import { Task, CustomPropertyDefinition, Project } from '@flow-app/models';
+import { TaskGroup as TaskGroupType, GroupByOption } from '@flow-app/ui/lib/taskGrouping';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
+import { BRAND_COLOR } from '@flow-app/ui/colors';
 
 interface TaskGroupProps {
   group: TaskGroupType;

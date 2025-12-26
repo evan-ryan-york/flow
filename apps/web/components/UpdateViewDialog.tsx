@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUpdateView, useDeleteView } from '@perfect-task-app/data';
-import type { View } from '@perfect-task-app/models';
+import { useUpdateView, useDeleteView } from '@flow-app/data';
+import type { View } from '@flow-app/models';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@perfect-task-app/ui';
+} from '@flow-app/ui';
 
 /**
  * Props for the UpdateViewDialog component

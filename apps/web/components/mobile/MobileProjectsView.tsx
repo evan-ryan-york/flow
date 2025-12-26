@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Xmark, EditPencil, Bin, Lock } from 'iconoir-react';
-import { ProjectColorPicker, getProjectColorHex, type ProjectColor } from '@perfect-task-app/ui/components/custom/ProjectColorPicker';
-import { DeleteProjectDialog } from '@perfect-task-app/ui/components/custom/DeleteProjectDialog';
-import { RenameProjectDialog } from '@perfect-task-app/ui/components/custom/RenameProjectDialog';
-import { useProjectsForUser, useCreateProject, useUpdateProject } from '@perfect-task-app/data';
+import { ProjectColorPicker, getProjectColorHex, type ProjectColor } from '@flow-app/ui/components/custom/ProjectColorPicker';
+import { DeleteProjectDialog } from '@flow-app/ui/components/custom/DeleteProjectDialog';
+import { RenameProjectDialog } from '@flow-app/ui/components/custom/RenameProjectDialog';
+import { useProjectsForUser, useCreateProject, useUpdateProject } from '@flow-app/data';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ProjectWithRole } from '@perfect-task-app/data';
+import type { ProjectWithRole } from '@flow-app/data';
 
 interface MobileProjectsViewProps {
   userId: string;

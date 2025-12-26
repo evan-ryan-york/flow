@@ -9,9 +9,9 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useDeleteProjectWithReassignment, useProjectsForUser } from '@perfect-task-app/data';
-import type { Project } from '@perfect-task-app/models';
-import type { ProjectWithRole } from '@perfect-task-app/data';
+import { useDeleteProjectWithReassignment, useProjectsForUser } from '@flow-app/data';
+import type { Project } from '@flow-app/models';
+import type { ProjectWithRole } from '@flow-app/data';
 
 interface DeleteProjectDialogProps {
   project: Project;

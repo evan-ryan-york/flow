@@ -24,7 +24,7 @@ import {
   useUserViews,
   useBulkUpdateTasks,
   useBulkDeleteTasks,
-} from "@perfect-task-app/data";
+} from "@flow-app/data";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskQuickAdd } from "./TaskQuickAdd";
 import { TaskList } from "./TaskList";
@@ -38,9 +38,9 @@ import { BatchDueDateDialog } from "./BatchDueDateDialog";
 import { BatchOwnerSelectorDialog } from "./BatchOwnerSelectorDialog";
 import { TaskEditPullover } from "./TaskEditPullover";
 import { CreateViewDialog } from "./CreateViewDialog";
-import { Task, CustomPropertyDefinition } from "@perfect-task-app/models";
-import { FilterState, createEmptyFilterState, filterTasks } from "@perfect-task-app/ui/lib/taskFiltering";
-import { GroupByOption, groupTasks } from "@perfect-task-app/ui/lib/taskGrouping";
+import { Task, CustomPropertyDefinition } from "@flow-app/models";
+import { FilterState, createEmptyFilterState, filterTasks } from "@flow-app/ui/lib/taskFiltering";
+import { GroupByOption, groupTasks } from "@flow-app/ui/lib/taskGrouping";
 
 interface TaskHubProps {
   userId: string;

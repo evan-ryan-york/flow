@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
+import { Button } from '@flow-app/ui/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@flow-app/ui';
 import { Filter, Check, Xmark } from 'iconoir-react';
-import { FilterState, FilterOption, getActiveFilterCount, DateRange, CompletionFilter } from '@perfect-task-app/ui/lib/taskFiltering';
-import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
+import { FilterState, FilterOption, getActiveFilterCount, DateRange, CompletionFilter } from '@flow-app/ui/lib/taskFiltering';
+import { BRAND_COLOR } from '@flow-app/ui/colors';
 
 interface ColumnFilterDropdownProps {
   availableFilters: {

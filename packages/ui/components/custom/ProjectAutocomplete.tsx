@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Project } from '@perfect-task-app/models';
-import { useProjectSearch } from '@perfect-task-app/data';
+import { Project } from '@flow-app/models';
+import { useProjectSearch } from '@flow-app/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { getProjectColorHex } from '../../colors';
 

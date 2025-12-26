@@ -10,8 +10,8 @@ import {
   useUpdateDefinition,
   useDeleteDefinition,
   useProjectsForUser,
-} from "@perfect-task-app/data";
-import type { CustomPropertyDefinitionWithProjects } from "@perfect-task-app/models";
+} from "@flow-app/data";
+import type { CustomPropertyDefinitionWithProjects } from "@flow-app/models";
 
 interface CustomPropertyManagerProps {
   projectId: string; // Still used for initial context, but now supports multi-select

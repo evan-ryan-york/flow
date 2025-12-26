@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.perfecttask.app',
-  appName: 'Perfect Task App',
+  appId: 'com.flow.app',
+  appName: 'Flow',
   webDir: '../web/out', // Points to Next.js static export
   // server: {
   //   // For development, point to Next.js dev server

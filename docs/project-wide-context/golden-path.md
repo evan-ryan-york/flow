@@ -78,7 +78,7 @@ The `getTasksForProject` function builds the query using the Supabase JS client,
 ```typescript
 // In packages/data/services/taskService.ts
 import { supabase } from '../supabaseClient'; // The initialized Supabase client
-import { TaskSchema } from '@perfect-task-app/models'; // Import the Zod schema
+import { TaskSchema } from '@flow-app/models'; // Import the Zod schema
 
 export const getTasksForProject = async (projectId: string) => {
   const { data, error } = await supabase
@@ -188,8 +188,8 @@ With this addition, if another user in a collaborative project adds a task, the 
 - Components receive clean error states via `isError` flag
 
 ### 5. Package Organization
-- `@perfect-task-app/models`: Zod schemas and TypeScript types
-- `@perfect-task-app/data`: Hooks, services, and Supabase client
-- `@perfect-task-app/ui`: Pure presentation components
+- `@flow-app/models`: Zod schemas and TypeScript types
+- `@flow-app/data`: Hooks, services, and Supabase client
+- `@flow-app/ui`: Pure presentation components
 
 This golden path ensures consistency, maintainability, and type safety across the entire application while leveraging the full power of our chosen technology stack.

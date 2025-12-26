@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Check, Xmark, Trash, Calendar, User, Folder } from 'iconoir-react';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
+import { Button } from '@flow-app/ui/components/ui/button';
 
 interface BatchActionBarProps {
   isBatchMode: boolean;

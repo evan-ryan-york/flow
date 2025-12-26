@@ -292,7 +292,7 @@ CREATE POLICY "Users can delete their own views"
 ### Import Components
 ```typescript
 import { SavedViews } from '@/components/SavedViews';
-import { useViews, useCreateView } from '@perfect-task-app/data';
+import { useViews, useCreateView } from '@flow-app/data';
 ```
 
 ### Create a View Programmatically

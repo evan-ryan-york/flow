@@ -1,4 +1,4 @@
-import { Task, CustomPropertyDefinition, CustomPropertyValue } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, CustomPropertyValue } from '@flow-app/models';
 import { isToday, isTomorrow, startOfWeek, endOfWeek } from 'date-fns';
 
 export type GroupByOption =

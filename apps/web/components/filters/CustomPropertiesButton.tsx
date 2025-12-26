@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
+import { Button } from '@flow-app/ui/components/ui/button';
 import { Settings } from 'iconoir-react';
-import { CustomPropertyManager } from '@perfect-task-app/ui/components/custom/CustomPropertyManager';
+import { CustomPropertyManager } from '@flow-app/ui/components/custom/CustomPropertyManager';
 
 interface CustomPropertiesButtonProps {
   selectedProjectIds: string[];

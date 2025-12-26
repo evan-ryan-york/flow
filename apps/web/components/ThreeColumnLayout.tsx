@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
-import { ProjectsPanel } from '@perfect-task-app/ui/custom';
+import { ProjectsPanel } from '@flow-app/ui/custom';
 import { TaskHub } from './TaskHub';
 import { CalendarPanel } from './CalendarPanel';
 import { ResizeHandle } from './ResizeHandle';
 import { MobileTaskView } from './mobile/MobileTaskView';
 
-import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@perfect-task-app/data';
+import { useGeneralProject, useVisibleProjectIds, useUpdateVisibleProjectIds, useUserViews, useProjectsForUser, useDefaultView } from '@flow-app/data';
 
 interface ThreeColumnLayoutProps {
   userId: string;

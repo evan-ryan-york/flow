@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Input } from '@perfect-task-app/ui/components/ui/input';
+import { Input } from '@flow-app/ui/components/ui/input';
 import { Search, Xmark } from 'iconoir-react';
 
 interface TaskSearchInputProps {

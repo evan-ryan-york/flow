@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCreateView } from '@perfect-task-app/data';
+import { useCreateView } from '@flow-app/data';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   Button,
   Input,
   Label,
-} from '@perfect-task-app/ui';
+} from '@flow-app/ui';
 // No special icons needed - using inline spinner
 
 /**

@@ -1,12 +1,12 @@
 # Google Calendar Integration - User Guide
 
-**Perfect Task App** | Calendar Integration v1.0
+**Flow** | Calendar Integration v1.0
 
 ---
 
 ## 🎯 Overview
 
-The Perfect Task App now integrates with Google Calendar, allowing you to:
+The Flow now integrates with Google Calendar, allowing you to:
 - Connect multiple Google Calendar accounts (personal, work, etc.)
 - View events from all your calendars in one place
 - Choose which calendars to display
@@ -41,7 +41,7 @@ The Perfect Task App now integrates with Google Calendar, allowing you to:
      - View your email address
    - Click "Allow"
 
-6. **Return to Perfect Task**
+6. **Return to Flow**
    - You'll be redirected back automatically
    - Your account will appear in the list
    - Calendars will sync automatically
@@ -284,7 +284,7 @@ We do NOT:
 ### Need More Help?
 
 **Contact Support:**
-- Email: support@perfecttaskapp.com
+- Email: support@flowapp.com
 - Include: Account email, error message, screenshots
 
 **Check Documentation:**
@@ -296,7 +296,7 @@ We do NOT:
 ## 🚀 Coming Soon
 
 Future features we're working on:
-- ✨ Create events from Perfect Task
+- ✨ Create events from Flow
 - ✨ Edit events directly in app
 - ✨ Link tasks to calendar events
 - ✨ Two-way sync
@@ -309,9 +309,9 @@ Future features we're working on:
 
 We'd love to hear from you!
 
-**Found a bug?** Report it at: bugs@perfecttaskapp.com
+**Found a bug?** Report it at: bugs@flowapp.com
 
-**Have a feature request?** Let us know: feedback@perfecttaskapp.com
+**Have a feature request?** Let us know: feedback@flowapp.com
 
 **Enjoying the feature?** Leave us a review!
 

@@ -1,6 +1,6 @@
 # Automated Testing Guide - Calendar Integration
 
-**Perfect Task App** | Test Suite Documentation
+**Flow** | Test Suite Documentation
 
 ---
 
@@ -194,7 +194,7 @@ Deno.test("Event sync: incremental sync uses syncToken", () => {
 
 **Test Approach:**
 - Use `@testing-library/react`
-- Mock data hooks (`@perfect-task-app/data`)
+- Mock data hooks (`@flow-app/data`)
 - Verify UI rendering
 - Test user interactions (clicks, form input)
 - Verify callbacks are invoked
@@ -237,7 +237,7 @@ module.exports = {
   roots: ['<rootDir>/packages'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
-    '^@perfect-task-app/(.*)$': '<rootDir>/packages/$1',
+    '^@flow-app/(.*)$': '<rootDir>/packages/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   collectCoverageFrom: [
@@ -369,9 +369,9 @@ describe('useYourHook', () => {
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { YourComponent } from '../YourComponent';
-import * as dataHooks from '@perfect-task-app/data';
+import * as dataHooks from '@flow-app/data';
 
-jest.mock('@perfect-task-app/data');
+jest.mock('@flow-app/data');
 
 describe('YourComponent', () => {
   it('renders correctly', () => {

@@ -7,10 +7,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { ProjectsPanel } from '../ProjectsPanel';
-import * as dataHooks from '@perfect-task-app/data';
+import * as dataHooks from '@flow-app/data';
 
 // Mock the data hooks
-jest.mock('@perfect-task-app/data', () => ({
+jest.mock('@flow-app/data', () => ({
   useProjectsForUser: jest.fn(),
   useCreateProject: jest.fn(),
   useUpdateProject: jest.fn(),

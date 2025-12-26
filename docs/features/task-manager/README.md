@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Task Manager implements Column 2 (Task Hub) of the three-column layout - the central workspace for creating, viewing, organizing, and managing tasks. It's the heart of the Perfect Task application where users spend most of their time.
+The Task Manager implements Column 2 (Task Hub) of the three-column layout - the central workspace for creating, viewing, organizing, and managing tasks. It's the heart of the Flow application where users spend most of their time.
 
 ## What's Implemented ✅
 
@@ -273,7 +273,7 @@ CREATE TABLE tasks (
 ### Import Components
 ```typescript
 import { TaskHub } from '@/app/dashboard/components/TaskHub';
-import { useTask, useCreateTask } from '@perfect-task-app/data';
+import { useTask, useCreateTask } from '@flow-app/data';
 ```
 
 ### Run Tests

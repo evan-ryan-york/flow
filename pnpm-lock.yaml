@@ -104,13 +104,13 @@ importers:
       '@fabianlars/tauri-plugin-oauth':
         specifier: ^2.0.0
         version: 2.0.0
-      '@perfect-task-app/data':
+      '@flow-app/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@perfect-task-app/models':
+      '@flow-app/models':
         specifier: workspace:*
         version: link:../../packages/models
-      '@perfect-task-app/ui':
+      '@flow-app/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tanstack/react-query':
@@ -204,7 +204,7 @@ importers:
 
   packages/data:
     dependencies:
-      '@perfect-task-app/models':
+      '@flow-app/models':
         specifier: workspace:*
         version: link:../models
       '@supabase/ssr':
@@ -3573,6 +3573,7 @@ packages:
   next@15.1.5:
     resolution: {integrity: sha512-Cf/TEegnt01hn3Hoywh6N8fvkhbOuChO4wFje24+a86wKOubgVaWkDqxGVgoWlz2Hp9luMJ9zw3epftujdnUOg==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
+    deprecated: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details.
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0

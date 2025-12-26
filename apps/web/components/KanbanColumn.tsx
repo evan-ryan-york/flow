@@ -3,7 +3,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-app/models';
+import { Task, CustomPropertyDefinition, Project, Profile } from '@flow-app/models';
 import { SortableKanbanCard } from './SortableKanbanCard';
 
 interface KanbanColumnProps {

@@ -1,7 +1,7 @@
 {
   "name": "desktop",
-  "version": "1.0.9",
-  "description": "Perfect Task App Desktop",
+  "version": "1.0.10",
+  "description": "Flow Desktop",
   "main": "index.js",
   "scripts": {
     "dev": "tauri dev",

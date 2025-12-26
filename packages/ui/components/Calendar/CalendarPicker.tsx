@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useGoogleCalendarConnections, useCalendarSubscriptions, useToggleCalendarVisibility, useUpdateCalendarColor } from "@perfect-task-app/data"
+import { useGoogleCalendarConnections, useCalendarSubscriptions, useToggleCalendarVisibility, useUpdateCalendarColor } from "@flow-app/data"
 import { cn } from "../../lib/utils"
 import { Checkbox } from "../ui/checkbox"
 

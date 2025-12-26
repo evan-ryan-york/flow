@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server-simple';
-import { ProjectSchema, TaskSchema } from '@perfect-task-app/models';
+import { ProjectSchema, TaskSchema } from '@flow-app/models';
 import { extractTasksFromMeetingNotes } from '@/lib/ai/taskExtractor';
 
 // Configure for static export compatibility (desktop builds)
@@ -16,7 +16,7 @@ export const revalidate = false;
  *
  * Expected payload from Zapier:
  * {
- *   userId: string;           // Perfect Task user ID
+ *   userId: string;           // Flow user ID
  *   meetingTitle: string;
  *   enhancedNotes: string;    // Main notes with to-dos
  *   transcript: string;       // Full meeting transcript

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase';
-import { TaskSchema } from '@perfect-task-app/models';
+import { TaskSchema } from '@flow-app/models';
 import { z } from 'zod';
 
 /**

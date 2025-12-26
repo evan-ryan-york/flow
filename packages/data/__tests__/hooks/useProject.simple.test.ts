@@ -1,5 +1,5 @@
 import * as projectService from '../../services/projectService';
-import { Project, ProjectUser } from '@perfect-task-app/models';
+import { Project, ProjectUser } from '@flow-app/models';
 
 // Mock the supabase module first to prevent initialization errors
 jest.mock('../../supabase', () => {

@@ -13,9 +13,9 @@ const nextConfig = {
     // Enable for server components where needed
   },
   transpilePackages: [
-    '@perfect-task-app/data',
-    '@perfect-task-app/models',
-    '@perfect-task-app/ui'
+    '@flow-app/data',
+    '@flow-app/models',
+    '@flow-app/ui'
   ],
   // Enable static export for Capacitor if needed
   output: process.env.NEXT_OUTPUT === 'export' ? 'export' : undefined,

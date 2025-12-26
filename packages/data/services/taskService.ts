@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase';
-import { TaskSchema, type Task } from '@perfect-task-app/models';
+import { TaskSchema, type Task } from '@flow-app/models';
 import { updateLastUsedProject } from './profileService';
 
 export interface CreateTaskData {

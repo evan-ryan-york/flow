@@ -111,7 +111,7 @@ async function getCapacitorAccessToken(): Promise<string | null> {
 
   try {
     const { Preferences } = await import('@capacitor/preferences');
-    const { value } = await Preferences.get({ key: 'perfect-task-access-token' });
+    const { value } = await Preferences.get({ key: 'flow-app-access-token' });
     return value;
   } catch (err) {
     console.error('Error getting Capacitor access token:', err);

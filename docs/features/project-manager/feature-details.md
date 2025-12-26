@@ -330,4 +330,4 @@ export function ProjectsPanel({
 - Project collaboration status indicators
 - Custom project icons in addition to colors
 
-This feature serves as the foundation for all project-based organization in Perfect Task App and must be implemented with high reliability and excellent user experience standards.
+This feature serves as the foundation for all project-based organization in Flow and must be implemented with high reliability and excellent user experience standards.

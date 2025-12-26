@@ -1,6 +1,6 @@
-# @perfect-task-app/data
+# @flow-app/data
 
-This package contains the data layer for the Perfect Task App, including services for API communication and React Query hooks for state management.
+This package contains the data layer for the Flow, including services for API communication and React Query hooks for state management.
 
 ## Structure
 
@@ -83,7 +83,7 @@ pnpm test:watch
 
 - `@supabase/supabase-js` - Supabase client
 - `@tanstack/react-query` - Server state management
-- `@perfect-task-app/models` - Zod schemas and types
+- `@flow-app/models` - Zod schemas and types
 
 ## Development Dependencies
 

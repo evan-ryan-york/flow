@@ -7,7 +7,7 @@ import {
   type CreateViewData,
   type UpdateViewData
 } from '../../services/viewService';
-import { ViewSchema } from '@perfect-task-app/models';
+import { ViewSchema } from '@flow-app/models';
 
 // Test users and data
 let testUserA: any;

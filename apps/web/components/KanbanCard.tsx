@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Task, Project, Profile } from '@perfect-task-app/models';
-import { useUpdateTask } from '@perfect-task-app/data';
+import { Task, Project, Profile } from '@flow-app/models';
+import { useUpdateTask } from '@flow-app/data';
 import { Calendar, User } from 'iconoir-react';
 
 interface KanbanCardProps {

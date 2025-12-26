@@ -252,7 +252,7 @@ export function LoginForm() {
       console.log('📱 Processing auth URL:', url);
 
       // Check if it's our auth callback
-      if (url.startsWith('com.perfecttask.app://auth/callback')) {
+      if (url.startsWith('com.flow.app://auth/callback')) {
         // We are back in the app!
         // The URL has the hash fragment with auth tokens.
 
@@ -350,13 +350,13 @@ export function LoginForm() {
               user_metadata: sessionData.user.user_metadata,
             };
             await Preferences.set({
-              key: 'perfect-task-user-data',
+              key: 'flow-app-user-data',
               value: JSON.stringify(userData),
             });
 
             // Store access token separately for Supabase requests
             await Preferences.set({
-              key: 'perfect-task-access-token',
+              key: 'flow-app-access-token',
               value: accessToken,
             });
             console.log('✅ User data and access token stored separately!');
@@ -364,7 +364,7 @@ export function LoginForm() {
             console.log('🎯 [LoginForm] Step 10: Importing reinitializeSupabaseClient...');
             // Now reinitialize the Supabase client to pick up the session from storage
             console.log('🔄 Reinitializing Supabase client to load session from storage...');
-            const { reinitializeSupabaseClient } = await import('@perfect-task-app/data');
+            const { reinitializeSupabaseClient } = await import('@flow-app/data');
             console.log('🎯 [LoginForm] Step 11: Calling reinitializeSupabaseClient()...');
             reinitializeSupabaseClient();
 

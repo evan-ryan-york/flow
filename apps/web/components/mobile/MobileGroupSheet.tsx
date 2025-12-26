@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { Check, Xmark } from 'iconoir-react';
-import { GroupByOption, getAvailableGroupByOptions } from '@perfect-task-app/ui/lib/taskGrouping';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
+import { GroupByOption, getAvailableGroupByOptions } from '@flow-app/ui/lib/taskGrouping';
+import { Task, CustomPropertyDefinition } from '@flow-app/models';
+import { Button } from '@flow-app/ui/components/ui/button';
 
 interface MobileGroupSheetProps {
   isOpen: boolean;

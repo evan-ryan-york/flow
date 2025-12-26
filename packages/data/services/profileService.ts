@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { getSupabaseClient } from '../supabase';
-import { ProfileSchema, type Profile } from '@perfect-task-app/models';
+import { ProfileSchema, type Profile } from '@flow-app/models';
 
 export interface ProfileUpdates {
   first_name?: string | null;

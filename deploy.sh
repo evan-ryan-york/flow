@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# deploy.sh - Master deployment script for Perfect Task App
+# deploy.sh - Master deployment script for Flow
 # Deploys to Web (Vercel), Desktop (Tauri DMG), and iOS (TestFlight)
 #
 
@@ -340,7 +340,7 @@ deploy_ios() {
 # INTERACTIVE MENU
 # ============================================
 show_menu() {
-  print_header "Perfect Task App - Deployment"
+  print_header "Flow - Deployment"
 
   CURRENT_VERSION=$(get_current_version)
   printf "Current version: %s%s%s\n" "$BOLD" "$CURRENT_VERSION" "$NC"

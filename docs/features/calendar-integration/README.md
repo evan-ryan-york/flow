@@ -6,7 +6,7 @@
 
 ## Overview
 
-Multi-account Google Calendar integration allowing users to connect unlimited Google accounts and view events from personal, work, and business calendars in a unified view within Column 3 of the Perfect Task App.
+Multi-account Google Calendar integration allowing users to connect unlimited Google accounts and view events from personal, work, and business calendars in a unified view within Column 3 of the Flow.
 
 ## What's Implemented ✅
 

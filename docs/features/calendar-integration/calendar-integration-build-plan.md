@@ -859,7 +859,7 @@ Before going live:
 
 ## Future Enhancements (Post-V1)
 
-- **Two-way sync**: Create/edit events from Perfect Task App → sync to Google
+- **Two-way sync**: Create/edit events from Flow → sync to Google
 - **Conflict resolution**: Handle conflicting edits from multiple devices
 - **Offline mode**: Queue changes when offline, sync when back online
 - **Calendar sharing**: Share specific calendars with team members

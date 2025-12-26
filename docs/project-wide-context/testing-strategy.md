@@ -18,7 +18,7 @@ We will structure our testing efforts according to the "Testing Pyramid." This m
 
 The shared packages are the bedrock of our application. Rigorously testing them ensures that all platforms are built on a stable and reliable foundation.
 
-### A. Testing the Data Layer (@perfect-task-app/data)
+### A. Testing the Data Layer (@flow-app/data)
 
 This is the most critical area. We will test the services and hooks separately to ensure data flows correctly and securely from the database to our UI state.
 
@@ -110,7 +110,7 @@ describe('useProjectTasks', () => {
 });
 ```
 
-### B. Testing the UI Kit (@perfect-task-app/ui)
+### B. Testing the UI Kit (@flow-app/ui)
 
 **Component Unit Tests**: For simple, presentational components (e.g., Button, Card), we will write basic tests using React Native Testing Library to ensure they render correctly and handle user interactions (like `onPress`).
 

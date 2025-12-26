@@ -1,7 +1,7 @@
 {
   "name": "mobile",
-  "version": "1.0.9",
-  "description": "Perfect Task App Mobile",
+  "version": "1.0.10",
+  "description": "Flow Mobile",
   "main": "index.js",
   "scripts": {
     "build": "npm run sync",

@@ -6,10 +6,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { ProjectItem } from '../ProjectItem';
-import type { Project } from '@perfect-task-app/models';
+import type { Project } from '@flow-app/models';
 
 // Mock the supabase module first to prevent initialization errors
-jest.mock('@perfect-task-app/data', () => {
+jest.mock('@flow-app/data', () => {
   const mockSupabaseClient = {
     from: jest.fn(),
     auth: {

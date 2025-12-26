@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, useEffect } from 'react';
-import { initializeSupabase, getSupabaseClient } from '@perfect-task-app/data';
+import { initializeSupabase, getSupabaseClient } from '@flow-app/data';
 import { env } from './env';
 
 // Lazy initialization flag

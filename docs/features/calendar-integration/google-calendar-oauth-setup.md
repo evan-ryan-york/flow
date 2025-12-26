@@ -11,10 +11,10 @@ This guide walks through setting up Google Cloud OAuth credentials for multi-acc
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Click the project dropdown at the top of the page
 3. Either:
-   - **Use existing project**: Select "perfect-task-app" or your existing project
+   - **Use existing project**: Select "flow-app" or your existing project
    - **Create new project**:
      - Click "New Project"
-     - Name it "Perfect Task App" or similar
+     - Name it "Flow" or similar
      - Click "Create"
 
 ## Step 2: Enable Google Calendar API
@@ -33,7 +33,7 @@ This guide walks through setting up Google Cloud OAuth credentials for multi-acc
 2. Select **External** user type (unless you have a Google Workspace account, then Internal is fine)
 3. Click **Create**
 4. Fill in the App Information:
-   - **App name**: Perfect Task App
+   - **App name**: Flow
    - **User support email**: Your email address
    - **Developer contact information**: Your email address
 5. Click **Save and Continue**
@@ -58,7 +58,7 @@ This guide walks through setting up Google Cloud OAuth credentials for multi-acc
 4. If prompted to configure the consent screen, you may need to complete Step 3 first
 5. Configure the OAuth client:
    - **Application type**: Web application
-   - **Name**: Perfect Task App - Web Client
+   - **Name**: Flow - Web Client
 6. Under **Authorized redirect URIs**, click **Add URI** and add these:
 
    **Production:**
@@ -164,7 +164,7 @@ For now, keep it in Testing mode and add test users as needed.
 
 ### "This app isn't verified"
 - This is normal during development
-- Click "Advanced" → "Go to Perfect Task App (unsafe)" to proceed
+- Click "Advanced" → "Go to Flow (unsafe)" to proceed
 - Users will see this until you publish and get Google's verification
 
 ### "The OAuth client was not found"

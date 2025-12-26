@@ -8,7 +8,7 @@ import {
   type CustomPropertyDefinitionWithProjects,
   type CustomPropertyValue,
   type CustomPropertyProjectAssignment,
-} from "@perfect-task-app/models";
+} from "@flow-app/models";
 
 export interface CreateDefinitionData {
   project_ids: string[]; // Changed to support multiple projects

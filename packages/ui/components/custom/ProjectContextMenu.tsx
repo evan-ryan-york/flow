@@ -8,7 +8,7 @@ import { Button } from '../ui/button';
 import { MoreVert, EditPencil, Bin } from 'iconoir-react';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { RenameProjectDialog } from './RenameProjectDialog';
-import type { Project } from '@perfect-task-app/models';
+import type { Project } from '@flow-app/models';
 
 interface ProjectContextMenuProps {
   project: Project;

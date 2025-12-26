@@ -9,10 +9,10 @@ module.exports = {
   moduleNameMapper: {
     // Handle module aliases from tsconfig
     '^@/(.*)$': '<rootDir>/$1',
-    '^@perfect-task-app/models$': '<rootDir>/../../packages/models/index.ts',
-    '^@perfect-task-app/data$': '<rootDir>/../../packages/data/index.ts',
-    '^@perfect-task-app/ui/(.*)$': '<rootDir>/../../packages/ui/$1',
-    '^@perfect-task-app/ui$': '<rootDir>/../../packages/ui/index.ts',
+    '^@flow-app/models$': '<rootDir>/../../packages/models/index.ts',
+    '^@flow-app/data$': '<rootDir>/../../packages/data/index.ts',
+    '^@flow-app/ui/(.*)$': '<rootDir>/../../packages/ui/$1',
+    '^@flow-app/ui$': '<rootDir>/../../packages/ui/index.ts',
     // Handle CSS imports (Next.js)
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { getSupabaseClient } from '../supabase';
 import {
   type CalendarSubscription,
-} from '@perfect-task-app/models';
+} from '@flow-app/models';
 import {
   getCalendarConnections,
   deleteCalendarConnection,

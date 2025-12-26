@@ -1,6 +1,6 @@
 # End-to-End Tests
 
-This directory contains E2E tests for the Perfect Task web application using Playwright.
+This directory contains E2E tests for the Flow web application using Playwright.
 
 ## Setup
 

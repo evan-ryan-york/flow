@@ -1,7 +1,7 @@
-# App Store Connect configuration for Perfect Task App
+# App Store Connect configuration for Flow
 # Credentials can be set via environment variables or entered at runtime
 
-app_identifier("com.perfecttask.app")  # Bundle ID
+app_identifier("com.flow.app")  # Bundle ID
 team_id("WDDXQKN8VJ")                  # Developer Portal Team ID
 
 # Apple ID: Set FASTLANE_USER env var, or Fastlane will prompt at runtime

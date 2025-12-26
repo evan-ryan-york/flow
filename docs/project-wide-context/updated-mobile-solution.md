@@ -29,7 +29,7 @@ Successfully completed the migration from React Native/Expo to a **Next.js + Cap
 
 **Previous Structure (React Native):**
 ```
-perfect-task-app/
+flow-app/
 ├── apps/mobile/     # Expo React Native app
 ├── packages/        # Shared packages
 └── supabase/        # Database
@@ -37,7 +37,7 @@ perfect-task-app/
 
 **New Structure (Multi-Platform):**
 ```
-perfect-task-app/
+flow-app/
 ├── apps/
 │   ├── web/         # Next.js 15 (App Router) - Primary interface
 │   ├── mobile/      # Capacitor wrapper (iOS, Android)

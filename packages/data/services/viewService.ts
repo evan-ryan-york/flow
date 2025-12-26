@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase';
-import { ViewSchema, type View } from '@perfect-task-app/models';
+import { ViewSchema, type View } from '@flow-app/models';
 
 export interface CreateViewData {
   name: string;

@@ -1,4 +1,4 @@
-import { Task } from '@perfect-task-app/models';
+import { Task } from '@flow-app/models';
 import { isAfter, isBefore, isToday, isThisWeek, startOfToday, endOfWeek, subDays } from 'date-fns';
 
 export interface FilterState {

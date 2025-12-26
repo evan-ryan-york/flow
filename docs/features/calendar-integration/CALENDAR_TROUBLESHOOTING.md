@@ -1,6 +1,6 @@
 # Google Calendar Integration - Troubleshooting Guide
 
-**Perfect Task App** | Technical Support
+**Flow** | Technical Support
 
 ---
 
@@ -11,7 +11,7 @@ Before diving into specific issues, run these quick checks:
 ### System Check
 - [ ] Internet connection active
 - [ ] Browser/app up to date
-- [ ] Logged in to Perfect Task App
+- [ ] Logged in to Flow
 - [ ] Logged in to Google Account
 
 ### Calendar Integration Check
@@ -36,18 +36,18 @@ Before diving into specific issues, run these quick checks:
 #### Cause A: Pop-ups Blocked
 **Solution:**
 1. Check if browser blocked the pop-up
-2. Allow pop-ups for Perfect Task App domain
+2. Allow pop-ups for Flow domain
 3. Try again
 
 #### Cause B: Third-Party Cookies Disabled
 **Solution:**
-1. Enable third-party cookies for Perfect Task App
+1. Enable third-party cookies for Flow
 2. Or use Chrome/Safari (better OAuth support)
 
 #### Cause C: Google Account Permissions
 **Solution:**
 1. Go to [Google Account Permissions](https://myaccount.google.com/permissions)
-2. Check if Perfect Task App is listed
+2. Check if Flow is listed
 3. If listed but not working, remove it
 4. Try connecting again
 
@@ -69,7 +69,7 @@ Before diving into specific issues, run these quick checks:
 
 ### Symptoms
 - Events visible in Google Calendar
-- Events not appearing in Perfect Task App
+- Events not appearing in Flow
 - Sync button doesn't help
 
 ### Diagnostics
@@ -195,7 +195,7 @@ If count > 1000, performance may degrade.
 2. This frees up database space and improves queries
 
 #### Solution C: Clear Browser Cache
-1. Clear cache for Perfect Task App domain
+1. Clear cache for Flow domain
 2. Reload page
 3. Data will re-sync
 
@@ -252,7 +252,7 @@ console.log(Intl.DateTimeFormat().resolvedOptions().timeZone);
 1. Open Google Calendar settings
 2. Verify timezone matches your location
 3. Adjust if incorrect
-4. Re-sync in Perfect Task App
+4. Re-sync in Flow
 
 #### Solution C: Force Re-sync
 1. Disconnect account
@@ -545,7 +545,7 @@ curl -X POST \
 - [Build Plan](./calendar-integration-build-plan.md)
 
 **Option 2: Contact Support**
-- Email: support@perfecttaskapp.com
+- Email: support@flowapp.com
 - Include:
   - Description of issue
   - Steps to reproduce
@@ -565,7 +565,7 @@ curl -X POST \
 
 **DO NOT** post publicly.
 
-Email: security@perfecttaskapp.com
+Email: security@flowapp.com
 
 Include:
 - Detailed description

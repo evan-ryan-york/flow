@@ -1,4 +1,4 @@
-// Jest setup file for @perfect-task-app/data package
+// Jest setup file for @flow-app/data package
 require('@testing-library/jest-dom');
 
 // Validate required environment variables for tests

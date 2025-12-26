@@ -1,7 +1,7 @@
 {
-  "name": "@perfect-task-app/ui",
+  "name": "@flow-app/ui",
   "version": "1.0.0",
-  "description": "Shared UI components for Perfect Task App",
+  "description": "Shared UI components for Flow",
   "main": "index.ts",
   "exports": {
     ".": "./index.ts",

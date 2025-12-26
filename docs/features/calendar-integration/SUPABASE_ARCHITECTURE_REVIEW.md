@@ -62,7 +62,7 @@ ORDER BY tablename;
 
 | Context | Client | Purpose |
 |---------|--------|---------|
-| **Browser (Services)** | `getSupabaseClient()` from `@perfect-task-app/data` | All data operations |
+| **Browser (Services)** | `getSupabaseClient()` from `@flow-app/data` | All data operations |
 | **Browser (Components)** | `useSupabase()` from `apps/web/lib/providers.tsx` | Direct auth operations |
 | **Server Components** | `createClient()` from `apps/web/lib/supabase/server.ts` | SSR data fetching |
 | **Middleware** | `updateSession()` from `apps/web/lib/supabase/middleware.ts` | Auth refresh |

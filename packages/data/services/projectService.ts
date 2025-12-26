@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '../supabase';
-import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from '@perfect-task-app/models';
-import { ProjectColorName } from '@perfect-task-app/ui';
+import { ProjectSchema, ProjectUserSchema, type Project, type ProjectUser } from '@flow-app/models';
+import { ProjectColorName } from '@flow-app/ui';
 
 export interface CreateProjectData {
   name: string;

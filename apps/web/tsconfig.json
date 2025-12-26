@@ -21,7 +21,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@perfect-task-app/*": ["../../packages/*"]
+      "@flow-app/*": ["../../packages/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

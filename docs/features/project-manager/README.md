@@ -175,8 +175,8 @@ Database → Service Layer → Hook Layer → UI Components
 
 ### Import Components
 ```typescript
-import { ProjectsPanel } from '@perfect-task-app/ui/custom';
-import { useProjectsForUser, useCreateProject } from '@perfect-task-app/data';
+import { ProjectsPanel } from '@flow-app/ui/custom';
+import { useProjectsForUser, useCreateProject } from '@flow-app/data';
 ```
 
 ### Usage Example

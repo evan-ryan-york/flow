@@ -1,6 +1,6 @@
 {
-  "name": "perfect-task-app",
-  "version": "1.0.9",
+  "name": "flow-app",
+  "version": "1.0.10",
   "description": "",
   "main": "index.js",
   "private": true,

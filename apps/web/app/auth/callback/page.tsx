@@ -12,7 +12,7 @@ function AuthCallbackContent() {
     if (typeof window === 'undefined') return;
 
     const handleCallback = async () => {
-      const { getSupabaseClient } = await import('@perfect-task-app/data');
+      const { getSupabaseClient } = await import('@flow-app/data');
       const { isTauri } = await import('@/lib/tauri-oauth');
       const supabase = getSupabaseClient();
 

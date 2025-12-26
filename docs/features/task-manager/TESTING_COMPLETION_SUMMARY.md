@@ -343,7 +343,7 @@ jest.mock('../../supabase', () => {
 
 #### Hook Mocking:
 ```typescript
-jest.mock('@perfect-task-app/data');
+jest.mock('@flow-app/data');
 const mockedHooks = dataHooks as jest.Mocked<typeof dataHooks>;
 
 mockedHooks.useCreateTask.mockReturnValue({

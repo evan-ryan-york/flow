@@ -9,11 +9,11 @@ import {
   useUpdateConnectionLabel,
   useCalendarSubscriptions,
   useSyncCalendarList
-} from "@perfect-task-app/data"
-import { Button } from "@perfect-task-app/ui/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@perfect-task-app/ui/components/ui/card"
-import { Input } from "@perfect-task-app/ui/components/ui/input"
-import { Label } from "@perfect-task-app/ui/components/ui/label"
+} from "@flow-app/data"
+import { Button } from "@flow-app/ui/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@flow-app/ui/components/ui/card"
+import { Input } from "@flow-app/ui/components/ui/input"
+import { Label } from "@flow-app/ui/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -21,9 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@perfect-task-app/ui/components/ui/dialog"
-import { CalendarPicker } from "@perfect-task-app/ui/components/Calendar"
-import { Plus, Trash2, Edit2, RefreshCw, Check, X } from "@perfect-task-app/ui/components/Calendar/icons"
+} from "@flow-app/ui/components/ui/dialog"
+import { CalendarPicker } from "@flow-app/ui/components/Calendar"
+import { Plus, Trash2, Edit2, RefreshCw, Check, X } from "@flow-app/ui/components/Calendar/icons"
 
 export default function CalendarConnectionsPage() {
   const router = useRouter()

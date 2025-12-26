@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-Perfect Task App uses a monorepo architecture with maximum code reuse across platforms. The application delivers to Web, iOS, Android, and native macOS desktop using a unified codebase built on **Next.js + Capacitor + Tauri** that follows the **Golden Path** data flow architecture.
+Flow uses a monorepo architecture with maximum code reuse across platforms. The application delivers to Web, iOS, Android, and native macOS desktop using a unified codebase built on **Next.js + Capacitor + Tauri** that follows the **Golden Path** data flow architecture.
 
 ## Golden Path Data Flow
 
@@ -101,7 +101,7 @@ UI Component → Custom Hook → Service Layer → Supabase → Zod Validation �
 ## Project Structure
 
 ```
-perfect-task-app/
+flow-app/
 ├── apps/
 │   ├── web/                # Next.js 15 app (primary interface)
 │   │   ├── app/            # App Router file-based routing
@@ -244,7 +244,7 @@ export const useMutationHook = () => {
 
 ## UI Component System (shadcn/ui)
 
-Perfect Task App uses **shadcn/ui** as its primary component system, providing a modern, accessible, and highly customizable UI foundation built on **Radix UI primitives** and **Tailwind CSS**.
+Flow uses **shadcn/ui** as its primary component system, providing a modern, accessible, and highly customizable UI foundation built on **Radix UI primitives** and **Tailwind CSS**.
 
 ### Architecture Overview
 
@@ -253,7 +253,7 @@ The UI system is organized as a shared package (`packages/ui/`) that serves all 
 ```
 UI System Architecture:
 ┌─────────────────────────────────────────────────────────────────┐
-│                       @perfect-task-app/ui                     │
+│                       @flow-app/ui                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  shadcn/ui Components (10 components)                          │
 │  ├── button, card, input, textarea, label, badge              │
@@ -341,20 +341,20 @@ The UI system provides clean, predictable import paths:
 
 ```typescript
 // Base shadcn/ui components
-import { Button, Input, Card, CardHeader, CardContent } from '@perfect-task-app/ui'
+import { Button, Input, Card, CardHeader, CardContent } from '@flow-app/ui'
 
 // Custom application components (when created)
-import { TaskItem, ProjectCard } from '@perfect-task-app/ui/custom'
+import { TaskItem, ProjectCard } from '@flow-app/ui/custom'
 
 // Utility functions
-import { cn } from '@perfect-task-app/ui'
+import { cn } from '@flow-app/ui'
 ```
 
 ### Component Usage Examples
 
 **Basic Form:**
 ```typescript
-import { Button, Input, Label, Card, CardContent } from '@perfect-task-app/ui'
+import { Button, Input, Label, Card, CardContent } from '@flow-app/ui'
 
 export function LoginForm() {
   return (
@@ -373,7 +373,7 @@ export function LoginForm() {
 
 **Interactive Dialog:**
 ```typescript
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Button } from '@perfect-task-app/ui'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Button } from '@flow-app/ui'
 
 export function CreateTaskDialog() {
   return (
@@ -407,7 +407,7 @@ pnpm dlx shadcn@latest add [component-name]
 **Creating Custom Components:**
 ```typescript
 // packages/ui/components/custom/TaskItem.tsx
-import { cn, Card, Badge, Button } from '@perfect-task-app/ui'
+import { cn, Card, Badge, Button } from '@flow-app/ui'
 
 interface TaskItemProps {
   title: string

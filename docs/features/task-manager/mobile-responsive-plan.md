@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan to make the Perfect Task App responsive for mobile devices (phones and tablets). The approach starts with responsive design principles in Chrome DevTools, then moves to iOS simulator testing, and finally real device testing.
+This document outlines the plan to make the Flow responsive for mobile devices (phones and tablets). The approach starts with responsive design principles in Chrome DevTools, then moves to iOS simulator testing, and finally real device testing.
 
 **Target Breakpoint**: `lg` (1024px) - Below this, the app switches to mobile layout
 **Rationale**: Standard Tailwind breakpoint that accommodates tall iPads in portrait and all phones

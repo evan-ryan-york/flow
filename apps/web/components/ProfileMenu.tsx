@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@perfect-task-app/ui/components/ui/avatar';
-import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
-import { useSignOut, useCurrentUser } from '@perfect-task-app/data';
+import { Avatar, AvatarFallback, AvatarImage } from '@flow-app/ui/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@flow-app/ui';
+import { useSignOut, useCurrentUser } from '@flow-app/data';
 import { LogOut } from 'iconoir-react';
 
 export function ProfileMenu() {

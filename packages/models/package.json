@@ -1,5 +1,5 @@
 {
-  "name": "@perfect-task-app/models",
+  "name": "@flow-app/models",
   "version": "1.0.0",
   "description": "Shared Zod schemas and TypeScript types",
   "main": "index.ts",

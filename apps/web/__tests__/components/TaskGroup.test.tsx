@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Task } from '@perfect-task-app/models';
+import { Task } from '@flow-app/models';
 
 // Dynamic import to handle Next.js client components
 const TaskGroup = require('../../components/TaskGroup').TaskGroup;

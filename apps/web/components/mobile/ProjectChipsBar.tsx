@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Project } from '@perfect-task-app/models';
-import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-task-app/ui/colors';
+import { Project } from '@flow-app/models';
+import { getProjectColorHex, getProjectColorLightBackground } from '@flow-app/ui/colors';
 
 interface ProjectChipsBarProps {
   projects: Project[];

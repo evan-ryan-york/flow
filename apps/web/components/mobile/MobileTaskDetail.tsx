@@ -10,9 +10,9 @@ import {
   useProjectDefinitions,
   useAllProfiles,
   useProjectsForUser,
-} from '@perfect-task-app/data';
-import { Input } from '@perfect-task-app/ui/components/ui/input';
-import { ProjectChip } from '@perfect-task-app/ui/components/custom';
+} from '@flow-app/data';
+import { Input } from '@flow-app/ui/components/ui/input';
+import { ProjectChip } from '@flow-app/ui/components/custom';
 import {
   Dialog,
   DialogContent,
@@ -20,8 +20,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@perfect-task-app/ui/components/ui/dialog';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
+} from '@flow-app/ui/components/ui/dialog';
+import { Button } from '@flow-app/ui/components/ui/button';
 
 interface MobileTaskDetailProps {
   taskId: string | null;

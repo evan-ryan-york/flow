@@ -6,9 +6,9 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Check, Xmark, Plus } from 'iconoir-react';
 import type { ProjectColor } from './ProjectColorPicker';
-import { useProjectsForUser, useCreateProject, useUpdateProject } from '@perfect-task-app/data';
+import { useProjectsForUser, useCreateProject, useUpdateProject } from '@flow-app/data';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ProjectWithRole } from '@perfect-task-app/data';
+import type { ProjectWithRole } from '@flow-app/data';
 
 interface ProjectsPanelProps {
   userId: string;

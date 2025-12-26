@@ -2,7 +2,7 @@
 require('@testing-library/jest-dom');
 
 // Mock Supabase
-jest.mock('@perfect-task-app/data/supabase', () => ({
+jest.mock('@flow-app/data/supabase', () => ({
   getSupabaseClient: jest.fn(() => ({
     from: jest.fn(() => ({
       select: jest.fn(),

@@ -1,7 +1,7 @@
 /**
  * Centralized Color Configuration
  *
- * This file is the single source of truth for ALL colors used in the Perfect Task App.
+ * This file is the single source of truth for ALL colors used in the Flow.
  * Any color definitions should be added here and exported for use throughout the application.
  */
 

@@ -6,12 +6,12 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, startOfDay, endOfDay, addDays } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import { RefreshCw } from '@perfect-task-app/ui/components/Calendar/icons';
-import { TimeBlockEvent } from '@perfect-task-app/ui/components/Calendar/TimeBlockEvent';
-import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@perfect-task-app/data/hooks/useCalendar';
-import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@perfect-task-app/data';
-import { useAssignTaskToTimeBlock } from '@perfect-task-app/data/hooks/useTimeBlockTasks';
-import type { CalendarEvent, TimeBlock, Task } from '@perfect-task-app/models';
+import { RefreshCw } from '@flow-app/ui/components/Calendar/icons';
+import { TimeBlockEvent } from '@flow-app/ui/components/Calendar/TimeBlockEvent';
+import { useCalendarEvents, useTriggerEventSync, useGoogleCalendarConnections, useCalendarSubscriptions } from '@flow-app/data/hooks/useCalendar';
+import { useCreateTimeBlock, useUserTimeBlocks, useDeleteTimeBlock } from '@flow-app/data';
+import { useAssignTaskToTimeBlock } from '@flow-app/data/hooks/useTimeBlockTasks';
+import type { CalendarEvent, TimeBlock, Task } from '@flow-app/models';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 

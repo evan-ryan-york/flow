@@ -15,12 +15,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@perfect-task-app/models": ["./packages/models"],
-      "@perfect-task-app/models/*": ["./packages/models/*"],
-      "@perfect-task-app/data": ["./packages/data"],
-      "@perfect-task-app/data/*": ["./packages/data/*"],
-      "@perfect-task-app/ui": ["./packages/ui"],
-      "@perfect-task-app/ui/*": ["./packages/ui/*"],
+      "@flow-app/models": ["./packages/models"],
+      "@flow-app/models/*": ["./packages/models/*"],
+      "@flow-app/data": ["./packages/data"],
+      "@flow-app/data/*": ["./packages/data/*"],
+      "@flow-app/ui": ["./packages/ui"],
+      "@flow-app/ui/*": ["./packages/ui/*"],
       "@/*": ["./apps/web/*"]
     }
   },

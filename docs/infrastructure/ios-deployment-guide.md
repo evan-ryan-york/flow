@@ -1,8 +1,8 @@
-# iOS Deployment Guide - Getting Perfect Task on Your iPhone
+# iOS Deployment Guide - Getting Flow on Your iPhone
 
 ## Overview
 
-This guide explains how to get Perfect Task App running on your iPhone. The app is already configured for iOS using Capacitor, and the OAuth authentication is set up for mobile using the deep link scheme `com.perfecttask.app://auth/callback`.
+This guide explains how to get Flow running on your iPhone. The app is already configured for iOS using Capacitor, and the OAuth authentication is set up for mobile using the deep link scheme `com.flow.app://auth/callback`.
 
 **Current Status**: ✅ iOS infrastructure complete, ready for deployment
 
@@ -112,7 +112,7 @@ pnpm run open:ios
 ### Current Configuration Status
 
 **✅ Already Configured**:
-- Deep link scheme: `com.perfecttask.app://auth/callback` (in Info.plist)
+- Deep link scheme: `com.flow.app://auth/callback` (in Info.plist)
 - Mobile OAuth flow implemented (in `capacitor-oauth.ts`)
 - LoginForm detects Capacitor environment
 
@@ -132,9 +132,9 @@ Your Google OAuth client should already support iOS since you're using the Web A
 
 5. **Supabase handles the deep link redirect**:
    - User clicks "Sign in with Google" in app
-   - App opens system Safari with: `https://sprjddkfkwrrebazjxvf.supabase.co/auth/v1/authorize?provider=google&redirect_to=com.perfecttask.app://auth/callback`
+   - App opens system Safari with: `https://sprjddkfkwrrebazjxvf.supabase.co/auth/v1/authorize?provider=google&redirect_to=com.flow.app://auth/callback`
    - User authorizes in Safari
-   - Supabase redirects to: `com.perfecttask.app://auth/callback#access_token=...`
+   - Supabase redirects to: `com.flow.app://auth/callback#access_token=...`
    - iOS opens your app via deep link
    - App extracts tokens from URL and creates session
 
@@ -154,7 +154,7 @@ System Safari (opens)
     │ 2. Navigate to:
     │    https://sprjddkfkwrrebazjxvf.supabase.co/auth/v1/authorize
     │    ?provider=google
-    │    &redirect_to=com.perfecttask.app://auth/callback
+    │    &redirect_to=com.flow.app://auth/callback
     │
     ▼
 Google OAuth (in Safari)
@@ -166,12 +166,12 @@ Supabase Callback
     │
     │ 4. Supabase processes OAuth
     │    Creates session
-    │    Redirects to: com.perfecttask.app://auth/callback#access_token=...&refresh_token=...
+    │    Redirects to: com.flow.app://auth/callback#access_token=...&refresh_token=...
     │
     ▼
 iOS Deep Link Handler
     │
-    │ 5. iOS recognizes com.perfecttask.app:// scheme
+    │ 5. iOS recognizes com.flow.app:// scheme
     │    Opens your app
     │
     ▼
@@ -189,7 +189,7 @@ User Logged In ✅
 - **Desktop**: Uses local OAuth server on port 3210 + manual PKCE
 
 **Why This Works**:
-- iOS recognizes `com.perfecttask.app://` URLs (configured in Info.plist)
+- iOS recognizes `com.flow.app://` URLs (configured in Info.plist)
 - Safari can redirect to custom URL schemes
 - Capacitor's App plugin listens for these URL opens
 - LoginForm extracts tokens and creates session
@@ -224,10 +224,10 @@ Check `apps/mobile/ios/App/App/Info.plist` contains:
 <array>
     <dict>
         <key>CFBundleURLName</key>
-        <string>com.perfecttask.app</string>
+        <string>com.flow.app</string>
         <key>CFBundleURLSchemes</key>
         <array>
-            <string>com.perfecttask.app</string>
+            <string>com.flow.app</string>
         </array>
     </dict>
 </array>
@@ -237,8 +237,8 @@ Check `apps/mobile/ios/App/App/Info.plist` contains:
 
 Check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs includes:
 ```
-com.perfecttask.app://**
-com.perfecttask.app://auth/callback
+com.flow.app://**
+com.flow.app://auth/callback
 ```
 
 **C. App URL Listener Not Running**
@@ -278,7 +278,7 @@ The listener is in `LoginForm.tsx:113-178`. Ensure:
 
 4. **Inspect in Xcode**:
    - Xcode → Window → Devices and Simulators
-   - Select your iPhone → Installed Apps → Perfect Task App
+   - Select your iPhone → Installed Apps → Flow
    - Click gear icon → Download Container
    - Check if files are there
 
@@ -323,8 +323,8 @@ The listener is in `LoginForm.tsx:113-178`. Ensure:
 4. **Check "Automatically manage signing"**
 5. **Select your Team**
 6. **Change Bundle Identifier slightly if needed**:
-   - Instead of: `com.perfecttask.app`
-   - Try: `com.yourname.perfecttask` (for development)
+   - Instead of: `com.flow.app`
+   - Try: `com.yourname.flow` (for development)
    - This creates a new provisioning profile
 
 ---
@@ -422,7 +422,7 @@ pnpm run open:ios
 # On Mac:
 # 1. Safari → Preferences → Advanced → Show Develop menu
 # 2. iPhone → Settings → Safari → Advanced → Web Inspector (ON)
-# 3. Safari → Develop → [Your iPhone] → [Perfect Task App]
+# 3. Safari → Develop → [Your iPhone] → [Flow]
 ```
 
 **2. Xcode Console**:
@@ -449,7 +449,7 @@ Your app is already well-prepared for iOS:
 ### ✅ Infrastructure Complete
 - Capacitor configured (`apps/mobile/capacitor.config.ts`)
 - iOS project initialized (`apps/mobile/ios/`)
-- Deep link scheme registered (`com.perfecttask.app`)
+- Deep link scheme registered (`com.flow.app`)
 - Splash screen configured
 - Push notifications support added
 
@@ -549,7 +549,7 @@ Before considering it "working on iPhone", verify:
    - Check if you're logged in
 
 3. **Check console for errors**:
-   - Safari → Develop → [Your iPhone] → Perfect Task App
+   - Safari → Develop → [Your iPhone] → Flow
    - Look for any JavaScript errors
 
 ### Short Term (Next Few Days)

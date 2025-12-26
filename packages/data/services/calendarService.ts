@@ -6,7 +6,7 @@ import {
   type GoogleCalendarConnection,
   type CalendarSubscription,
   type CalendarEvent,
-} from '@perfect-task-app/models';
+} from '@flow-app/models';
 
 // ---------------------------------
 // Calendar Connections

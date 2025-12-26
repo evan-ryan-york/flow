@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Lock } from 'iconoir-react';
 import { ProjectContextMenu } from './ProjectContextMenu';
 import { ProjectColorPicker, getProjectColorHex, type ProjectColor } from './ProjectColorPicker';
-import type { Project } from '@perfect-task-app/models';
+import type { Project } from '@flow-app/models';
 
 interface ProjectItemProps {
   project: Project;

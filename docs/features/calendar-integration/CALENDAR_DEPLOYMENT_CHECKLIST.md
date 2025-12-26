@@ -1,6 +1,6 @@
 # Google Calendar Integration - Deployment Checklist
 
-**Perfect Task App** | Production Deployment
+**Flow** | Production Deployment
 
 ---
 

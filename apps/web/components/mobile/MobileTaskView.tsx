@@ -24,9 +24,9 @@ import {
   useAllProfiles,
   useProjectDefinitions,
   useTasksPropertyValues,
-} from '@perfect-task-app/data';
-import { GroupByOption, groupTasks } from '@perfect-task-app/ui/lib/taskGrouping';
-import { FilterState, createEmptyFilterState, getActiveFilterCount, getAvailableFilters, filterTasks } from '@perfect-task-app/ui/lib/taskFiltering';
+} from '@flow-app/data';
+import { GroupByOption, groupTasks } from '@flow-app/ui/lib/taskGrouping';
+import { FilterState, createEmptyFilterState, getActiveFilterCount, getAvailableFilters, filterTasks } from '@flow-app/ui/lib/taskFiltering';
 
 interface MobileTaskViewProps {
   userId: string;

@@ -1,10 +1,10 @@
-# Perfect Task App - Claude Code Context
+# Flow App - Claude Code Context
 
 > This file is automatically loaded by Claude Code. Keep it concise and iterate on effectiveness.
 
 ## Project Overview
 
-Perfect Task App is a cross-platform task management application with a unified codebase that compiles to **iOS, Android, Web, and macOS desktop**. Built with Next.js + Capacitor + Tauri in a pnpm monorepo.
+Flow is a cross-platform task management application with a unified codebase that compiles to **iOS, Android, Web, and macOS desktop**. Built with Next.js + Capacitor + Tauri in a pnpm monorepo.
 
 **Live Instance**: Connects to hosted Supabase (no local Docker setup)
 
@@ -21,7 +21,7 @@ Perfect Task App is a cross-platform task management application with a unified 
 ## Project Structure
 
 ```
-perfect-task-app/
+flow-app/
 ├── apps/
 │   ├── web/              # Next.js 15 app (primary, builds for all platforms)
 │   ├── mobile/           # Capacitor config (iOS, Android)
@@ -89,7 +89,7 @@ UI Component → Custom Hook → Service Function → Supabase → Zod Validatio
 
 ```typescript
 // ✅ CORRECT - Single client with session management
-import { getSupabaseClient } from '@perfect-task-app/data'
+import { getSupabaseClient } from '@flow-app/data'
 const supabase = getSupabaseClient()
 
 // ❌ WRONG - Do not create new clients
@@ -104,7 +104,7 @@ Every service function MUST follow this exact pattern:
 
 ```typescript
 import { getSupabaseClient } from '../supabase'
-import { YourSchema } from '@perfect-task-app/models'
+import { YourSchema } from '@flow-app/models'
 
 const supabase = getSupabaseClient()
 
@@ -174,9 +174,9 @@ export const useUpdateYourData = () => {
 ### Import Patterns
 ```typescript
 // ✅ CORRECT - Use package aliases
-import { Task } from '@perfect-task-app/models'
-import { useProjectTasks } from '@perfect-task-app/data'
-import { Button, Card } from '@perfect-task-app/ui'
+import { Task } from '@flow-app/models'
+import { useProjectTasks } from '@flow-app/data'
+import { Button, Card } from '@flow-app/ui'
 
 // ❌ WRONG - Relative imports across packages
 import { Task } from '../../packages/models'
@@ -184,7 +184,7 @@ import { Task } from '../../packages/models'
 
 ### Component Conventions
 - UI components are pure presentation (no data fetching)
-- Use `cn()` utility from `@perfect-task-app/ui` for conditional classes
+- Use `cn()` utility from `@flow-app/ui` for conditional classes
 - All shadcn/ui components support `className` prop for customization
 - Follow Radix UI accessibility patterns (ARIA, keyboard nav)
 
@@ -242,7 +242,7 @@ pnpm test packages/data/services  # Test specific package
 4. Apply migrations via psql command
 5. Follow Golden Path data flow
 6. Test cross-platform (iOS, Android, Web)
-7. Use package aliases (`@perfect-task-app/*`)
+7. Use package aliases (`@flow-app/*`)
 8. Check neighboring files for patterns
 
 ## Documentation Map

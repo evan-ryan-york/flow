@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
+import { Button } from '@flow-app/ui/components/ui/button';
 import { Xmark, Search, Filter, Group } from 'iconoir-react';
-import { FilterState, hasActiveFilters } from '@perfect-task-app/ui/lib/taskFiltering';
-import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
-import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
+import { FilterState, hasActiveFilters } from '@flow-app/ui/lib/taskFiltering';
+import { GroupByOption } from '@flow-app/ui/lib/taskGrouping';
+import { BRAND_COLOR } from '@flow-app/ui/colors';
 
 interface ActiveFiltersBarProps {
   searchQuery: string;

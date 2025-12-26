@@ -10,7 +10,7 @@ import {
   type CreateDefinitionData,
 } from "../../services/customPropertyService";
 import { createTask } from "../../services/taskService";
-import { CustomPropertyDefinitionSchema, CustomPropertyValueSchema } from "@perfect-task-app/models";
+import { CustomPropertyDefinitionSchema, CustomPropertyValueSchema } from "@flow-app/models";
 
 // Test users and data
 let testUserA: any;

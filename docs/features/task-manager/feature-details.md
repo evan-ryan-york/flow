@@ -1,7 +1,7 @@
 # Task Manager Feature Details
 
 ## Overview
-This document details the core task management functionality within Perfect Task App's Column 2 (Task Hub), specifically focusing on task creation and task viewing capabilities.
+This document details the core task management functionality within Flow's Column 2 (Task Hub), specifically focusing on task creation and task viewing capabilities.
 
 ## Implementation Status
 

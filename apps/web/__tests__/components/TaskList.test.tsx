@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tantml:react-query';
-import { Task } from '@perfect-task-app/models';
+import { Task } from '@flow-app/models';
 
 // Dynamic import to handle Next.js client components
 const TaskList = require('../../components/TaskList').TaskList;

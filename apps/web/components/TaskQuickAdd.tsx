@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Project } from "@perfect-task-app/models";
+import { Project } from "@flow-app/models";
 import {
   useCreateTask,
   useProjectsForUser,
@@ -10,15 +10,15 @@ import {
   useProjectDefinitions,
   useSetPropertyValue,
   useAllProfiles,
-} from "@perfect-task-app/data";
-import { ProjectChip } from "@perfect-task-app/ui/components/custom";
-import { Input } from "@perfect-task-app/ui/components/ui/input";
-import { Button } from "@perfect-task-app/ui/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger, getProjectColorHex, BRAND_COLOR } from "@perfect-task-app/ui";
+} from "@flow-app/data";
+import { ProjectChip } from "@flow-app/ui/components/custom";
+import { Input } from "@flow-app/ui/components/ui/input";
+import { Button } from "@flow-app/ui/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger, getProjectColorHex, BRAND_COLOR } from "@flow-app/ui";
 import { Calendar as CalendarIcon, User, NavArrowDown } from "iconoir-react";
 import { format } from "date-fns";
-import { CustomPropertyManager } from "@perfect-task-app/ui/components/custom/CustomPropertyManager";
-import { cleanTaskName } from "@perfect-task-app/ui/lib/textParser";
+import { CustomPropertyManager } from "@flow-app/ui/components/custom/CustomPropertyManager";
+import { cleanTaskName } from "@flow-app/ui/lib/textParser";
 
 interface TaskQuickAddProps {
   userId: string;

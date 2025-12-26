@@ -1,13 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import * as dataHooks from '@perfect-task-app/data';
-import { Project } from '@perfect-task-app/models';
+import * as dataHooks from '@flow-app/data';
+import { Project } from '@flow-app/models';
 
 // Dynamic import to handle Next.js client components
 const TaskQuickAdd = require('../../components/TaskQuickAdd').TaskQuickAdd;
 
-jest.mock('@perfect-task-app/data');
+jest.mock('@flow-app/data');
 
 const mockedHooks = dataHooks as jest.Mocked<typeof dataHooks>;
 

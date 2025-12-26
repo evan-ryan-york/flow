@@ -2,7 +2,7 @@
 
 ## What Was Built
 
-A complete integration that automatically extracts tasks from Granola meeting notes using AI and adds them to your Perfect Task app.
+A complete integration that automatically extracts tasks from Granola meeting notes using AI and adds them to your Flow app.
 
 ### Files Created
 
@@ -88,7 +88,7 @@ Or use the Supabase dashboard to find your user ID in the profiles table.
 
 1. Create a meeting in Granola with some action items
 2. Share the note to Zapier
-3. Check your Perfect Task app - tasks should appear in your General project
+3. Check your Flow app - tasks should appear in your General project
 
 ## Local Development Testing
 

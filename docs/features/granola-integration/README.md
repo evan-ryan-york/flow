@@ -4,19 +4,19 @@ Automatically extract and create tasks from Granola meeting notes using AI-power
 
 ## Overview
 
-This integration connects Perfect Task with Granola via Zapier, allowing meeting notes to be automatically analyzed by AI to extract actionable tasks and add them to your task list.
+This integration connects Flow with Granola via Zapier, allowing meeting notes to be automatically analyzed by AI to extract actionable tasks and add them to your task list.
 
 ## Architecture
 
 ```
-Granola Meeting → Zapier Webhook → Perfect Task API → OpenAI → Database
+Granola Meeting → Zapier Webhook → Flow API → OpenAI → Database
 ```
 
 ### Components
 
 1. **Webhook Endpoint**: `apps/web/app/api/webhooks/granola/route.ts`
 2. **AI Service**: `apps/web/lib/ai/taskExtractor.ts`
-3. **Task Creation**: Uses existing `createTask` service from `@perfect-task-app/data`
+3. **Task Creation**: Uses existing `createTask` service from `@flow-app/data`
 
 ## Setup Instructions
 
@@ -82,7 +82,7 @@ https://your-ngrok-url.ngrok.io/api/webhooks/granola
 }
 ```
 
-**Important**: Replace `YOUR_PERFECT_TASK_USER_ID` with your actual user ID from Perfect Task. You can find this by:
+**Important**: Replace `YOUR_PERFECT_TASK_USER_ID` with your actual user ID from Flow. You can find this by:
 ```sql
 SELECT id FROM profiles WHERE email = 'your@email.com';
 ```
@@ -91,11 +91,11 @@ SELECT id FROM profiles WHERE email = 'your@email.com';
 
 1. In Granola, create a test meeting with some action items
 2. Share the note to Zapier
-3. Check your Perfect Task app - tasks should appear in your General project
+3. Check your Flow app - tasks should appear in your General project
 
 ### 3. Get Your User ID
 
-To find your Perfect Task user ID:
+To find your Flow user ID:
 
 **Option 1: Database Query**
 ```bash
@@ -104,7 +104,7 @@ psql "postgresql://postgres:PASSWORD@db.sprjddkfkwrrebazjxvf.supabase.co:5432/po
 ```
 
 **Option 2: Browser Console**
-1. Log into Perfect Task
+1. Log into Flow
 2. Open browser DevTools → Console
 3. Run:
 ```javascript
@@ -120,7 +120,7 @@ The webhook endpoint receives meeting data from Zapier:
 
 ```typescript
 {
-  userId: string;           // Your Perfect Task user ID
+  userId: string;           // Your Flow user ID
   meetingTitle: string;     // "Weekly Team Sync"
   enhancedNotes: string;    // Main meeting notes with to-dos
   transcript: string;       // Full meeting transcript (optional)
@@ -321,7 +321,7 @@ To improve quality:
 ### Tasks Not Appearing
 
 1. **Check webhook secret**: Ensure it matches `.env` file
-2. **Verify user ID**: Confirm the userId in Zapier matches your Perfect Task account
+2. **Verify user ID**: Confirm the userId in Zapier matches your Flow account
 3. **Check General project**: Ensure your account has a General project
 4. **View logs**: Check browser console or server logs for errors
 
@@ -361,4 +361,4 @@ For issues or questions:
 ---
 
 **Last Updated**: 2025-11-08
-**Maintained By**: Perfect Task Team
+**Maintained By**: Flow Team

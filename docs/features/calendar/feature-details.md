@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Calendar feature in Perfect Task App provides a unified view of all your time commitments, combining Google Calendar events with work time blocks. This allows users to see their external commitments alongside their planned work sessions, enabling realistic daily and weekly planning.
+The Calendar feature in Flow provides a unified view of all your time commitments, combining Google Calendar events with work time blocks. This allows users to see their external commitments alongside their planned work sessions, enabling realistic daily and weekly planning.
 
 ---
 
@@ -51,7 +51,7 @@ The Calendar feature in Perfect Task App provides a unified view of all your tim
 - ❌ Reminders (use Google Calendar app)
 
 **Read-Only Access:**
-- Calendar events are read-only in Perfect Task App
+- Calendar events are read-only in Flow
 - To edit or delete events, users must use Google Calendar
 - This ensures data integrity and prevents sync conflicts
 
@@ -60,7 +60,7 @@ The Calendar feature in Perfect Task App provides a unified view of all your tim
 ### 2. Work Time Blocks
 
 **Purpose:**
-Work time blocks are user-created calendar blocks representing dedicated work or focus time. Unlike Google Calendar events, these are managed entirely within Perfect Task App.
+Work time blocks are user-created calendar blocks representing dedicated work or focus time. Unlike Google Calendar events, these are managed entirely within Flow.
 
 **Creation:**
 - Click and drag on empty calendar slots
@@ -328,7 +328,7 @@ Work time blocks are user-created calendar blocks representing dedicated work or
 5. Redirected to Google's OAuth consent screen
 6. Signs in with Google account
 7. Reviews and grants permissions
-8. Redirected back to Perfect Task App
+8. Redirected back to Flow
 9. Account appears in connection list
 10. Calendar list syncs automatically
 11. Events begin syncing (initial sync may take 30-60 seconds)
@@ -572,7 +572,7 @@ Work time blocks are user-created calendar blocks representing dedicated work or
 ### 🔮 Future Phases (Post-V1)
 
 **Phase 7: Two-Way Sync**
-- Create events from Perfect Task App
+- Create events from Flow
 - Edit events in-app
 - Sync changes to Google Calendar
 - Conflict resolution
@@ -649,9 +649,9 @@ Work time blocks are user-created calendar blocks representing dedicated work or
 ## Contact & Support
 
 **For Users:**
-- Support: support@perfecttaskapp.com
-- Bugs: bugs@perfecttaskapp.com
-- Feedback: feedback@perfecttaskapp.com
+- Support: support@flowapp.com
+- Bugs: bugs@flowapp.com
+- Feedback: feedback@flowapp.com
 
 **For Developers:**
 - Documentation: See references above

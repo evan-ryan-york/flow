@@ -36,7 +36,7 @@ export default function Dashboard() {
           console.log('🔍 Capacitor detected, checking for stored user data...');
           try {
             const { Preferences } = await import('@capacitor/preferences');
-            const { value } = await Preferences.get({ key: 'perfect-task-user-data' });
+            const { value } = await Preferences.get({ key: 'flow-app-user-data' });
 
             if (value) {
               console.log('✅ Found stored user data!');
@@ -79,7 +79,7 @@ export default function Dashboard() {
         // NON-CAPACITOR: Use standard Supabase session loading
         console.log('📡 Setting up Supabase auth state listener...');
 
-        const { getSupabaseClient } = await import('@perfect-task-app/data');
+        const { getSupabaseClient } = await import('@flow-app/data');
         console.log('✅ getSupabaseClient imported');
 
         const supabase = getSupabaseClient();

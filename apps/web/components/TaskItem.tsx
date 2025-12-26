@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, memo, useEffect } from 'react';
-import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@perfect-task-app/data';
-import { Task, CustomPropertyDefinition, Project } from '@perfect-task-app/models';
+import { useUpdateTask, useTaskPropertyValues, useSetPropertyValue } from '@flow-app/data';
+import { Task, CustomPropertyDefinition, Project } from '@flow-app/models';
 import { Trash } from 'iconoir-react';
 import { DeleteTaskDialog } from './DeleteTaskDialog';
-import { getProjectColorHex, getProjectColorLightBackground } from '@perfect-task-app/ui/colors';
+import { getProjectColorHex, getProjectColorLightBackground } from '@flow-app/ui/colors';
 
 type BuiltInColumn = 'assigned_to' | 'due_date' | 'project' | 'created_at';
 

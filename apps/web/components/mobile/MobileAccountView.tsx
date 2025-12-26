@@ -3,8 +3,8 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'iconoir-react';
-import { Avatar, AvatarFallback } from '@perfect-task-app/ui/components/ui/avatar';
-import { useSignOut, useCurrentUser } from '@perfect-task-app/data';
+import { Avatar, AvatarFallback } from '@flow-app/ui/components/ui/avatar';
+import { useSignOut, useCurrentUser } from '@flow-app/data';
 
 export function MobileAccountView() {
   const router = useRouter();

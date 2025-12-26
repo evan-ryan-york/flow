@@ -8,16 +8,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@perfect-task-app/ui/components/ui/dialog';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
-import { Label } from '@perfect-task-app/ui/components/ui/label';
+} from '@flow-app/ui/components/ui/dialog';
+import { Button } from '@flow-app/ui/components/ui/button';
+import { Label } from '@flow-app/ui/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@perfect-task-app/ui/components/ui/select';
+} from '@flow-app/ui/components/ui/select';
 
 interface BatchProjectSelectorDialogProps {
   isOpen: boolean;

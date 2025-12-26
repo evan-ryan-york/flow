@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import type { CalendarEvent as CalendarEventType } from "@perfect-task-app/models"
-import { useCalendarSubscriptions } from "@perfect-task-app/data"
+import type { CalendarEvent as CalendarEventType } from "@flow-app/models"
+import { useCalendarSubscriptions } from "@flow-app/data"
 import { cn } from "../../lib/utils"
 
 interface CalendarEventProps {

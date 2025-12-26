@@ -1,7 +1,7 @@
 'use client';
 
 import { Search, Filter, Group } from 'iconoir-react';
-import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
+import { GroupByOption } from '@flow-app/ui/lib/taskGrouping';
 
 interface MobileTopActionBarProps {
   onSearchOpen: () => void;

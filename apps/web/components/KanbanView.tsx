@@ -11,8 +11,8 @@ import {
   useSensors,
   PointerSensor,
 } from '@dnd-kit/core';
-import { useUpdateTask } from '@perfect-task-app/data';
-import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-app/models';
+import { useUpdateTask } from '@flow-app/data';
+import { Task, CustomPropertyDefinition, Project, Profile } from '@flow-app/models';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 

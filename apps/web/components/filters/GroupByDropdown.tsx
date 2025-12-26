@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@perfect-task-app/ui';
+import { Button } from '@flow-app/ui/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@flow-app/ui';
 import { Group, Check } from 'iconoir-react';
-import { GroupByOption, getAvailableGroupByOptions } from '@perfect-task-app/ui/lib/taskGrouping';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { BRAND_COLOR } from '@perfect-task-app/ui/colors';
+import { GroupByOption, getAvailableGroupByOptions } from '@flow-app/ui/lib/taskGrouping';
+import { Task, CustomPropertyDefinition } from '@flow-app/models';
+import { BRAND_COLOR } from '@flow-app/ui/colors';
 
 interface GroupByDropdownProps {
   value: GroupByOption | null;

@@ -1,5 +1,5 @@
 import * as profileService from '../../services/profileService';
-import { ProfileSchema } from '@perfect-task-app/models';
+import { ProfileSchema } from '@flow-app/models';
 
 // Mock the entire supabase module
 jest.mock('../../supabase', () => ({

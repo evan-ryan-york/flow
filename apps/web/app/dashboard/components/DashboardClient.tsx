@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ProjectsPanel } from '@perfect-task-app/ui/custom';
+import { ProjectsPanel } from '@flow-app/ui/custom';
 import { TaskHub } from '@/components/TaskHub';
 import { CalendarPanel } from '@/components/CalendarPanel';
 import type { User } from '@supabase/supabase-js';

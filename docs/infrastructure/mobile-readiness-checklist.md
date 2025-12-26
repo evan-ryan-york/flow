@@ -36,7 +36,7 @@ Create a mobile layout that uses tabs or bottom navigation instead of three colu
 ```tsx
 // ThreeColumnLayout.tsx - Add mobile version
 import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@perfect-task-app/ui'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@flow-app/ui'
 
 export function ThreeColumnLayout({ userId }: Props) {
   const [activeTab, setActiveTab] = useState('tasks')
@@ -148,7 +148,7 @@ Add haptic feedback to key interactions:
 
 ```tsx
 // TaskItem.tsx - Add haptic on task completion
-import { Native } from '@perfect-task-app/data'
+import { Native } from '@flow-app/data'
 
 const handleToggleComplete = async () => {
   // Haptic feedback BEFORE visual change (feels more responsive)
@@ -189,7 +189,7 @@ const handleToggleComplete = async () => {
 
 ```tsx
 // Pattern for all haptic implementations
-import { Native } from '@perfect-task-app/data'
+import { Native } from '@flow-app/data'
 
 const handleAction = async () => {
   // 1. Haptic feedback (instant response)
@@ -495,7 +495,7 @@ Add share functionality for tasks and projects using native share sheet:
 
 ```tsx
 // TaskItem.tsx - Add share button
-import { Native } from '@perfect-task-app/data'
+import { Native } from '@flow-app/data'
 import { Share } from 'lucide-react'
 
 const handleShare = async () => {
@@ -618,8 +618,8 @@ Create splash image:
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.perfecttask.app',  // Reverse domain
-  appName: 'Perfect Task',       // Name in App Store
+  appId: 'com.flow.app',  // Reverse domain
+  appName: 'Flow',       // Name in App Store
   webDir: '../web/out',
 
   ios: {
@@ -638,13 +638,13 @@ Update `apps/mobile/ios/App/App/Info.plist`:
 ```xml
 <!-- Required permissions for your app -->
 <key>NSCameraUsageDescription</key>
-<string>Perfect Task needs camera access to add photos to tasks</string>
+<string>Flow needs camera access to add photos to tasks</string>
 
 <key>NSPhotoLibraryUsageDescription</key>
-<string>Perfect Task needs photo library access to attach images to tasks</string>
+<string>Flow needs photo library access to attach images to tasks</string>
 
 <key>NSCalendarsUsageDescription</key>
-<string>Perfect Task integrates with your calendar to schedule tasks</string>
+<string>Flow integrates with your calendar to schedule tasks</string>
 
 <!-- Remove any unused permissions to avoid rejection -->
 ```
@@ -941,16 +941,16 @@ xcrun simctl spawn booted log stream --predicate 'process == "App"' --level debu
    - https://appstoreconnect.apple.com/
    - Apps → + → New App
    - Platform: iOS
-   - Name: Perfect Task
+   - Name: Flow
    - Primary Language: English
-   - Bundle ID: com.perfecttask.app (match capacitor.config.ts)
-   - SKU: perfecttask-ios-001
+   - Bundle ID: com.flow.app (match capacitor.config.ts)
+   - SKU: flow-ios-001
 
 **B. Required Text Content**
 
 **App Name** (30 characters max):
 ```
-Perfect Task
+Flow
 ```
 
 **Subtitle** (30 characters max):
@@ -961,7 +961,7 @@ Task & Calendar Management
 **Description** (4000 characters max):
 
 ```
-Perfect Task is a powerful task management app that helps you organize your work and life.
+Flow is a powerful task management app that helps you organize your work and life.
 
 KEY FEATURES:
 
@@ -989,7 +989,7 @@ KEY FEATURES:
 • Offline support
 • Seamless sync across devices
 
-Perfect Task combines the flexibility of custom task properties with the power of calendar integration, helping you plan and execute your work more effectively.
+Flow combines the flexibility of custom task properties with the power of calendar integration, helping you plan and execute your work more effectively.
 
 SUBSCRIPTION INFORMATION:
 [Add your pricing model here]

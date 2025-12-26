@@ -1,4 +1,4 @@
--- Initial schema for perfect task app
+-- Initial schema for Flow app
 
 create table projects (
   id uuid primary key default gen_random_uuid(),

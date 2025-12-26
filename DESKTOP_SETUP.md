@@ -1,4 +1,4 @@
-# Perfect Task Desktop App - Setup & Installation Guide
+# Flow Desktop App - Setup & Installation Guide
 
 ## Prerequisites
 
@@ -51,8 +51,8 @@ pnpm build
 ```
 
 This will create:
-- **DMG installer**: `apps/desktop/src-tauri/target/release/bundle/dmg/Perfect Task App_0.1.0_universal.dmg`
-- **App bundle**: `apps/desktop/src-tauri/target/release/bundle/macos/Perfect Task App.app`
+- **DMG installer**: `apps/desktop/src-tauri/target/release/bundle/dmg/Flow_0.1.0_universal.dmg`
+- **App bundle**: `apps/desktop/src-tauri/target/release/bundle/macos/Flow.app`
 
 Build time: ~5-10 minutes (first build), ~2-3 minutes (subsequent builds)
 
@@ -66,7 +66,7 @@ Build time: ~5-10 minutes (first build), ~2-3 minutes (subsequent builds)
    ```
 
 2. Double-click the DMG file
-3. Drag "Perfect Task App" to your Applications folder
+3. Drag "Flow" to your Applications folder
 4. Eject the DMG
 5. Open the app from Applications
 
@@ -252,10 +252,10 @@ To update the app version:
 2. ✅ Install Xcode CLI tools: `xcode-select --install`
 3. Run production build: `cd apps/desktop && pnpm build`
 4. Install the DMG or copy app to /Applications
-5. Launch Perfect Task App from Applications folder
+5. Launch Flow from Applications folder
 
 ---
 
 **Need Help?**
 - Tauri Documentation: https://tauri.app
-- GitHub Issues: https://github.com/evan-ryan-york/perfect-task-app/issues
+- GitHub Issues: https://github.com/evan-ryan-york/flow-app/issues

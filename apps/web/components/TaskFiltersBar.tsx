@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Task, CustomPropertyDefinition } from '@perfect-task-app/models';
-import { FilterState, getAvailableFilters } from '@perfect-task-app/ui/lib/taskFiltering';
-import { GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
+import { Task, CustomPropertyDefinition } from '@flow-app/models';
+import { FilterState, getAvailableFilters } from '@flow-app/ui/lib/taskFiltering';
+import { GroupByOption } from '@flow-app/ui/lib/taskGrouping';
 import { TaskSearchInput } from './filters/TaskSearchInput';
 import { ColumnFilterDropdown } from './filters/ColumnFilterDropdown';
 import { GroupByDropdown } from './filters/GroupByDropdown';

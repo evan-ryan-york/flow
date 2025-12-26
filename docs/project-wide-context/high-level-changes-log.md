@@ -1,4 +1,4 @@
-# High-Level Changes Log - Perfect Task App
+# High-Level Changes Log - Flow
 **Instructions:** This log should be organized chronologically with newest entries at the top. Always add new updates to the log - never remove old entries. This provides AI agents and developers with a quick scan of what's been completed.
 
 ---

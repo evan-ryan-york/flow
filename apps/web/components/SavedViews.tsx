@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUserViews, useDeleteView } from '@perfect-task-app/data';
+import { useUserViews, useDeleteView } from '@flow-app/data';
 import {
   Button,
   AlertDialog,
@@ -12,9 +12,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@perfect-task-app/ui';
+} from '@flow-app/ui';
 import { ViewGrid, Plus, Trash } from 'iconoir-react';
-import type { View } from '@perfect-task-app/models';
+import type { View } from '@flow-app/models';
 
 /**
  * Props for the SavedViews component

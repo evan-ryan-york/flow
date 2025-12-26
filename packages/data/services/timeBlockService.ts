@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase';
-import { TimeBlockSchema, TaskSchema, type TimeBlock, type Task } from '@perfect-task-app/models';
+import { TimeBlockSchema, TaskSchema, type TimeBlock, type Task } from '@flow-app/models';
 
 export interface CreateTimeBlockData {
   title: string;

@@ -8,10 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@perfect-task-app/ui/components/ui/dialog';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
-import { useDeleteTask } from '@perfect-task-app/data';
-import type { Task } from '@perfect-task-app/models';
+} from '@flow-app/ui/components/ui/dialog';
+import { Button } from '@flow-app/ui/components/ui/button';
+import { useDeleteTask } from '@flow-app/data';
+import type { Task } from '@flow-app/models';
 
 interface DeleteTaskDialogProps {
   task: Task;

@@ -9,8 +9,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { TaskItem } from './TaskItem';
 import { TaskGroup } from './TaskGroup';
-import { Task, CustomPropertyDefinition, Project, Profile } from '@perfect-task-app/models';
-import { TaskGroup as TaskGroupType, GroupByOption } from '@perfect-task-app/ui/lib/taskGrouping';
+import { Task, CustomPropertyDefinition, Project, Profile } from '@flow-app/models';
+import { TaskGroup as TaskGroupType, GroupByOption } from '@flow-app/ui/lib/taskGrouping';
 
 // Built-in columns that can be hidden
 export type BuiltInColumn = 'assigned_to' | 'due_date' | 'project' | 'created_at';

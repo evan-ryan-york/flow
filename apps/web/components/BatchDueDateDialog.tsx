@@ -8,10 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@perfect-task-app/ui/components/ui/dialog';
-import { Button } from '@perfect-task-app/ui/components/ui/button';
-import { Label } from '@perfect-task-app/ui/components/ui/label';
-import { Input } from '@perfect-task-app/ui/components/ui/input';
+} from '@flow-app/ui/components/ui/dialog';
+import { Button } from '@flow-app/ui/components/ui/button';
+import { Label } from '@flow-app/ui/components/ui/label';
+import { Input } from '@flow-app/ui/components/ui/input';
 
 interface BatchDueDateDialogProps {
   isOpen: boolean;

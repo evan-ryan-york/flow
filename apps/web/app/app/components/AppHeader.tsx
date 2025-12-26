@@ -23,7 +23,7 @@ export function AppHeader({ user }: AppHeaderProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo and Title */}
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">Perfect Task App</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Flow</h1>
           </div>
 
           {/* User Menu */}

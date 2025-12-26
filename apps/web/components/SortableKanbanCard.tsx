@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, Project, Profile } from '@perfect-task-app/models';
+import { Task, Project, Profile } from '@flow-app/models';
 import { KanbanCard } from './KanbanCard';
 
 interface SortableKanbanCardProps {

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTriggerEventSync } from "@perfect-task-app/data"
+import { useTriggerEventSync } from "@flow-app/data"
 import { cn } from "../../lib/utils"
 import { Button } from "../ui/button"
 import { ChevronLeft, ChevronRight, RotateCw } from "./icons"

@@ -1,6 +1,6 @@
 // Unit tests for taskService - mocking Supabase client
 import * as taskService from '../../services/taskService';
-import { TaskSchema } from '@perfect-task-app/models';
+import { TaskSchema } from '@flow-app/models';
 
 // Mock the supabase module - must be at top before imports
 jest.mock('../../supabase', () => {

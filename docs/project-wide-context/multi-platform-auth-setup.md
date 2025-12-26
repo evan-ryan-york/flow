@@ -2,13 +2,13 @@
 
 ## Overview
 
-Perfect Task App supports Google OAuth authentication across **web**, **desktop (Tauri)**, and **mobile (iOS/Android via Capacitor)** platforms using a unified codebase with platform-specific OAuth flows. This document explains the complete authentication architecture, configuration requirements, and implementation details that enable seamless authentication across all platforms.
+Flow supports Google OAuth authentication across **web**, **desktop (Tauri)**, and **mobile (iOS/Android via Capacitor)** platforms using a unified codebase with platform-specific OAuth flows. This document explains the complete authentication architecture, configuration requirements, and implementation details that enable seamless authentication across all platforms.
 
 ## Architecture Summary
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Perfect Task App                          │
+│                    Flow                          │
 │                  (Single Codebase)                           │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
@@ -521,7 +521,7 @@ export async function handleTauriGoogleOAuth(
      │                                     │ 3. Open SYSTEM     │
      │                                     │    browser with    │
      │                                     │    custom redirect │
-     │                                     │    com.perfecttask │
+     │                                     │    com.flow │
      │                                     │    .app://auth/    │
      │                                     │    callback        │
      │                                     ▼
@@ -553,7 +553,7 @@ export async function handleTauriGoogleOAuth(
      │                                   │ 7. Redirect to app
      │                                   │    with tokens in
      │                                   │    fragment:
-     │                                   │    com.perfecttask.app://
+     │                                   │    com.flow.app://
      │                                   │    auth/callback#
      │                                   │    access_token=xxx&
      │                                   │    refresh_token=yyy
@@ -629,7 +629,7 @@ await Preferences.set({
 ```typescript
 // Dashboard bypasses Supabase session loading
 const { Preferences } = await import('@capacitor/preferences');
-const { value } = await Preferences.get({ key: 'perfect-task-user-data' });
+const { value } = await Preferences.get({ key: 'flow-user-data' });
 const userData = JSON.parse(value);
 setUser(userData); // Display user as authenticated
 ```
@@ -658,7 +658,7 @@ setUser(userData); // Display user as authenticated
 **CRITICAL**: Add your app's custom URL scheme to Authorized Redirect URIs:
 
 ```
-com.perfecttask.app://auth/callback
+com.flow.app://auth/callback
 ```
 
 This tells Google it's safe to redirect to your mobile app after OAuth.
@@ -669,8 +669,8 @@ This tells Google it's safe to redirect to your mobile app after OAuth.
 
 Add to Redirect URLs whitelist:
 ```
-com.perfecttask.app://auth/callback
-com.perfecttask.app://**
+com.flow.app://auth/callback
+com.flow.app://**
 ```
 
 #### iOS Configuration
@@ -682,10 +682,10 @@ com.perfecttask.app://**
 <array>
   <dict>
     <key>CFBundleURLName</key>
-    <string>com.perfecttask.app</string>
+    <string>com.flow.app</string>
     <key>CFBundleURLSchemes</key>
     <array>
-      <string>com.perfecttask.app</string>
+      <string>com.flow.app</string>
     </array>
   </dict>
 </array>
@@ -706,7 +706,7 @@ const handleGoogleSignIn = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'com.perfecttask.app://auth/callback',
+        redirectTo: 'com.flow.app://auth/callback',
         skipBrowserRedirect: false,
       },
     });
@@ -759,7 +759,7 @@ useEffect(() => {
 
           // Store user data separately for dashboard
           await Preferences.set({
-            key: 'perfect-task-user-data',
+            key: 'flow-user-data',
             value: JSON.stringify({
               id: payload.sub,
               email: payload.email,
@@ -769,7 +769,7 @@ useEffect(() => {
 
           // Store access token separately for data queries
           await Preferences.set({
-            key: 'perfect-task-access-token',
+            key: 'flow-access-token',
             value: accessToken,
           });
 
@@ -797,7 +797,7 @@ useEffect(() => {
       console.log('🔍 Capacitor detected, checking for stored user data...');
 
       const { Preferences } = await import('@capacitor/preferences');
-      const { value } = await Preferences.get({ key: 'perfect-task-user-data' });
+      const { value } = await Preferences.get({ key: 'flow-user-data' });
 
       if (value) {
         const userData = JSON.parse(value);
@@ -841,7 +841,7 @@ async function getCapacitorAccessToken(): Promise<string | null> {
   if (!isCapacitor()) return null;
 
   const { Preferences } = await import('@capacitor/preferences');
-  const { value } = await Preferences.get({ key: 'perfect-task-access-token' });
+  const { value } = await Preferences.get({ key: 'flow-access-token' });
   return value;
 }
 
@@ -900,8 +900,8 @@ export function initializeSupabase(url: string, anonKey: string) {
 'sb-sprjddkfkwrrebazjxvf-auth-token' // Full session object
 
 // Our custom storage for workarounds
-'perfect-task-user-data'    // User info for UI display
-'perfect-task-access-token' // JWT token for data queries
+'flow-user-data'    // User info for UI display
+'flow-access-token' // JWT token for data queries
 ```
 
 ### Why Mobile is Different from Web/Desktop
@@ -909,7 +909,7 @@ export function initializeSupabase(url: string, anonKey: string) {
 | Aspect | Web | Desktop | Mobile (Capacitor) |
 |--------|-----|---------|-------------------|
 | **OAuth Flow** | Supabase PKCE | Manual PKCE | System browser OAuth |
-| **Redirect Target** | Supabase callback | localhost:3210 | Custom URL scheme (com.perfecttask.app://) |
+| **Redirect Target** | Supabase callback | localhost:3210 | Custom URL scheme (com.flow.app://) |
 | **Session Storage** | @supabase/ssr | localStorage | Manual Capacitor Preferences |
 | **setSession()** | ✅ Works | ✅ Works | ❌ **HANGS FOREVER** |
 | **getSession()** | ✅ Works | ✅ Works | ❌ **HANGS FOREVER** |
@@ -964,8 +964,8 @@ init.headers = existingHeaders;
 
 **Solution**: Verify all three storage keys are set during login:
 - `sb-sprjddkfkwrrebazjxvf-auth-token`
-- `perfect-task-user-data`
-- `perfect-task-access-token`
+- `flow-user-data`
+- `flow-access-token`
 
 #### 5. "Multiple GoTrueClient instances" Warning
 
@@ -1023,7 +1023,7 @@ Mobile flow includes extensive logging. Watch for:
 ```
 🔧 Initializing Supabase FOR CAPACITOR with custom auth bypass
 ✅ Supabase client initialized for Capacitor with auth bypass
-📱 Processing auth URL: com.perfecttask.app://auth/callback#access_token=...
+📱 Processing auth URL: com.flow.app://auth/callback#access_token=...
 ✅ Session stored manually!
 ✅ User data and access token stored separately!
 🔄 Reinitializing Supabase client...
@@ -1040,7 +1040,7 @@ If you see "No API key found in request" errors, the custom fetch wrapper isn't 
 
 **Mobile-Specific Security**:
 
-1. **Deep Link Security**: Custom URL scheme (com.perfecttask.app://) is specific to your app bundle ID
+1. **Deep Link Security**: Custom URL scheme (com.flow.app://) is specific to your app bundle ID
 2. **Token Storage**: Capacitor Preferences uses platform-native secure storage:
    - iOS: NSUserDefaults (sandboxed per app)
    - Android: SharedPreferences (sandboxed per app)
@@ -1062,7 +1062,7 @@ If you see "No API key found in request" errors, the custom fetch wrapper isn't 
 |--------|-----|-----------------|-------------------|
 | **OAuth Flow** | Supabase PKCE (automatic) | Manual PKCE with localhost server | System browser with deep link |
 | **PKCE Generation** | Handled by Supabase | Manual generation in app code | Handled by Supabase |
-| **Redirect Target** | Supabase callback endpoint | `localhost:3210` local server | Custom URL scheme (`com.perfecttask.app://`) |
+| **Redirect Target** | Supabase callback endpoint | `localhost:3210` local server | Custom URL scheme (`com.flow.app://`) |
 | **Token Exchange** | Supabase handles server-side | Direct exchange with Google | Supabase handles server-side |
 | **Client Secret** | Stored in Supabase | Required in app environment vars | Stored in Supabase |
 | **Browser** | Same browser window | System default browser | System default browser |
@@ -1189,7 +1189,7 @@ pnpm tauri build
 
 # Run the built app:
 # - macOS: open apps/desktop/src-tauri/target/release/bundle/macos/Perfect\ Task\ App.app
-# - Windows: apps/desktop/src-tauri/target/release/bundle/msi/Perfect Task App_0.1.0_x64_en-US.msi
+# - Windows: apps/desktop/src-tauri/target/release/bundle/msi/Flow_0.1.0_x64_en-US.msi
 ```
 
 ## Debugging Tips

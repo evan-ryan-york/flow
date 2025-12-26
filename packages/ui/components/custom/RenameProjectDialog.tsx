@@ -9,8 +9,8 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { useUpdateProject } from '@perfect-task-app/data';
-import type { Project } from '@perfect-task-app/models';
+import { useUpdateProject } from '@flow-app/data';
+import type { Project } from '@flow-app/models';
 
 interface RenameProjectDialogProps {
   project: Project;

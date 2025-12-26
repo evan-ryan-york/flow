@@ -10,8 +10,8 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest',
   },
   moduleNameMapper: {
-    '^@perfect-task-app/models$': '<rootDir>/../models/index.ts',
-    '^@perfect-task-app/data$': '<rootDir>/index.ts',
+    '^@flow-app/models$': '<rootDir>/../models/index.ts',
+    '^@flow-app/data$': '<rootDir>/index.ts',
     '^react$': '<rootDir>/../../node_modules/react',
     '^react-dom$': '<rootDir>/../../node_modules/react-dom',
   },

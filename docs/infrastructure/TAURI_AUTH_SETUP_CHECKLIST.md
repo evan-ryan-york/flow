@@ -58,7 +58,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 Run the desktop app in dev mode (automatically starts Next.js dev server):
 
 ```bash
-cd /Users/ryanyork/Software/project-manager/perfect-task-app
+cd /Users/ryanyork/Software/project-manager/flow-app
 pnpm dev:desktop
 ```
 
