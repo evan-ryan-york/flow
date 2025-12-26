@@ -293,9 +293,10 @@ deploy_desktop() {
     print_success "Desktop build complete!"
     print_info "DMG: $dmg_file"
 
-    # Copy to Desktop
-    cp "$dmg_file" ~/Desktop/
-    print_info "Copied to: ~/Desktop/$(basename "$dmg_file")"
+    # Copy to Downloads folder
+    cp "$dmg_file" ~/Downloads/
+    print_info "Copied to: ~/Downloads/$(basename "$dmg_file")"
+    print_info "Open the DMG from your Downloads folder to install"
   else
     print_warning "DMG not found at expected path"
     print_info "Check: $dmg_dir"
@@ -395,7 +396,7 @@ show_summary() {
   fi
 
   if [[ "$DEPLOY_DESKTOP" == true ]]; then
-    print_info "Desktop: DMG available on ~/Desktop/"
+    print_info "Desktop: DMG available in ~/Downloads/"
   fi
 
   if [[ "$DEPLOY_IOS" == true ]]; then

@@ -21,10 +21,13 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_oauth::init())
         .system_tray(system_tray)
-        .setup(|app| {
-            // Always open devtools to help with debugging
-            let window = app.get_window("main").unwrap();
-            window.open_devtools();
+        .setup(|_app| {
+            // Only open devtools in debug builds
+            #[cfg(debug_assertions)]
+            {
+                let window = _app.get_window("main").unwrap();
+                window.open_devtools();
+            }
             Ok(())
         })
         .on_system_tray_event(|app, event| match event {
