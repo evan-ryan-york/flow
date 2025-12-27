@@ -6,13 +6,23 @@ fn main() {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let show = CustomMenuItem::new("show".to_string(), "Show");
-    let devtools = CustomMenuItem::new("devtools".to_string(), "Toggle DevTools");
 
+    #[cfg(debug_assertions)]
+    let tray_menu = {
+        let devtools = CustomMenuItem::new("devtools".to_string(), "Toggle DevTools");
+        SystemTrayMenu::new()
+            .add_item(show)
+            .add_item(hide)
+            .add_native_item(SystemTrayMenuItem::Separator)
+            .add_item(devtools)
+            .add_native_item(SystemTrayMenuItem::Separator)
+            .add_item(quit)
+    };
+
+    #[cfg(not(debug_assertions))]
     let tray_menu = SystemTrayMenu::new()
         .add_item(show)
         .add_item(hide)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(devtools)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
 
@@ -53,6 +63,7 @@ fn main() {
                     window.show().unwrap();
                     window.set_focus().unwrap();
                 }
+                #[cfg(debug_assertions)]
                 "devtools" => {
                     let window = app.get_window("main").unwrap();
                     if window.is_devtools_open() {

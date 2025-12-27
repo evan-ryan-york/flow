@@ -48,7 +48,13 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "macOS": {
+        "signingIdentity": "Developer ID Application: Evan York (WDDXQKN8VJ)",
+        "providerShortName": "WDDXQKN8VJ",
+        "entitlements": null,
+        "minimumSystemVersion": "10.13"
+      }
     },
     "security": {
       "csp": null
