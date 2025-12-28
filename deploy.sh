@@ -305,17 +305,41 @@ deploy_desktop() {
   fi
 
   # Create DMG if it doesn't exist (Tauri bundler bug workaround)
+  local needs_notarization=false
   if [[ ! -f "$dmg_file" ]]; then
     print_warning "DMG not found, creating manually..."
     mkdir -p "$dmg_dir"
     hdiutil create -volname "Flow" -srcfolder "$app_file" -ov -format UDZO "$dmg_file"
     if [[ $? -eq 0 ]]; then
       print_success "DMG created manually"
+      needs_notarization=true
     else
       print_error "Failed to create DMG"
       set -e
       return 1
     fi
+  fi
+
+  # Notarize DMG if we created it manually and credentials are available
+  if [[ "$needs_notarization" == true && -n "$APPLE_ID" && -n "$APPLE_PASSWORD" && -n "$APPLE_TEAM_ID" ]]; then
+    print_substep "Notarizing DMG with Apple..."
+
+    # Submit for notarization
+    xcrun notarytool submit "$dmg_file" \
+      --apple-id "$APPLE_ID" \
+      --password "$APPLE_PASSWORD" \
+      --team-id "$APPLE_TEAM_ID" \
+      --wait
+
+    if [[ $? -eq 0 ]]; then
+      # Staple the notarization ticket
+      xcrun stapler staple "$dmg_file"
+      print_success "DMG notarized and stapled"
+    else
+      print_warning "Notarization failed - DMG may trigger Gatekeeper warnings"
+    fi
+  elif [[ "$needs_notarization" == true ]]; then
+    print_warning "Skipping notarization - APPLE_ID, APPLE_PASSWORD, or APPLE_TEAM_ID not set"
   fi
 
   # Copy to Downloads
