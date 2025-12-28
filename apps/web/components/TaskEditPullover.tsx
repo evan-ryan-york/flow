@@ -8,7 +8,7 @@ import {
   useTaskPropertyValues,
   useSetPropertyValue,
   useProjectDefinitions,
-  useAllProfiles,
+  useConnectedProfiles,
   useProjectsForUser,
 } from '@flow-app/data';
 import { Input } from '@flow-app/ui/components/ui/input';
@@ -105,7 +105,7 @@ export function TaskEditPullover({
   const { data: task } = useTask(taskId || '');
   const { data: propertyValues = [] } = useTaskPropertyValues(taskId || '');
   const { data: customProperties = [] } = useProjectDefinitions(task?.project_id || '');
-  const { data: allProfiles = [] } = useAllProfiles();
+  const { data: allProfiles = [] } = useConnectedProfiles();
   const { data: projects = [] } = useProjectsForUser(userId);
 
   // Mutations

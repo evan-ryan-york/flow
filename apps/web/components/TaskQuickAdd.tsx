@@ -9,7 +9,7 @@ import {
   useGeneralProject,
   useProjectDefinitions,
   useSetPropertyValue,
-  useAllProfiles,
+  useConnectedProfiles,
 } from "@flow-app/data";
 import { ProjectChip } from "@flow-app/ui/components/custom";
 import { Input } from "@flow-app/ui/components/ui/input";
@@ -61,7 +61,7 @@ export function TaskQuickAdd({ userId, defaultProjectId, showAdvancedOptions = t
   const { data: lastUsedProjectId } = useLastUsedProject();
   const { data: generalProject } = useGeneralProject(userId);
   const { data: customProperties = [] } = useProjectDefinitions(selectedProject?.id || "");
-  const { data: allProfiles = [] } = useAllProfiles();
+  const { data: allProfiles = [] } = useConnectedProfiles();
   const createTaskMutation = useCreateTask();
   const setPropertyValueMutation = useSetPropertyValue();
 

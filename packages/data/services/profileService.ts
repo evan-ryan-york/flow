@@ -202,6 +202,117 @@ export const getAllProfiles = async (): Promise<Profile[]> => {
   }
 };
 
+/**
+ * Get profiles of users who share projects with the current user.
+ * This includes:
+ * - The current user
+ * - Owners of projects where the current user is a member
+ * - Members of projects where the current user is the owner or a member
+ */
+export const getConnectedProfiles = async (): Promise<Profile[]> => {
+  try {
+    const supabase = getSupabaseClient();
+
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      throw new Error(`Failed to get current user: ${userError.message}`);
+    }
+    if (!user) {
+      throw new Error('No authenticated user found');
+    }
+
+    const currentUserId = user.id;
+
+    // Step 1: Get all project IDs where current user is owner
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('owner_id', currentUserId);
+
+    if (ownedError) {
+      throw new Error(`Failed to fetch owned projects: ${ownedError.message}`);
+    }
+
+    // Step 2: Get all project IDs where current user is a member
+    const { data: memberProjects, error: memberError } = await supabase
+      .from('project_users')
+      .select('project_id')
+      .eq('user_id', currentUserId);
+
+    if (memberError) {
+      throw new Error(`Failed to fetch member projects: ${memberError.message}`);
+    }
+
+    // Combine all project IDs
+    const allProjectIds = [
+      ...(ownedProjects || []).map(p => p.id),
+      ...(memberProjects || []).map(p => p.project_id),
+    ];
+
+    // If user has no projects, just return their own profile
+    if (allProjectIds.length === 0) {
+      const { data: ownProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUserId)
+        .single();
+
+      if (profileError) {
+        throw new Error(`Failed to fetch own profile: ${profileError.message}`);
+      }
+
+      return ownProfile ? [ProfileSchema.parse(ownProfile)] : [];
+    }
+
+    // Step 3: Get owners of these projects
+    const { data: projectOwners, error: ownersError } = await supabase
+      .from('projects')
+      .select('owner_id')
+      .in('id', allProjectIds);
+
+    if (ownersError) {
+      throw new Error(`Failed to fetch project owners: ${ownersError.message}`);
+    }
+
+    // Step 4: Get members of these projects
+    const { data: projectMembers, error: membersError } = await supabase
+      .from('project_users')
+      .select('user_id')
+      .in('project_id', allProjectIds);
+
+    if (membersError) {
+      throw new Error(`Failed to fetch project members: ${membersError.message}`);
+    }
+
+    // Combine and deduplicate all user IDs
+    const allUserIds = new Set<string>([
+      currentUserId,
+      ...(projectOwners || []).map(p => p.owner_id),
+      ...(projectMembers || []).map(p => p.user_id),
+    ]);
+
+    // Step 5: Get profiles for all connected users
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', Array.from(allUserIds))
+      .order('first_name', { ascending: true, nullsFirst: false });
+
+    if (profilesError) {
+      throw new Error(`Failed to fetch connected profiles: ${profilesError.message}`);
+    }
+
+    // Validate all profiles against Zod schema
+    const validatedProfiles = (profiles || []).map(profile => ProfileSchema.parse(profile));
+
+    return validatedProfiles;
+  } catch (error) {
+    console.error('ProfileService.getConnectedProfiles error:', error);
+    throw error;
+  }
+};
+
 export const getVisibleProjectIds = async (userId: string): Promise<string[]> => {
   try {
     const supabase = getSupabaseClient();

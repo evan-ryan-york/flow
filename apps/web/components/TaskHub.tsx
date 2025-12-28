@@ -16,7 +16,7 @@ import {
   useRealtimeTaskSync,
   useProjectDefinitions,
   useProjectsForUser,
-  useAllProfiles,
+  useConnectedProfiles,
   useUpdateTask,
   useTaskEditPanel,
   useTasksPropertyValues,
@@ -117,7 +117,7 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
 
   // Fetch projects and profiles data for grouping
   const { data: allProjects = [] } = useProjectsForUser(userId);
-  const { data: allProfiles = [] } = useAllProfiles();
+  const { data: allProfiles = [] } = useConnectedProfiles();
 
   // Create user mapping for task assignee display
   const userMapping = useMemo(() => {

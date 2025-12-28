@@ -21,7 +21,7 @@ import {
   useVisibleProjectIds,
   useUpdateVisibleProjectIds,
   useProjectsTasks,
-  useAllProfiles,
+  useConnectedProfiles,
   useProjectDefinitions,
   useTasksPropertyValues,
 } from '@flow-app/data';
@@ -75,7 +75,7 @@ export function MobileTaskView({
   const { data: tasks = [] } = useProjectsTasks(userId, visibleProjectIds);
 
   // Fetch profiles for assignee filtering
-  const { data: allProfiles = [] } = useAllProfiles();
+  const { data: allProfiles = [] } = useConnectedProfiles();
 
   // Fetch custom property definitions for the first visible project (simplified for mobile)
   const firstProjectId = visibleProjectIds[0] || '';

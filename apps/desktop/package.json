@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "1.0.22",
+  "version": "1.0.25",
   "description": "Flow Desktop",
   "main": "index.js",
   "scripts": {

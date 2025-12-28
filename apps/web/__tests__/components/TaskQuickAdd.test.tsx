@@ -84,7 +84,7 @@ describe('TaskQuickAdd', () => {
       isLoading: false,
     } as any);
 
-    mockedHooks.useAllProfiles.mockReturnValue({
+    mockedHooks.useConnectedProfiles.mockReturnValue({
       data: [],
       isLoading: false,
     } as any);

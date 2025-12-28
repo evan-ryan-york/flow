@@ -113,7 +113,7 @@ describe('TaskHub', () => {
       isError: false,
     } as any);
 
-    mockedHooks.useAllProfiles.mockReturnValue({
+    mockedHooks.useConnectedProfiles.mockReturnValue({
       data: mockProfiles,
       isLoading: false,
       isError: false,

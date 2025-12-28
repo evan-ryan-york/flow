@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles, getVisibleProjectIds, updateVisibleProjectIds, type ProfileUpdates } from '../services/profileService';
+import { getProfile, updateProfile, getCurrentProfile, getLastUsedProject, updateLastUsedProject, getAllProfiles, getConnectedProfiles, getVisibleProjectIds, updateVisibleProjectIds, type ProfileUpdates } from '../services/profileService';
 import { useSession } from './useAuth';
 
 // Query key factory
 const PROFILE_KEYS = {
   all: ['profiles'] as const,
   list: ['profiles', 'list'] as const,
+  connected: ['profiles', 'connected'] as const,
   profile: (userId: string) => [...PROFILE_KEYS.all, userId] as const,
   current: ['profiles', 'current'] as const,
   lastUsedProject: ['profiles', 'lastUsedProject'] as const,
@@ -85,6 +86,21 @@ export const useAllProfiles = () => {
     queryKey: PROFILE_KEYS.list,
     queryFn: getAllProfiles,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+/**
+ * Get profiles of users who share projects with the current user.
+ * Use this for task assignment dropdowns to only show relevant users.
+ */
+export const useConnectedProfiles = () => {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: PROFILE_KEYS.connected,
+    queryFn: getConnectedProfiles,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!session?.user, // Only run when we have a session
   });
 };
 
