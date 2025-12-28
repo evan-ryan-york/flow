@@ -277,54 +277,57 @@ deploy_desktop() {
 
   print_substep "Building Tauri bundle..."
   cd "$PROJECT_ROOT/apps/desktop"
-  # Use set +e because Tauri's DMG bundler has a known bug
-  # The .app is created successfully, only DMG creation fails
+
+  # Disable error exit for entire desktop build section due to Tauri DMG bundler bug
   set +e
+
   pnpm build
   local build_exit_code=$?
-  set -e
+
   if [[ $build_exit_code -ne 0 ]]; then
     print_warning "Tauri build exited with code $build_exit_code (DMG bundler likely failed)"
   fi
 
   cd "$PROJECT_ROOT"
 
-  # Find the DMG
+  # Paths
   local dmg_dir="$PROJECT_ROOT/apps/desktop/src-tauri/target/release/bundle/dmg"
   local app_dir="$PROJECT_ROOT/apps/desktop/src-tauri/target/release/bundle/macos"
-  local dmg_file
-  local app_file
+  local app_file="$app_dir/Flow.app"
+  local dmg_file="$dmg_dir/Flow_${NEW_VERSION}_aarch64.dmg"
 
-  if [[ -d "$dmg_dir" ]]; then
-    dmg_file=$(ls "$dmg_dir"/*.dmg 2>/dev/null | head -1)
+  # Check if .app exists
+  if [[ ! -d "$app_file" ]]; then
+    print_error "Desktop build failed - Flow.app not found"
+    print_info "Check: $app_dir"
+    set -e
+    return 1
   fi
 
-  if [[ -d "$app_dir" ]]; then
-    app_file=$(ls -d "$app_dir"/*.app 2>/dev/null | head -1)
+  # Create DMG if it doesn't exist (Tauri bundler bug workaround)
+  if [[ ! -f "$dmg_file" ]]; then
+    print_warning "DMG not found, creating manually..."
+    mkdir -p "$dmg_dir"
+    hdiutil create -volname "Flow" -srcfolder "$app_file" -ov -format UDZO "$dmg_file"
+    if [[ $? -eq 0 ]]; then
+      print_success "DMG created manually"
+    else
+      print_error "Failed to create DMG"
+      set -e
+      return 1
+    fi
   fi
 
-  # If DMG doesn't exist but .app does, create DMG manually (Tauri bundler bug workaround)
-  if [[ ! -f "$dmg_file" && -d "$app_file" ]]; then
-    print_warning "Tauri DMG bundler failed, creating DMG manually..."
-    local app_name=$(basename "$app_file" .app)
-    dmg_file="$dmg_dir/${app_name}_${NEW_VERSION}_aarch64.dmg"
-    hdiutil create -volname "$app_name" -srcfolder "$app_file" -ov -format UDZO "$dmg_file"
-    print_success "DMG created manually"
-  fi
-
+  # Copy to Downloads
   if [[ -f "$dmg_file" ]]; then
     print_success "Desktop build complete!"
     print_info "DMG: $dmg_file"
-
-    # Copy to Downloads folder
     cp "$dmg_file" ~/Downloads/
     print_info "Copied to: ~/Downloads/$(basename "$dmg_file")"
-    print_info "Open the DMG from your Downloads folder to install"
-  else
-    print_error "Desktop build failed - no .app or DMG found"
-    print_info "Check: $app_dir"
-    return 1
   fi
+
+  # Re-enable error exit
+  set -e
 }
 
 deploy_ios() {
