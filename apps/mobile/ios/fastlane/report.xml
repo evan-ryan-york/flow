@@ -5,27 +5,27 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000261">
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000264">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="1: cocoapods" time="0.845338">
+      <testcase classname="fastlane.lanes" name="1: cocoapods" time="0.81273">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="2: build_app" time="71.152279">
+      <testcase classname="fastlane.lanes" name="2: build_app" time="120.626561">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="3: upload_to_testflight" time="77.664216">
+      <testcase classname="fastlane.lanes" name="3: upload_to_testflight" time="56.643774">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="4: clean_build_artifacts" time="0.006177">
+      <testcase classname="fastlane.lanes" name="4: clean_build_artifacts" time="0.009195">
         
       </testcase>
     
