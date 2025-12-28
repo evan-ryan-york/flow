@@ -277,9 +277,15 @@ deploy_desktop() {
 
   print_substep "Building Tauri bundle..."
   cd "$PROJECT_ROOT/apps/desktop"
-  # Use || true because Tauri's DMG bundler has a known bug
+  # Use set +e because Tauri's DMG bundler has a known bug
   # The .app is created successfully, only DMG creation fails
-  pnpm build || true
+  set +e
+  pnpm build
+  local build_exit_code=$?
+  set -e
+  if [[ $build_exit_code -ne 0 ]]; then
+    print_warning "Tauri build exited with code $build_exit_code (DMG bundler likely failed)"
+  fi
 
   cd "$PROJECT_ROOT"
 
