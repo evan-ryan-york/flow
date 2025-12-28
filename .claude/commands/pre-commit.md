@@ -1,22 +1,29 @@
 ---
 description: Run build and type checks before committing
-allowed-tools: Bash(pnpm build:*), Bash(find:*)
+allowed-tools: Bash(pnpm build:*), Bash(find:*), Bash(cd:*), Bash(NEXT_OUTPUT=export pnpm run build)
 ---
 
 # Pre-Commit Check
 
 Your task is to analyze the results of the following pre-commit checks for this project.
 
-## 1. Build Check
+## 1. TypeScript & Lint Check
 
-Run the project's build command to ensure there are no compilation errors.
+Run the project's typecheck and lint commands.
 
 **Build Output:**
 !`pnpm build 2>&1 | tail -50`
 
-## 2. TypeScript Syntax Check
+## 2. Next.js Build Check
 
-This command verifies TypeScript syntax in Supabase Edge Functions.
+Run the full Next.js build to catch static generation issues (like missing Suspense boundaries).
+
+**Next.js Build Output:**
+!`cd apps/web && NEXT_OUTPUT=export pnpm run build 2>&1 | tail -100`
+
+## 3. Edge Functions Check
+
+Verify TypeScript syntax in Supabase Edge Functions.
 
 **Edge Functions Found:**
 !`find supabase/functions -name "*.ts" -type f`
@@ -25,17 +32,19 @@ This command verifies TypeScript syntax in Supabase Edge Functions.
 
 ## Analysis
 
-Review the build output above.
+Review ALL build outputs above.
 
 **If there are errors:**
 - Summarize them clearly
 - Identify the problematic files and line numbers
 - Provide specific suggestions on how to fix them
+- Pay special attention to Next.js static generation errors (useSearchParams, dynamic imports, etc.)
 
-**If both checks pass successfully:**
+**If all checks pass successfully:**
 Respond with: "✅ All pre-commit checks passed. Ready to commit."
 
 Include:
-- Number of build warnings (if any)
-- Number of TypeScript files found
+- TypeScript/Lint status
+- Next.js build status
+- Number of Edge Function files found
 - Overall status
