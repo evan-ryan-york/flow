@@ -289,3 +289,4 @@ export async function getCalendarEventByProviderId(
 
 // Backwards compatibility alias
 export const getCalendarEventByGoogleId = getCalendarEventByProviderId;
+// Force rebuild: Sun Dec 28 15:39:31 -03 2025
