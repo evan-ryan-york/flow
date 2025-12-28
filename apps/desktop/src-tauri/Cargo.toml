@@ -1,6 +1,6 @@
 [package]
 name = "flow-app"
-version = "1.0.20"
+version = "1.0.21"
 description = "Flow - Ultimate task and project management"
 authors = ["Flow Team"]
 license = "MIT"

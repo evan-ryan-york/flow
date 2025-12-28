@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Flow Mobile",
   "main": "index.js",
   "scripts": {
