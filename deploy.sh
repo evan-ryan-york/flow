@@ -277,16 +277,33 @@ deploy_desktop() {
 
   print_substep "Building Tauri bundle..."
   cd "$PROJECT_ROOT/apps/desktop"
-  pnpm build
+  # Use || true because Tauri's DMG bundler has a known bug
+  # The .app is created successfully, only DMG creation fails
+  pnpm build || true
 
   cd "$PROJECT_ROOT"
 
   # Find the DMG
   local dmg_dir="$PROJECT_ROOT/apps/desktop/src-tauri/target/release/bundle/dmg"
+  local app_dir="$PROJECT_ROOT/apps/desktop/src-tauri/target/release/bundle/macos"
   local dmg_file
+  local app_file
 
   if [[ -d "$dmg_dir" ]]; then
     dmg_file=$(ls "$dmg_dir"/*.dmg 2>/dev/null | head -1)
+  fi
+
+  if [[ -d "$app_dir" ]]; then
+    app_file=$(ls -d "$app_dir"/*.app 2>/dev/null | head -1)
+  fi
+
+  # If DMG doesn't exist but .app does, create DMG manually (Tauri bundler bug workaround)
+  if [[ ! -f "$dmg_file" && -d "$app_file" ]]; then
+    print_warning "Tauri DMG bundler failed, creating DMG manually..."
+    local app_name=$(basename "$app_file" .app)
+    dmg_file="$dmg_dir/${app_name}_${NEW_VERSION}_aarch64.dmg"
+    hdiutil create -volname "$app_name" -srcfolder "$app_file" -ov -format UDZO "$dmg_file"
+    print_success "DMG created manually"
   fi
 
   if [[ -f "$dmg_file" ]]; then
@@ -298,8 +315,9 @@ deploy_desktop() {
     print_info "Copied to: ~/Downloads/$(basename "$dmg_file")"
     print_info "Open the DMG from your Downloads folder to install"
   else
-    print_warning "DMG not found at expected path"
-    print_info "Check: $dmg_dir"
+    print_error "Desktop build failed - no .app or DMG found"
+    print_info "Check: $app_dir"
+    return 1
   fi
 }
 
