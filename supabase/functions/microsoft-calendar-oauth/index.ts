@@ -490,39 +490,67 @@ serve(async (req) => {
         connectionId = newConnection.id;
       }
 
-      // Return success HTML that closes the popup and notifies parent
-      return new Response(
-        `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Authorization Successful</title>
-</head>
-<body>
-  <script>
-    try {
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'microsoft-calendar-oauth',
-          success: true,
-          connectionId: '${connectionId}'
-        }, '*');
-      }
-      window.close();
-    } catch (e) {
-      console.error('Error closing window:', e);
-    }
-  </script>
-  <p>Authorization successful! You can close this window.</p>
-</body>
-</html>`,
-        {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "text/html; charset=utf-8",
-          },
+      // Sync calendar list immediately after creating connection
+      // This ensures calendars show up right away without manual sync
+      try {
+        const calendarListResponse = await fetch(
+          "https://graph.microsoft.com/v1.0/me/calendars",
+          {
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
+          }
+        );
+
+        if (calendarListResponse.ok) {
+          const calendarListData = await calendarListResponse.json();
+          const calendars = calendarListData.value || [];
+
+          console.log(`Found ${calendars.length} Microsoft calendars to sync`);
+
+          // Insert calendar subscriptions
+          for (const calendar of calendars) {
+            const { error: subError } = await supabaseClient
+              .from("calendar_subscriptions")
+              .upsert(
+                {
+                  user_id: stateData.user_id,
+                  connection_id: connectionId,
+                  provider_calendar_id: calendar.id,
+                  calendar_name: calendar.name || "(No name)",
+                  calendar_color: calendar.hexColor || null,
+                  background_color: calendar.hexColor || "#0078d4",
+                  is_visible: true,
+                  sync_enabled: true,
+                },
+                {
+                  onConflict: "connection_id,provider_calendar_id",
+                }
+              );
+
+            if (subError) {
+              console.error(`Error upserting calendar ${calendar.id}:`, subError);
+            }
+          }
+          console.log("Microsoft calendar list synced successfully");
+        } else {
+          console.error("Failed to fetch Microsoft calendar list:", await calendarListResponse.text());
         }
-      );
+      } catch (syncError) {
+        console.error("Error syncing Microsoft calendar list:", syncError);
+        // Don't fail the OAuth flow if sync fails
+      }
+
+      // Redirect to app callback page which handles the popup closing
+      const appUrl = Deno.env.get("APP_URL") || "http://localhost:3000";
+      const callbackUrl = `${appUrl}/auth/callback/microsoft?connectionId=${connectionId}`;
+
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": callbackUrl,
+        },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {

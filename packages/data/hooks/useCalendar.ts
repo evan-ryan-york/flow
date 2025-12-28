@@ -91,12 +91,13 @@ export const useGoogleCalendarConnections = () => useCalendarConnections();
  * Mutation: Initiate OAuth flow to connect a new Google Calendar account
  */
 export function useConnectGoogleCalendar() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (label?: string) => {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
-      const _supabase = getSupabaseClient();
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
       const response = await fetch(
@@ -138,11 +139,15 @@ export function useConnectGoogleCalendar() {
 
         // Listen for the OAuth success message from the popup
         return new Promise((resolve, reject) => {
+          let resolved = false;
+
           const handleMessage = (event: { data?: { type?: string; connectionId?: string; error?: string } }) => {
             if (event.data?.type === 'oauth-success') {
+              resolved = true;
               window.removeEventListener('message', handleMessage);
               resolve(event.data.connectionId);
             } else if (event.data?.type === 'oauth-error') {
+              resolved = true;
               window.removeEventListener('message', handleMessage);
               reject(new Error(event.data.error));
             }
@@ -156,15 +161,47 @@ export function useConnectGoogleCalendar() {
             reject(new Error('Popup was blocked. Please allow popups for this site.'));
           }
 
-          // Monitor popup closure
+          // Monitor popup closure - if closed without message, resolve anyway
+          // (the connection may have been created but postMessage failed)
           const checkClosed = setInterval(() => {
             if (_popup?.closed) {
               clearInterval(checkClosed);
               window.removeEventListener('message', handleMessage);
-              // Don't reject here - the message might have been sent
+              if (!resolved) {
+                // Popup closed without message - resolve anyway to trigger query refresh
+                resolve(undefined);
+              }
             }
           }, 500);
         });
+      }
+    },
+    onSuccess: async (connectionId) => {
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.connections });
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+
+      // Auto-sync calendar list after connection
+      if (connectionId) {
+        try {
+          const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
+          const token = await getSessionToken();
+          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+          await fetch(`${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              apikey: supabaseAnonKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ connectionId }),
+          });
+
+          // Invalidate again after sync
+          queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+        } catch (error) {
+          console.error('Auto-sync failed:', error);
+        }
       }
     },
   });
@@ -222,8 +259,11 @@ export function useConnectMicrosoftCalendar() {
 
         // Listen for the OAuth success message from the popup
         return new Promise((resolve, reject) => {
+          let resolved = false;
+
           const handleMessage = (event: { data?: { type?: string; success?: boolean; connectionId?: string; error?: string } }) => {
             if (event.data?.type === 'microsoft-calendar-oauth') {
+              resolved = true;
               window.removeEventListener('message', handleMessage);
               if (event.data.success) {
                 resolve(event.data.connectionId);
@@ -241,19 +281,49 @@ export function useConnectMicrosoftCalendar() {
             reject(new Error('Popup was blocked. Please allow popups for this site.'));
           }
 
-          // Monitor popup closure
+          // Monitor popup closure - if closed without message, resolve anyway
+          // (the connection may have been created but postMessage failed)
           const checkClosed = setInterval(() => {
             if (_popup?.closed) {
               clearInterval(checkClosed);
               window.removeEventListener('message', handleMessage);
-              // Don't reject here - the message might have been sent
+              if (!resolved) {
+                // Popup closed without message - resolve anyway to trigger query refresh
+                // The onSuccess callback will invalidate the connections query
+                resolve(undefined);
+              }
             }
           }, 500);
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: async (connectionId) => {
       queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.connections });
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+
+      // Auto-sync calendar list after connection
+      if (connectionId) {
+        try {
+          const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
+          const token = await getSessionToken();
+          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+          await fetch(`${SUPABASE_FUNCTIONS_URL}/microsoft-calendar-sync-calendars`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              apikey: supabaseAnonKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ connectionId }),
+          });
+
+          // Invalidate again after sync
+          queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.subscriptions.all });
+        } catch (error) {
+          console.error('Auto-sync failed:', error);
+        }
+      }
     },
   });
 }

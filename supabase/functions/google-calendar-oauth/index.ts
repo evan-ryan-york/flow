@@ -363,42 +363,67 @@ serve(async (req) => {
         );
       }
 
-      // Trigger initial calendar list fetch (skip for now, will be done by client)
-      // Note: In callback flow, we don't have an auth token to pass
-      // The client will trigger this sync after receiving the success message
+      // Sync calendar list immediately after creating connection
+      // This ensures calendars show up right away without manual sync
+      try {
+        const calendarListResponse = await fetch(
+          "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+          {
+            headers: {
+              Authorization: `Bearer ${tokens.access_token}`,
+            },
+          }
+        );
 
-      // Return success HTML that closes the popup and notifies parent
-      return new Response(
-        `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Authorization Successful</title>
-</head>
-<body>
-  <script>
-    try {
-      if (window.opener) {
-        window.opener.postMessage({
-          type: 'oauth-success',
-          connectionId: '${connection.id}'
-        }, '*');
-      }
-      window.close();
-    } catch (e) {
-      console.error('Error closing window:', e);
-    }
-  </script>
-  <p>Authorization successful! You can close this window.</p>
-</body>
-</html>`,
-        {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "text/html; charset=utf-8"
-          },
+        if (calendarListResponse.ok) {
+          const calendarListData = await calendarListResponse.json();
+          const calendars = calendarListData.items || [];
+
+          console.log(`Found ${calendars.length} calendars to sync`);
+
+          // Insert calendar subscriptions
+          for (const calendar of calendars) {
+            const { error: subError } = await supabaseClient
+              .from("calendar_subscriptions")
+              .upsert(
+                {
+                  user_id: stateData.user_id,
+                  connection_id: connection.id,
+                  provider_calendar_id: calendar.id,
+                  calendar_name: calendar.summary || "(No name)",
+                  calendar_color: calendar.foregroundColor || "#000000",
+                  background_color: calendar.backgroundColor || "#4285f4",
+                  is_visible: true,
+                  sync_enabled: true,
+                },
+                {
+                  onConflict: "connection_id,provider_calendar_id",
+                }
+              );
+
+            if (subError) {
+              console.error(`Error upserting calendar ${calendar.id}:`, subError);
+            }
+          }
+          console.log("Calendar list synced successfully");
+        } else {
+          console.error("Failed to fetch calendar list:", await calendarListResponse.text());
         }
-      );
+      } catch (syncError) {
+        console.error("Error syncing calendar list:", syncError);
+        // Don't fail the OAuth flow if sync fails
+      }
+
+      // Redirect to app callback page which handles the popup closing
+      const appUrl = Deno.env.get("APP_URL") || "http://localhost:3000";
+      const callbackUrl = `${appUrl}/auth/callback/google?connectionId=${connection.id}`;
+
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": callbackUrl,
+        },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {

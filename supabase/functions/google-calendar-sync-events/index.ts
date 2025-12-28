@@ -100,8 +100,8 @@ async function syncCalendarEvents(
     const events = data.items || [];
 
     console.log(`📊 Google API returned ${events.length} events for subscription ${subscription.id} (${subscription.calendar_name})`);
-    console.log(`   Connection: ${connection.label || connection.email}`);
-    console.log(`   Calendar ID: ${subscription.google_calendar_id}`);
+    console.log(`   Connection: ${connection.label || connection.account_email}`);
+    console.log(`   Calendar ID: ${subscription.provider_calendar_id}`);
     console.log(`   Query params:`, JSON.stringify(params));
 
     // Log today's events specifically

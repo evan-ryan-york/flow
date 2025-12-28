@@ -42,27 +42,27 @@ async function syncCalendarEvents(
       .single();
 
     let url: string;
-    let isFullSync = false;
 
     if (syncState?.sync_token) {
-      // Use deltaLink for incremental sync
+      // Use deltaLink for incremental sync (if available from previous delta query)
       url = syncState.sync_token;
     } else {
       // Full sync with date filter
-      isFullSync = true;
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - SYNC_PAST_DAYS);
 
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + SYNC_FUTURE_DAYS);
 
-      // Build initial delta URL with date filter
-      const baseUrl = `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(subscription.provider_calendar_id)}/events/delta`;
+      // Build initial URL - try delta first, fall back to regular events
+      // Note: Delta doesn't work for some special calendars (Birthdays, Holidays)
+      const baseUrl = `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(subscription.provider_calendar_id)}/events`;
       const params = new URLSearchParams({
         $select: "id,subject,bodyPreview,start,end,isAllDay,location,categories",
+        $top: "250",
+        $filter: `start/dateTime ge '${startDate.toISOString()}' and start/dateTime le '${endDate.toISOString()}'`,
+        $orderby: "start/dateTime",
       });
-      // Note: Microsoft Graph delta doesn't support $filter on first request for some scenarios
-      // We'll filter client-side instead
       url = `${baseUrl}?${params.toString()}`;
     }
 
@@ -111,20 +111,16 @@ async function syncCalendarEvents(
       const data = await response.json();
       allEvents = allEvents.concat(data.value || []);
 
-      // Get next page or delta link
+      // Get next page (delta link is only for delta queries)
       url = data["@odata.nextLink"] || null;
-      deltaLink = data["@odata.deltaLink"] || deltaLink;
+      if (data["@odata.deltaLink"]) {
+        deltaLink = data["@odata.deltaLink"];
+      }
     }
 
     console.log(
       `Fetched ${allEvents.length} events for calendar ${subscription.calendar_name}`
     );
-
-    // Filter events by date range if this is a full sync
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - SYNC_PAST_DAYS);
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + SYNC_FUTURE_DAYS);
 
     let insertedCount = 0;
     let updatedCount = 0;
@@ -132,7 +128,7 @@ async function syncCalendarEvents(
 
     // Process events
     for (const event of allEvents) {
-      // Handle deleted events (have @removed property)
+      // Handle deleted events (have @removed property - from delta queries)
       if (event["@removed"]) {
         const { error: deleteError } = await supabaseClient
           .from("calendar_events")
@@ -168,14 +164,6 @@ async function syncCalendarEvents(
       }
       if (endTime && !endTime.endsWith("Z")) {
         endTime = endTime + "Z";
-      }
-
-      // Filter by date range for full sync
-      if (isFullSync) {
-        const eventStart = new Date(startTime);
-        if (eventStart < startDate || eventStart > endDate) {
-          continue; // Skip events outside our sync range
-        }
       }
 
       const eventData = {

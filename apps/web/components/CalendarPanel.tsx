@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useTransition } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, startOfDay, endOfDay, addDays } from 'date-fns';
@@ -119,6 +119,7 @@ function transformTimeBlock(timeBlock: TimeBlock, onTaskChange?: () => void): Ca
 
 export function CalendarPanel({ userId }: CalendarPanelProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [view, setView] = useState<'day' | 'week'>('day');
   const [date, setDate] = useState(new Date());
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -378,11 +379,16 @@ export function CalendarPanel({ userId }: CalendarPanelProps) {
         <h2 className="font-semibold text-gray-900">Calendar</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push('/app/settings/calendar-connections')}
-            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+            onClick={() => startTransition(() => router.push('/app/settings/calendar-connections'))}
+            disabled={isPending}
+            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
             title="Calendar Settings"
           >
-            <Settings className="h-4 w-4" />
+            {isPending ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Settings className="h-4 w-4" />
+            )}
           </button>
           <button
             onClick={() => triggerEventSync.mutate(undefined)}
