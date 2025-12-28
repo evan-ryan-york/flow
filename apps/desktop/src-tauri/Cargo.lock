@@ -931,7 +931,7 @@ dependencies = [
 
 [[package]]
 name = "flow-app"
-version = "1.0.16"
+version = "1.0.17"
 dependencies = [
  "serde",
  "serde_json",
