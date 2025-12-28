@@ -9,10 +9,10 @@ const corsHeaders = {
 
 async function refreshTokenIfNeeded(supabaseClient: any, connectionId: string) {
   // Call the refresh token function to ensure token is valid
-  const refreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-calendar-refresh-token`;
+  const refreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/microsoft-calendar-refresh-token`;
 
   try {
-    console.log('🔄 Attempting to refresh token for connection:', connectionId);
+    console.log("Attempting to refresh token for connection:", connectionId);
     const response = await fetch(refreshUrl, {
       method: "POST",
       headers: {
@@ -24,12 +24,12 @@ async function refreshTokenIfNeeded(supabaseClient: any, connectionId: string) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ Token refresh failed:", response.status, errorText);
+      console.error("Token refresh failed:", response.status, errorText);
     } else {
-      console.log('✅ Token refreshed successfully');
+      console.log("Token refreshed successfully");
     }
   } catch (error) {
-    console.error("❌ Error refreshing token:", error);
+    console.error("Error refreshing token:", error);
     // Continue anyway - the token might still be valid
   }
 }
@@ -92,12 +92,12 @@ serve(async (req) => {
       .from("calendar_connections")
       .select("*")
       .eq("id", connectionId)
-      .eq("provider", "google")
+      .eq("provider", "microsoft")
       .single();
 
     if (connectionError || !connection) {
       return new Response(
-        JSON.stringify({ error: "Connection not found or access denied" }),
+        JSON.stringify({ error: "Microsoft connection not found or access denied" }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -125,9 +125,9 @@ serve(async (req) => {
       );
     }
 
-    // Fetch calendar list from Google
+    // Fetch calendar list from Microsoft Graph
     const calendarListResponse = await fetch(
-      "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+      "https://graph.microsoft.com/v1.0/me/calendars",
       {
         headers: {
           Authorization: `Bearer ${updatedConnection.access_token}`,
@@ -137,10 +137,19 @@ serve(async (req) => {
 
     if (!calendarListResponse.ok) {
       const errorData = await calendarListResponse.text();
-      console.error("Google Calendar API error:", errorData);
+      console.error("Microsoft Graph API error:", errorData);
+
+      // Mark for reauth if 401
+      if (calendarListResponse.status === 401) {
+        await supabaseClient
+          .from("calendar_connections")
+          .update({ requires_reauth: true })
+          .eq("id", connectionId);
+      }
+
       return new Response(
         JSON.stringify({
-          error: "Failed to fetch calendars from Google",
+          error: "Failed to fetch calendars from Microsoft",
           details: errorData,
         }),
         {
@@ -151,10 +160,13 @@ serve(async (req) => {
     }
 
     const calendarListData = await calendarListResponse.json();
-    const calendars = calendarListData.items || [];
+    const calendars = calendarListData.value || [];
 
-    console.log(`📅 Found ${calendars.length} calendars from Google`);
-    console.log('📅 Calendar IDs:', calendars.map((c: any) => c.id));
+    console.log(`Found ${calendars.length} calendars from Microsoft`);
+    console.log(
+      "Calendar IDs:",
+      calendars.map((c: any) => c.id)
+    );
 
     // Get existing subscriptions for this connection
     const { data: existingSubscriptions } = await supabaseClient
@@ -169,7 +181,7 @@ serve(async (req) => {
       ])
     );
 
-    const googleCalendarIds = new Set(calendars.map((cal: any) => cal.id));
+    const microsoftCalendarIds = new Set(calendars.map((cal: any) => cal.id));
 
     // Upsert calendars
     const upsertPromises = calendars.map(async (calendar: any) => {
@@ -179,11 +191,12 @@ serve(async (req) => {
         user_id: user.id, // Required for RLS policy
         connection_id: connectionId,
         provider_calendar_id: calendar.id,
-        calendar_name: calendar.summary || "(No name)",
-        calendar_color: calendar.foregroundColor || "#000000",
-        background_color: calendar.backgroundColor || "#4285f4",
+        calendar_name: calendar.name || "(No name)",
+        calendar_color: calendar.hexColor || calendar.color || null,
+        background_color: calendar.hexColor || "#0078d4", // Default Microsoft blue
         is_visible: existing ? existing.is_visible : true, // Preserve user preference
         sync_enabled: existing ? existing.sync_enabled : true,
+        updated_at: new Date().toISOString(),
       };
 
       if (existing) {
@@ -201,11 +214,14 @@ serve(async (req) => {
     });
 
     const upsertResults = await Promise.all(upsertPromises);
-    console.log('📅 Upsert results:', upsertResults.map(r => ({ error: r.error, count: r.data?.length })));
+    console.log(
+      "Upsert results:",
+      upsertResults.map((r) => ({ error: r.error, count: r.data?.length }))
+    );
 
-    // Delete subscriptions for calendars that no longer exist in Google
+    // Delete subscriptions for calendars that no longer exist in Microsoft
     const subscriptionsToDelete = (existingSubscriptions || []).filter(
-      (sub: any) => !googleCalendarIds.has(sub.provider_calendar_id)
+      (sub: any) => !microsoftCalendarIds.has(sub.provider_calendar_id)
     );
 
     if (subscriptionsToDelete.length > 0) {

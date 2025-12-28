@@ -273,10 +273,11 @@ serve(async (req) => {
 
       // Insert connection into database
       const { data: connection, error: insertError } = await supabaseClient
-        .from("google_calendar_connections")
+        .from("calendar_connections")
         .insert({
           user_id: stateData.user_id,
-          email: email,
+          provider: "google",
+          account_email: email,
           label: email, // Default label, can be updated later
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,

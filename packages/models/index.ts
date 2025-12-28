@@ -218,12 +218,20 @@ export const TimeBlockTaskSchema = z.object({
 export type TimeBlockTask = z.infer<typeof TimeBlockTaskSchema>;
 
 // ---------------------------------
-// 10. Google Calendar Connections
+// 10. Calendar Provider (Multi-provider support)
 // ---------------------------------
-export const GoogleCalendarConnectionSchema = z.object({
+export const CalendarProviderSchema = z.enum(['google', 'microsoft']);
+export type CalendarProvider = z.infer<typeof CalendarProviderSchema>;
+
+// ---------------------------------
+// 11. Calendar Connections (supports Google and Microsoft)
+// ---------------------------------
+export const CalendarConnectionSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
-  email: z.string().email(),
+  provider: CalendarProviderSchema,
+  account_email: z.string().email(),
+  provider_account_id: z.string().nullable().optional(),
   label: z.string().min(1).max(50),
   access_token: z.string(),
   refresh_token: z.string(),
@@ -232,16 +240,20 @@ export const GoogleCalendarConnectionSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
-export type GoogleCalendarConnection = z.infer<typeof GoogleCalendarConnectionSchema>;
+export type CalendarConnection = z.infer<typeof CalendarConnectionSchema>;
+
+// Backwards compatibility alias
+export const GoogleCalendarConnectionSchema = CalendarConnectionSchema;
+export type GoogleCalendarConnection = CalendarConnection;
 
 // ---------------------------------
-// 11. Calendar Subscriptions
+// 12. Calendar Subscriptions
 // ---------------------------------
 export const CalendarSubscriptionSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
   connection_id: z.string().uuid(),
-  google_calendar_id: z.string(),
+  provider_calendar_id: z.string(),
   calendar_name: z.string(),
   calendar_color: z.string().nullable(),
   background_color: z.string().nullable(),
@@ -253,14 +265,15 @@ export const CalendarSubscriptionSchema = z.object({
 export type CalendarSubscription = z.infer<typeof CalendarSubscriptionSchema>;
 
 // ---------------------------------
-// 12. Calendar Events
+// 13. Calendar Events
 // ---------------------------------
 export const CalendarEventSchema = z.object({
   id: z.string().uuid(),
   connection_id: z.string().uuid(),
   subscription_id: z.string().uuid(),
-  google_calendar_event_id: z.string(),
-  google_calendar_id: z.string(),
+  provider: CalendarProviderSchema,
+  provider_event_id: z.string(),
+  provider_calendar_id: z.string(),
   user_id: z.string().uuid(),
   title: z.string(),
   description: z.string().nullable(),

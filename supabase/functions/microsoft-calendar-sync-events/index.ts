@@ -7,8 +7,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Microsoft Graph uses ISO 8601 date format
+const SYNC_PAST_DAYS = 30;
+const SYNC_FUTURE_DAYS = 90;
+
 async function refreshTokenIfNeeded(connectionId: string) {
-  const refreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/google-calendar-refresh-token`;
+  const refreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/microsoft-calendar-refresh-token`;
 
   try {
     await fetch(refreshUrl, {
@@ -30,109 +34,106 @@ async function syncCalendarEvents(
   subscription: any
 ) {
   try {
-    // Check for existing sync state
+    // Check for existing sync state (deltaLink)
     const { data: syncState } = await supabaseClient
       .from("calendar_sync_state")
       .select("*")
       .eq("subscription_id", subscription.id)
       .single();
 
-    // Build request params
-    const params: any = {
-      singleEvents: "true", // Expand recurring events
-      orderBy: "startTime",
-    };
+    let url: string;
+    let isFullSync = false;
 
-    // Use incremental sync if we have a sync token
     if (syncState?.sync_token) {
-      params.syncToken = syncState.sync_token;
+      // Use deltaLink for incremental sync
+      url = syncState.sync_token;
     } else {
-      // Full sync - get events from 30 days ago to 90 days in future
-      const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const timeMax = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-      params.timeMin = timeMin.toISOString();
-      params.timeMax = timeMax.toISOString();
+      // Full sync with date filter
+      isFullSync = true;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - SYNC_PAST_DAYS);
+
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + SYNC_FUTURE_DAYS);
+
+      // Build initial delta URL with date filter
+      const baseUrl = `https://graph.microsoft.com/v1.0/me/calendars/${encodeURIComponent(subscription.provider_calendar_id)}/events/delta`;
+      const params = new URLSearchParams({
+        $select: "id,subject,bodyPreview,start,end,isAllDay,location,categories",
+      });
+      // Note: Microsoft Graph delta doesn't support $filter on first request for some scenarios
+      // We'll filter client-side instead
+      url = `${baseUrl}?${params.toString()}`;
     }
 
-    // Fetch events from Google
-    const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
-        subscription.provider_calendar_id
-      )}/events`
-    );
+    let allEvents: any[] = [];
+    let deltaLink: string | null = null;
 
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
-    });
+    // Paginate through results
+    while (url) {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${connection.access_token}` },
+      });
 
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${connection.access_token}` },
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Microsoft Graph error:", response.status, errorText);
 
-    if (!response.ok) {
-      // Sync token expired - do full sync
-      if (response.status === 410) {
-        console.log(
-          `Sync token expired for subscription ${subscription.id}, doing full sync`
-        );
-        await supabaseClient
-          .from("calendar_sync_state")
-          .delete()
-          .eq("subscription_id", subscription.id);
+        // Handle 410 Gone (invalid delta token) - need full sync
+        if (response.status === 410) {
+          console.log("Delta token expired, performing full sync");
+          // Clear sync token and retry
+          await supabaseClient
+            .from("calendar_sync_state")
+            .delete()
+            .eq("subscription_id", subscription.id);
 
-        // Retry with full sync
-        return syncCalendarEvents(supabaseClient, connection, subscription);
+          // Recursive call for full sync
+          return syncCalendarEvents(supabaseClient, connection, subscription);
+        }
+
+        // Handle 401 - mark connection for reauth
+        if (response.status === 401) {
+          await supabaseClient
+            .from("calendar_connections")
+            .update({ requires_reauth: true })
+            .eq("id", connection.id);
+        }
+
+        return {
+          subscriptionId: subscription.id,
+          calendarName: subscription.calendar_name,
+          success: false,
+          error: `Graph API error: ${response.status}`,
+        };
       }
 
-      const errorData = await response.text();
-      console.error(
-        `Google API error for subscription ${subscription.id}:`,
-        errorData
-      );
-      return {
-        subscriptionId: subscription.id,
-        success: false,
-        error: `HTTP ${response.status}`,
-      };
+      const data = await response.json();
+      allEvents = allEvents.concat(data.value || []);
+
+      // Get next page or delta link
+      url = data["@odata.nextLink"] || null;
+      deltaLink = data["@odata.deltaLink"] || deltaLink;
     }
 
-    const data = await response.json();
-    const events = data.items || [];
+    console.log(
+      `Fetched ${allEvents.length} events for calendar ${subscription.calendar_name}`
+    );
 
-    console.log(`📊 Google API returned ${events.length} events for subscription ${subscription.id} (${subscription.calendar_name})`);
-    console.log(`   Connection: ${connection.label || connection.email}`);
-    console.log(`   Calendar ID: ${subscription.google_calendar_id}`);
-    console.log(`   Query params:`, JSON.stringify(params));
-
-    // Log today's events specifically
-    const today = new Date().toISOString().split('T')[0];
-    const todayEvents = events.filter((e: any) => {
-      const start = e.start?.dateTime || e.start?.date;
-      return start && start.startsWith(today);
-    });
-
-    if (todayEvents.length > 0) {
-      console.log(`   📅 Events for ${today}:`, todayEvents.map((e: any) => ({
-        id: e.id,
-        summary: e.summary,
-        start: e.start?.dateTime || e.start?.date
-      })));
-    } else {
-      console.log(`   ⚠️ No events found for ${today}`);
-    }
-
-    if (events.length > 0) {
-      console.log(`   Sample event IDs:`, events.slice(0, 5).map((e: any) => e.id));
-    }
+    // Filter events by date range if this is a full sync
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - SYNC_PAST_DAYS);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + SYNC_FUTURE_DAYS);
 
     let insertedCount = 0;
     let updatedCount = 0;
     let deletedCount = 0;
 
     // Process events
-    for (const event of events) {
-      if (event.status === "cancelled") {
-        // Delete from our DB for THIS subscription
+    for (const event of allEvents) {
+      // Handle deleted events (have @removed property)
+      if (event["@removed"]) {
         const { error: deleteError } = await supabaseClient
           .from("calendar_events")
           .delete()
@@ -143,44 +144,66 @@ async function syncCalendarEvents(
         continue;
       }
 
-      // Determine if all-day event
-      const isAllDay = !!event.start?.date;
-
-      // Parse start and end times
-      const startTime = event.start?.dateTime || event.start?.date;
-      const endTime = event.end?.dateTime || event.end?.date;
-
-      if (!startTime || !endTime) {
+      // Skip events without required fields
+      if (!event.start || !event.end) {
         console.warn(`Event ${event.id} missing start or end time, skipping`);
         continue;
       }
 
+      // Parse start and end times
+      // Microsoft returns dateTime without Z suffix for non-UTC times
+      let startTime = event.start.dateTime;
+      let endTime = event.end.dateTime;
+
+      // Handle all-day events (date only, no time)
+      if (event.isAllDay) {
+        // All-day events have dateTime at midnight UTC
+        startTime = event.start.dateTime;
+        endTime = event.end.dateTime;
+      }
+
+      // Add Z if not present (Microsoft returns times in the calendar's timezone)
+      if (startTime && !startTime.endsWith("Z")) {
+        startTime = startTime + "Z";
+      }
+      if (endTime && !endTime.endsWith("Z")) {
+        endTime = endTime + "Z";
+      }
+
+      // Filter by date range for full sync
+      if (isFullSync) {
+        const eventStart = new Date(startTime);
+        if (eventStart < startDate || eventStart > endDate) {
+          continue; // Skip events outside our sync range
+        }
+      }
+
+      const eventData = {
+        connection_id: connection.id,
+        subscription_id: subscription.id,
+        provider: "microsoft",
+        provider_event_id: event.id,
+        provider_calendar_id: subscription.provider_calendar_id,
+        user_id: connection.user_id,
+        title: event.subject || "(No title)",
+        description: event.bodyPreview || null,
+        start_time: startTime,
+        end_time: endTime,
+        is_all_day: event.isAllDay || false,
+        location: event.location?.displayName || null,
+        color: null, // Microsoft events don't have individual colors
+        etag: event["@odata.etag"] || null,
+        last_synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       // Check if event already exists for THIS subscription
-      // Note: Same Google event can appear in multiple calendars, so we key by subscription_id
       const { data: existingEvent } = await supabaseClient
         .from("calendar_events")
         .select("id")
         .eq("subscription_id", subscription.id)
         .eq("provider_event_id", event.id)
         .single();
-
-      const eventData = {
-        connection_id: connection.id,
-        subscription_id: subscription.id,
-        provider: "google",
-        provider_event_id: event.id,
-        provider_calendar_id: subscription.provider_calendar_id,
-        user_id: connection.user_id,
-        title: event.summary || "(No title)",
-        description: event.description || null,
-        start_time: startTime,
-        end_time: endTime,
-        is_all_day: isAllDay,
-        location: event.location || null,
-        color: event.colorId || subscription.background_color,
-        etag: event.etag,
-        last_synced_at: new Date().toISOString(),
-      };
 
       if (existingEvent) {
         // Update existing event
@@ -200,14 +223,24 @@ async function syncCalendarEvents(
       }
     }
 
-    // Store next sync token
-    if (data.nextSyncToken) {
-      await supabaseClient.from("calendar_sync_state").upsert({
-        subscription_id: subscription.id,
-        sync_token: data.nextSyncToken,
-        last_sync_at: new Date().toISOString(),
-      });
+    // Save delta link for next sync
+    if (deltaLink) {
+      await supabaseClient.from("calendar_sync_state").upsert(
+        {
+          subscription_id: subscription.id,
+          sync_token: deltaLink,
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "subscription_id",
+        }
+      );
     }
+
+    console.log(
+      `Calendar ${subscription.calendar_name}: ${insertedCount} inserted, ${updatedCount} updated, ${deletedCount} deleted`
+    );
 
     return {
       subscriptionId: subscription.id,
@@ -218,12 +251,10 @@ async function syncCalendarEvents(
       deleted: deletedCount,
     };
   } catch (error) {
-    console.error(
-      `Error syncing subscription ${subscription.id}:`,
-      error
-    );
+    console.error(`Error syncing subscription ${subscription.id}:`, error);
     return {
       subscriptionId: subscription.id,
+      calendarName: subscription.calendar_name,
       success: false,
       error: String(error),
     };
@@ -287,11 +318,11 @@ serve(async (req) => {
       userId = user.id;
     }
 
-    // Get Google connections to sync
+    // Get Microsoft connections to sync
     let connectionsQuery = supabaseClient
       .from("calendar_connections")
       .select("*")
-      .eq("provider", "google")
+      .eq("provider", "microsoft")
       .eq("requires_reauth", false);
 
     if (connectionId) {
@@ -319,7 +350,7 @@ serve(async (req) => {
     if (!connections || connections.length === 0) {
       return new Response(
         JSON.stringify({
-          message: "No connections to sync",
+          message: "No Microsoft connections to sync",
           results: [],
         }),
         {
@@ -327,6 +358,10 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log(
+      `Syncing events for ${connections.length} Microsoft connections`
+    );
 
     const allResults: any[] = [];
 
@@ -382,7 +417,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Synced ${successCount} calendar(s), ${failureCount} failure(s)`,
+        message: `Synced ${successCount} Microsoft calendar(s), ${failureCount} failure(s)`,
         summary: {
           inserted: totalInserted,
           updated: totalUpdated,

@@ -3,13 +3,15 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
-  useGoogleCalendarConnections,
+  useCalendarConnections,
   useConnectGoogleCalendar,
+  useConnectMicrosoftCalendar,
   useDisconnectGoogleCalendar,
   useUpdateConnectionLabel,
   useCalendarSubscriptions,
   useSyncCalendarList
 } from "@flow-app/data"
+import type { CalendarProvider } from "@flow-app/models"
 import { Button } from "@flow-app/ui/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@flow-app/ui/components/ui/card"
 import { Input } from "@flow-app/ui/components/ui/input"
@@ -25,11 +27,31 @@ import {
 import { CalendarPicker } from "@flow-app/ui/components/Calendar"
 import { Plus, Trash2, Edit2, RefreshCw, Check, X } from "@flow-app/ui/components/Calendar/icons"
 
+// Provider icons
+const GoogleIcon = () => (
+  <svg className="h-6 w-6" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+)
+
+const MicrosoftIcon = () => (
+  <svg className="h-6 w-6" viewBox="0 0 24 24">
+    <path fill="#F25022" d="M1 1h10v10H1z"/>
+    <path fill="#7FBA00" d="M13 1h10v10H13z"/>
+    <path fill="#00A4EF" d="M1 13h10v10H1z"/>
+    <path fill="#FFB900" d="M13 13h10v10H13z"/>
+  </svg>
+)
+
 export default function CalendarConnectionsPage() {
   const router = useRouter()
-  const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useGoogleCalendarConnections()
+  const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useCalendarConnections()
   const { data: subscriptions } = useCalendarSubscriptions()
-  const connectCalendar = useConnectGoogleCalendar()
+  const connectGoogleCalendar = useConnectGoogleCalendar()
+  const connectMicrosoftCalendar = useConnectMicrosoftCalendar()
   const disconnectCalendar = useDisconnectGoogleCalendar()
   const updateLabel = useUpdateConnectionLabel()
   const syncCalendarList = useSyncCalendarList()
@@ -42,19 +64,41 @@ export default function CalendarConnectionsPage() {
     console.log('📊 Subscriptions:', subscriptions)
   }, [connections, connectionsLoading, connectionsError, subscriptions])
 
+  const [providerDialogOpen, setProviderDialogOpen] = React.useState(false)
   const [connectDialogOpen, setConnectDialogOpen] = React.useState(false)
+  const [selectedProvider, setSelectedProvider] = React.useState<CalendarProvider | null>(null)
   const [newLabel, setNewLabel] = React.useState("")
   const [editingConnectionId, setEditingConnectionId] = React.useState<string | null>(null)
   const [editLabel, setEditLabel] = React.useState("")
 
+  const handleProviderSelect = (provider: CalendarProvider) => {
+    setSelectedProvider(provider)
+    setProviderDialogOpen(false)
+    setConnectDialogOpen(true)
+  }
+
   const handleConnect = () => {
-    connectCalendar.mutate(newLabel || undefined, {
-      onError: (error) => {
-        alert(error.message || 'Failed to connect calendar')
-      }
-    })
+    if (selectedProvider === 'microsoft') {
+      connectMicrosoftCalendar.mutate(newLabel || undefined, {
+        onSuccess: () => {
+          setConnectDialogOpen(false)
+          setNewLabel("")
+          setSelectedProvider(null)
+        },
+        onError: (error) => {
+          alert(error.message || 'Failed to connect Microsoft calendar')
+        }
+      })
+    } else {
+      connectGoogleCalendar.mutate(newLabel || undefined, {
+        onError: (error) => {
+          alert(error.message || 'Failed to connect Google calendar')
+        }
+      })
+    }
     setConnectDialogOpen(false)
     setNewLabel("")
+    setSelectedProvider(null)
   }
 
   const handleDisconnect = (connectionId: string) => {
@@ -84,8 +128,8 @@ export default function CalendarConnectionsPage() {
     setEditLabel("")
   }
 
-  const handleSyncCalendars = (connectionId: string) => {
-    syncCalendarList.mutate(connectionId, {
+  const handleSyncCalendars = (connectionId: string, provider: CalendarProvider) => {
+    syncCalendarList.mutate({ connectionId, provider }, {
       onSuccess: () => {
         console.log('✅ Sync successful, invalidating queries...')
         alert('Calendar list synced successfully!')
@@ -130,13 +174,13 @@ export default function CalendarConnectionsPage() {
         </Button>
         <h1 className="text-3xl font-bold mb-2">Calendar Connections</h1>
         <p className="text-muted-foreground">
-          Manage your connected Google Calendar accounts
+          Manage your connected calendar accounts
         </p>
       </div>
 
       <div className="space-y-6">
-        {/* Connect New Account Button */}
-        <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
+        {/* Provider Selection Dialog */}
+        <Dialog open={providerDialogOpen} onOpenChange={setProviderDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
@@ -145,7 +189,45 @@ export default function CalendarConnectionsPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Connect Google Calendar</DialogTitle>
+              <DialogTitle>Connect Calendar</DialogTitle>
+              <DialogDescription>
+                Choose your calendar provider
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => handleProviderSelect('google')}
+              >
+                <GoogleIcon />
+                <span>Google Calendar</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2"
+                onClick={() => handleProviderSelect('microsoft')}
+              >
+                <MicrosoftIcon />
+                <span>Microsoft 365</span>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Account Label Dialog */}
+        <Dialog open={connectDialogOpen} onOpenChange={(open) => {
+          setConnectDialogOpen(open)
+          if (!open) {
+            setSelectedProvider(null)
+            setNewLabel("")
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Connect {selectedProvider === 'microsoft' ? 'Microsoft 365' : 'Google Calendar'}
+              </DialogTitle>
               <DialogDescription>
                 Give this account a label to help you identify it (e.g., "Work", "Personal")
               </DialogDescription>
@@ -165,8 +247,15 @@ export default function CalendarConnectionsPage() {
                   }}
                 />
               </div>
-              <Button onClick={handleConnect} className="w-full">
-                Continue to Google
+              <Button
+                onClick={handleConnect}
+                className="w-full"
+                disabled={connectGoogleCalendar.isPending || connectMicrosoftCalendar.isPending}
+              >
+                {(connectGoogleCalendar.isPending || connectMicrosoftCalendar.isPending)
+                  ? 'Connecting...'
+                  : `Continue to ${selectedProvider === 'microsoft' ? 'Microsoft' : 'Google'}`
+                }
               </Button>
             </div>
           </DialogContent>
@@ -220,6 +309,17 @@ export default function CalendarConnectionsPage() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 mb-2">
+                          {connection.provider === 'microsoft' ? (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded flex items-center gap-1">
+                              <MicrosoftIcon />
+                              Microsoft
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded flex items-center gap-1">
+                              <GoogleIcon />
+                              Google
+                            </span>
+                          )}
                           <CardTitle>{connection.label}</CardTitle>
                           <Button
                             size="icon"
@@ -230,7 +330,7 @@ export default function CalendarConnectionsPage() {
                           </Button>
                         </div>
                       )}
-                      <CardDescription>{connection.email}</CardDescription>
+                      <CardDescription>{connection.account_email}</CardDescription>
                       <div className="mt-2 text-sm text-muted-foreground">
                         {getCalendarCount(connection.id)} calendar{getCalendarCount(connection.id) !== 1 ? 's' : ''}
                       </div>
@@ -245,7 +345,7 @@ export default function CalendarConnectionsPage() {
                       <Button
                         size="icon"
                         variant="outline"
-                        onClick={() => handleSyncCalendars(connection.id)}
+                        onClick={() => handleSyncCalendars(connection.id, connection.provider)}
                         disabled={syncCalendarList.isPending}
                         title="Sync calendar list"
                       >

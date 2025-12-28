@@ -1,31 +1,47 @@
 import { getSupabaseClient } from '../supabase';
 import {
-  GoogleCalendarConnectionSchema,
+  CalendarConnectionSchema,
   CalendarSubscriptionSchema,
   CalendarEventSchema,
-  type GoogleCalendarConnection,
+  type CalendarConnection,
   type CalendarSubscription,
   type CalendarEvent,
+  type CalendarProvider,
 } from '@flow-app/models';
+
+// Re-export for backwards compatibility
+export type GoogleCalendarConnection = CalendarConnection;
 
 // ---------------------------------
 // Calendar Connections
 // ---------------------------------
 
+export interface CalendarConnectionFilter {
+  provider?: CalendarProvider;
+}
+
 /**
  * Get all calendar connections for the current user
  */
-export async function getCalendarConnections(): Promise<GoogleCalendarConnection[]> {
+export async function getCalendarConnections(
+  filter?: CalendarConnectionFilter
+): Promise<CalendarConnection[]> {
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
-    .from('google_calendar_connections')
+  let query = supabase
+    .from('calendar_connections')
     .select('*')
     .order('created_at', { ascending: true });
 
+  if (filter?.provider) {
+    query = query.eq('provider', filter.provider);
+  }
+
+  const { data, error } = await query;
+
   if (error) throw error;
 
-  const result = data?.map(conn => GoogleCalendarConnectionSchema.parse(conn)) || [];
+  const result = data?.map(conn => CalendarConnectionSchema.parse(conn)) || [];
   return result;
 }
 
@@ -34,10 +50,10 @@ export async function getCalendarConnections(): Promise<GoogleCalendarConnection
  */
 export async function getCalendarConnectionById(
   connectionId: string
-): Promise<GoogleCalendarConnection | null> {
+): Promise<CalendarConnection | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
-    .from('google_calendar_connections')
+    .from('calendar_connections')
     .select('*')
     .eq('id', connectionId)
     .single();
@@ -47,7 +63,7 @@ export async function getCalendarConnectionById(
     throw error;
   }
 
-  return data ? GoogleCalendarConnectionSchema.parse(data) : null;
+  return data ? CalendarConnectionSchema.parse(data) : null;
 }
 
 /**
@@ -56,7 +72,7 @@ export async function getCalendarConnectionById(
 export async function deleteCalendarConnection(connectionId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
-    .from('google_calendar_connections')
+    .from('calendar_connections')
     .delete()
     .eq('id', connectionId);
 
@@ -69,10 +85,10 @@ export async function deleteCalendarConnection(connectionId: string): Promise<vo
 export async function updateCalendarConnectionLabel(
   connectionId: string,
   label: string
-): Promise<GoogleCalendarConnection> {
+): Promise<CalendarConnection> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
-    .from('google_calendar_connections')
+    .from('calendar_connections')
     .update({ label, updated_at: new Date().toISOString() })
     .eq('id', connectionId)
     .select()
@@ -80,7 +96,7 @@ export async function updateCalendarConnectionLabel(
 
   if (error) throw error;
 
-  return GoogleCalendarConnectionSchema.parse(data);
+  return CalendarConnectionSchema.parse(data);
 }
 
 // ---------------------------------
@@ -249,17 +265,17 @@ export async function getCalendarEventById(
 }
 
 /**
- * Get events by Google Calendar event ID
+ * Get events by provider event ID
  */
-export async function getCalendarEventByGoogleId(
-  googleEventId: string,
+export async function getCalendarEventByProviderId(
+  providerEventId: string,
   subscriptionId: string
 ): Promise<CalendarEvent | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('calendar_events')
     .select('*')
-    .eq('google_calendar_event_id', googleEventId)
+    .eq('provider_event_id', providerEventId)
     .eq('subscription_id', subscriptionId)
     .single();
 
@@ -270,3 +286,6 @@ export async function getCalendarEventByGoogleId(
 
   return data ? CalendarEventSchema.parse(data) : null;
 }
+
+// Backwards compatibility alias
+export const getCalendarEventByGoogleId = getCalendarEventByProviderId;

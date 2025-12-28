@@ -7,6 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const MICROSOFT_CLIENT_ID = Deno.env.get("MICROSOFT_CLIENT_ID")!;
+const MICROSOFT_CLIENT_SECRET = Deno.env.get("MICROSOFT_CLIENT_SECRET")!;
+const TENANT_ID = "common";
+
 interface RefreshTokenResult {
   connectionId: string;
   success: boolean;
@@ -17,30 +21,30 @@ async function refreshConnection(
   supabaseClient: any,
   connection: any
 ): Promise<RefreshTokenResult> {
-  const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
-  const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
-
   try {
-    const response = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: connection.refresh_token,
-        client_id: clientId!,
-        client_secret: clientSecret!,
-      }),
-    });
+    const response = await fetch(
+      `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: MICROSOFT_CLIENT_ID,
+          client_secret: MICROSOFT_CLIENT_SECRET,
+          refresh_token: connection.refresh_token,
+          grant_type: "refresh_token",
+        }),
+      }
+    );
 
     if (!response.ok) {
-      const errorData = await response.text();
+      const errorData = await response.json();
       console.error(
         `Failed to refresh token for connection ${connection.id}:`,
         errorData
       );
 
       // Check if refresh token is invalid/revoked
-      if (response.status === 400) {
+      if (errorData.error === "invalid_grant") {
         // Mark connection as requiring re-auth
         await supabaseClient
           .from("calendar_connections")
@@ -57,7 +61,7 @@ async function refreshConnection(
       return {
         connectionId: connection.id,
         success: false,
-        error: `HTTP ${response.status}`,
+        error: `HTTP ${response.status}: ${errorData.error_description || errorData.error}`,
       };
     }
 
@@ -69,13 +73,14 @@ async function refreshConnection(
     ).toISOString();
 
     // Update connection with new tokens
+    // Microsoft may rotate refresh tokens
     const updateData: any = {
       access_token: tokens.access_token,
       expires_at: expiresAt,
       requires_reauth: false,
+      updated_at: new Date().toISOString(),
     };
 
-    // Google may rotate refresh tokens
     if (tokens.refresh_token) {
       updateData.refresh_token = tokens.refresh_token;
     }
@@ -164,13 +169,13 @@ serve(async (req) => {
       userId = user.id;
     }
 
-    // Query Google connections that need token refresh (expires within 5 minutes)
+    // Query Microsoft connections that need token refresh (expires within 5 minutes)
     const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
 
     let query = supabaseClient
       .from("calendar_connections")
       .select("*")
-      .eq("provider", "google")
+      .eq("provider", "microsoft")
       .lt("expires_at", fiveMinutesFromNow.toISOString());
 
     // If specific connection requested, filter to that
@@ -199,7 +204,7 @@ serve(async (req) => {
     if (!connections || connections.length === 0) {
       return new Response(
         JSON.stringify({
-          message: "No connections need token refresh",
+          message: "No Microsoft connections need token refresh",
           refreshed: [],
         }),
         {
@@ -207,6 +212,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log(`Found ${connections.length} Microsoft connections to refresh`);
 
     // Refresh all expired connections
     const results: RefreshTokenResult[] = [];
@@ -227,7 +234,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Refreshed ${successCount} connection(s), ${failureCount} failure(s)`,
+        message: `Refreshed ${successCount} Microsoft connection(s), ${failureCount} failure(s)`,
         results,
       }),
       {
@@ -236,12 +243,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

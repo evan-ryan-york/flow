@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { getSupabaseClient } from '../supabase';
 import {
   type CalendarSubscription,
+  type CalendarProvider,
 } from '@flow-app/models';
 import {
   getCalendarConnections,
@@ -73,14 +74,18 @@ const getSessionToken = async () => {
 // ---------------------------------
 
 /**
- * Query: Fetch all Google Calendar connections for current user
+ * Query: Fetch all calendar connections for current user
+ * Optionally filter by provider
  */
-export function useGoogleCalendarConnections() {
+export function useCalendarConnections(provider?: CalendarProvider) {
   return useQuery({
-    queryKey: CALENDAR_KEYS.connections,
-    queryFn: getCalendarConnections,
+    queryKey: provider ? [...CALENDAR_KEYS.connections, provider] : CALENDAR_KEYS.connections,
+    queryFn: () => getCalendarConnections(provider ? { provider } : undefined),
   });
 }
+
+// Backwards compatibility alias
+export const useGoogleCalendarConnections = () => useCalendarConnections();
 
 /**
  * Mutation: Initiate OAuth flow to connect a new Google Calendar account
@@ -161,6 +166,94 @@ export function useConnectGoogleCalendar() {
           }, 500);
         });
       }
+    },
+  });
+}
+
+/**
+ * Mutation: Initiate OAuth flow to connect a new Microsoft Calendar account
+ */
+export function useConnectMicrosoftCalendar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (label?: string) => {
+      const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
+      const token = await getSessionToken();
+
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+      const response = await fetch(
+        `${SUPABASE_FUNCTIONS_URL}/microsoft-calendar-oauth?action=initiate`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: supabaseAnonKey,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate Microsoft OAuth flow');
+      }
+
+      const { authUrl } = await response.json();
+
+      // Store label in localStorage for callback handler
+      // eslint-disable-next-line no-undef
+      if (label && typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage) {
+        // eslint-disable-next-line no-undef
+        localStorage.setItem('pending_calendar_label', label);
+      }
+
+      // Open OAuth in a popup window
+      if (typeof window !== 'undefined') {
+        const width = 600;
+        const height = 700;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+
+        const _popup = window.open(
+          authUrl,
+          'microsoft-oauth',
+          `width=${width},height=${height},left=${left},top=${top},popup=yes`
+        );
+
+        // Listen for the OAuth success message from the popup
+        return new Promise((resolve, reject) => {
+          const handleMessage = (event: { data?: { type?: string; success?: boolean; connectionId?: string; error?: string } }) => {
+            if (event.data?.type === 'microsoft-calendar-oauth') {
+              window.removeEventListener('message', handleMessage);
+              if (event.data.success) {
+                resolve(event.data.connectionId);
+              } else {
+                reject(new Error(event.data.error || 'Microsoft OAuth failed'));
+              }
+            }
+          };
+
+          window.addEventListener('message', handleMessage);
+
+          // Check if popup was blocked
+          if (!_popup || _popup.closed) {
+            window.removeEventListener('message', handleMessage);
+            reject(new Error('Popup was blocked. Please allow popups for this site.'));
+          }
+
+          // Monitor popup closure
+          const checkClosed = setInterval(() => {
+            if (_popup?.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', handleMessage);
+              // Don't reject here - the message might have been sent
+            }
+          }, 500);
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CALENDAR_KEYS.connections });
     },
   });
 }
@@ -309,20 +402,29 @@ export function useUpdateCalendarColor() {
 }
 
 /**
- * Mutation: Trigger calendar list sync from Google
+ * Mutation: Trigger calendar list sync (supports both Google and Microsoft)
  */
 export function useSyncCalendarList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (connectionId: string) => {
+    mutationFn: async ({ connectionId, provider }: { connectionId: string; provider: CalendarProvider }) => {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+      // Select the correct endpoint based on provider
+      const syncCalendarsEndpoint = provider === 'microsoft'
+        ? 'microsoft-calendar-sync-calendars'
+        : 'google-calendar-sync-calendars';
+
+      const syncEventsEndpoint = provider === 'microsoft'
+        ? 'microsoft-calendar-sync-events'
+        : 'google-calendar-sync-events';
+
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-calendars`,
+        `${SUPABASE_FUNCTIONS_URL}/${syncCalendarsEndpoint}`,
         {
           method: 'POST',
           headers: {
@@ -344,7 +446,7 @@ export function useSyncCalendarList() {
 
       // After syncing calendar list, trigger event sync
       const eventSyncResponse = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
+        `${SUPABASE_FUNCTIONS_URL}/${syncEventsEndpoint}`,
         {
           method: 'POST',
           headers: {
@@ -401,13 +503,13 @@ export function useCalendarEvents(
 }
 
 /**
- * Mutation: Manually trigger event sync from Google
+ * Mutation: Manually trigger event sync (supports both Google and Microsoft)
  */
 export function useTriggerEventSync() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (connectionId?: string) => {
+    mutationFn: async (params?: { connectionId?: string; provider?: CalendarProvider }) => {
       const SUPABASE_FUNCTIONS_URL = getSupabaseFunctionsUrl();
       const token = await getSessionToken();
 
@@ -418,30 +520,42 @@ export function useTriggerEventSync() {
       try {
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-        const response = await fetch(
-          `${SUPABASE_FUNCTIONS_URL}/google-calendar-sync-events`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              apikey: supabaseAnonKey,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(connectionId ? { connectionId } : {}),
-            signal: controller?.signal,
+        // Determine which endpoint(s) to call
+        const providers = params?.provider ? [params.provider] : ['google', 'microsoft'] as CalendarProvider[];
+        const results: { provider: CalendarProvider; error?: string; message?: string }[] = [];
+
+        for (const provider of providers) {
+          const endpoint = provider === 'microsoft'
+            ? 'microsoft-calendar-sync-events'
+            : 'google-calendar-sync-events';
+
+          const response = await fetch(
+            `${SUPABASE_FUNCTIONS_URL}/${endpoint}`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                apikey: supabaseAnonKey,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(params?.connectionId ? { connectionId: params.connectionId } : {}),
+              signal: controller?.signal,
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            results.push({ provider, ...result });
+          } else {
+            const errorText = await response.text();
+            console.error(`🔄 Event sync failed for ${provider}:`, errorText);
+            results.push({ provider, error: errorText });
           }
-        );
+        }
 
         if (timeoutId) clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('🔄 Event sync failed:', errorText);
-          throw new Error('Event sync failed');
-        }
-
-        const result = await response.json();
-        return result;
+        return results;
       } catch (error) {
         if (timeoutId) clearTimeout(timeoutId);
         console.error('🔄 Event sync error:', error);

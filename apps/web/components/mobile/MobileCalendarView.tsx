@@ -35,7 +35,7 @@ interface CalendarEventResource {
   location?: string | null;
   color?: string;
   isAllDay?: boolean;
-  googleCalendarId?: string;
+  providerCalendarId?: string;
   tasks?: Task[];
   onTaskChange?: () => void;
 }
@@ -96,7 +96,7 @@ function transformCalendarEvent(event: CalendarEvent): CalendarEventType {
       location: event.location,
       color: event.color || '#059669',
       isAllDay: event.is_all_day,
-      googleCalendarId: event.google_calendar_id,
+      providerCalendarId: event.provider_calendar_id,
     },
   };
 }

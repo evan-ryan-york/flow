@@ -75,7 +75,7 @@ export function CalendarPicker({ connectionId, onSelectionChange, className }: C
               {connection.label}
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              {connection.email}
+              {connection.account_email}
             </div>
 
             <div className="ml-2 space-y-2">
