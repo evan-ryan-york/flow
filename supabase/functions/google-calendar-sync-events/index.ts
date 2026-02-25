@@ -43,10 +43,27 @@ async function syncCalendarEvents(
       orderBy: "startTime",
     };
 
-    // Use incremental sync if we have a sync token
+    // Force full sync if last sync was more than 24 hours ago
+    let isFullSync = false;
     if (syncState?.sync_token) {
-      params.syncToken = syncState.sync_token;
+      const lastSyncAge = syncState.last_sync_at
+        ? Date.now() - new Date(syncState.last_sync_at).getTime()
+        : Infinity;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      if (lastSyncAge > twentyFourHours) {
+        console.log(
+          `Forcing full sync for subscription ${subscription.id} — last sync was ${Math.round(lastSyncAge / 3600000)}h ago`
+        );
+        isFullSync = true;
+      } else {
+        params.syncToken = syncState.sync_token;
+      }
     } else {
+      isFullSync = true;
+    }
+
+    if (isFullSync) {
       // Full sync - get events from 30 days ago to 90 days in future
       const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const timeMax = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
@@ -54,50 +71,92 @@ async function syncCalendarEvents(
       params.timeMax = timeMax.toISOString();
     }
 
-    // Fetch events from Google
-    const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
-        subscription.provider_calendar_id
-      )}/events`
-    );
+    // Fetch events from Google with pagination
+    const allEvents: any[] = [];
+    let nextSyncToken: string | undefined;
+    let pageToken: string | undefined;
+    let paginationComplete = true;
+    const MAX_PAGES = 20;
 
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
-    });
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const url = new URL(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
+          subscription.provider_calendar_id
+        )}/events`
+      );
 
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${connection.access_token}` },
-    });
-
-    if (!response.ok) {
-      // Sync token expired - do full sync
-      if (response.status === 410) {
-        console.log(
-          `Sync token expired for subscription ${subscription.id}, doing full sync`
-        );
-        await supabaseClient
-          .from("calendar_sync_state")
-          .delete()
-          .eq("subscription_id", subscription.id);
-
-        // Retry with full sync
-        return syncCalendarEvents(supabaseClient, connection, subscription);
+      const pageParams = { ...params };
+      if (pageToken) {
+        pageParams.pageToken = pageToken;
       }
 
-      const errorData = await response.text();
-      console.error(
-        `Google API error for subscription ${subscription.id}:`,
-        errorData
-      );
-      return {
-        subscriptionId: subscription.id,
-        success: false,
-        error: `HTTP ${response.status}`,
-      };
+      Object.entries(pageParams).forEach(([key, value]) => {
+        url.searchParams.append(key, String(value));
+      });
+
+      const response = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${connection.access_token}` },
+      });
+
+      if (!response.ok) {
+        // Sync token expired - do full sync
+        if (response.status === 410) {
+          console.log(
+            `Sync token expired for subscription ${subscription.id}, doing full sync`
+          );
+          await supabaseClient
+            .from("calendar_sync_state")
+            .delete()
+            .eq("subscription_id", subscription.id);
+
+          // Retry with full sync
+          return syncCalendarEvents(supabaseClient, connection, subscription);
+        }
+
+        const errorData = await response.text();
+        console.error(
+          `Google API error for subscription ${subscription.id} (page ${page + 1}):`,
+          errorData
+        );
+        return {
+          subscriptionId: subscription.id,
+          success: false,
+          error: `HTTP ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      const pageEvents = data.items || [];
+      allEvents.push(...pageEvents);
+
+      if (data.nextSyncToken) {
+        nextSyncToken = data.nextSyncToken;
+      }
+
+      if (data.nextPageToken) {
+        pageToken = data.nextPageToken;
+        console.log(
+          `Page ${page + 1}: fetched ${pageEvents.length} events, continuing to next page`
+        );
+      } else {
+        if (page > 0) {
+          console.log(
+            `Page ${page + 1}: fetched ${pageEvents.length} events, pagination complete (${allEvents.length} total)`
+          );
+        }
+        break;
+      }
+
+      // If we're about to exceed the page cap, mark pagination incomplete
+      if (page === MAX_PAGES - 1) {
+        console.warn(
+          `Hit ${MAX_PAGES}-page cap for subscription ${subscription.id} (${allEvents.length} events fetched)`
+        );
+        paginationComplete = false;
+      }
     }
 
-    const data = await response.json();
-    const events = data.items || [];
+    const events = allEvents;
 
     console.log(`📊 Google API returned ${events.length} events for subscription ${subscription.id} (${subscription.calendar_name})`);
     console.log(`   Connection: ${connection.label || connection.account_email}`);
@@ -200,11 +259,77 @@ async function syncCalendarEvents(
       }
     }
 
+    // Reconcile: remove local events that Google no longer returns (full sync only)
+    let reconciledCount = 0;
+    if (
+      isFullSync &&
+      events.length > 0 &&
+      paginationComplete
+    ) {
+      // Collect all non-cancelled provider_event_ids from Google's response
+      const googleEventIds = new Set(
+        events
+          .filter((e: any) => e.status !== "cancelled")
+          .map((e: any) => e.id)
+      );
+
+      // Query local events for this subscription within the same time window
+      const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const timeMax = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: localEvents, error: localError } = await supabaseClient
+        .from("calendar_events")
+        .select("id, provider_event_id")
+        .eq("subscription_id", subscription.id)
+        .gte("start_time", timeMin)
+        .lte("start_time", timeMax);
+
+      if (!localError && localEvents) {
+        const staleEvents = localEvents.filter(
+          (le: any) => !googleEventIds.has(le.provider_event_id)
+        );
+
+        // Safety threshold: skip if deleting >80% of events and there are >10 events
+        if (
+          staleEvents.length > 0 &&
+          localEvents.length > 10 &&
+          staleEvents.length / localEvents.length > 0.8
+        ) {
+          console.warn(
+            `Reconciliation skipped for subscription ${subscription.id}: would remove ${staleEvents.length}/${localEvents.length} events (>80%). Possible API issue.`
+          );
+        } else if (staleEvents.length > 0) {
+          console.log(
+            `Reconciling ${staleEvents.length} stale events for subscription ${subscription.id}`
+          );
+
+          // Batch deletes in groups of 100
+          const staleIds = staleEvents.map((e: any) => e.id);
+          for (let i = 0; i < staleIds.length; i += 100) {
+            const batch = staleIds.slice(i, i + 100);
+            const { error: deleteError } = await supabaseClient
+              .from("calendar_events")
+              .delete()
+              .in("id", batch);
+
+            if (!deleteError) {
+              reconciledCount += batch.length;
+            } else {
+              console.error(
+                `Error deleting stale events batch for subscription ${subscription.id}:`,
+                deleteError
+              );
+            }
+          }
+        }
+      }
+    }
+
     // Store next sync token
-    if (data.nextSyncToken) {
+    if (nextSyncToken) {
       await supabaseClient.from("calendar_sync_state").upsert({
         subscription_id: subscription.id,
-        sync_token: data.nextSyncToken,
+        sync_token: nextSyncToken,
         last_sync_at: new Date().toISOString(),
       });
     }
@@ -216,6 +341,7 @@ async function syncCalendarEvents(
       inserted: insertedCount,
       updated: updatedCount,
       deleted: deletedCount,
+      reconciled: reconciledCount,
     };
   } catch (error) {
     console.error(
@@ -379,6 +505,10 @@ serve(async (req) => {
       (sum, r) => sum + (r.deleted || 0),
       0
     );
+    const totalReconciled = allResults.reduce(
+      (sum, r) => sum + (r.reconciled || 0),
+      0
+    );
 
     return new Response(
       JSON.stringify({
@@ -387,6 +517,7 @@ serve(async (req) => {
           inserted: totalInserted,
           updated: totalUpdated,
           deleted: totalDeleted,
+          reconciled: totalReconciled,
         },
         results: allResults,
       }),
