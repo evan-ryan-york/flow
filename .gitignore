@@ -38,6 +38,9 @@ Desktop.ini
 # Linux
 *~
 
+# Claude Code
+.claude/
+
 # IDE
 .vscode/
 .idea/
