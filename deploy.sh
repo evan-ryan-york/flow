@@ -33,6 +33,7 @@ NC=""
 DEPLOY_WEB=false
 DEPLOY_DESKTOP=false
 DEPLOY_IOS=false
+DEPLOY_IOS_RELEASE=false
 SKIP_CHECKS=false
 VERSION_BUMP_TYPE=""
 NEW_VERSION=""
@@ -102,7 +103,7 @@ check_dependencies() {
     command -v cargo >/dev/null || missing+=("cargo (install Rust)")
   fi
 
-  if [[ "$DEPLOY_IOS" == true ]]; then
+  if [[ "$DEPLOY_IOS" == true || "$DEPLOY_IOS_RELEASE" == true ]]; then
     command -v xcodebuild >/dev/null || missing+=("xcodebuild (install Xcode)")
     command -v fastlane >/dev/null || missing+=("fastlane (brew install fastlane)")
   fi
@@ -391,6 +392,43 @@ deploy_ios() {
   print_info "Check: https://appstoreconnect.apple.com/apps"
 }
 
+deploy_ios_release() {
+  print_header "Building iOS (App Store Release)"
+
+  cd "$PROJECT_ROOT"
+
+  # Check if Fastlane is configured
+  local fastlane_dir="$PROJECT_ROOT/apps/mobile/ios/fastlane"
+  if [[ ! -d "$fastlane_dir" ]]; then
+    print_error "Fastlane not configured!"
+    print_info "Run: cd apps/mobile/ios && fastlane init"
+    print_info "Then create Fastfile and Appfile as documented"
+    return 1
+  fi
+
+  print_substep "Building web export..."
+  pnpm build:web:export
+
+  print_substep "Syncing Capacitor..."
+  cd "$PROJECT_ROOT/apps/mobile"
+  pnpm sync
+
+  print_substep "Incrementing iOS build number..."
+  cd "$PROJECT_ROOT"
+  increment_ios_build_number
+
+  print_substep "Building and uploading via Fastlane (App Store release)..."
+  cd "$PROJECT_ROOT/apps/mobile/ios"
+  fastlane release
+
+  print_success "iOS uploaded to App Store Connect!"
+  print_info "Next steps:"
+  print_info "  1. Go to App Store Connect → Your App → App Store tab"
+  print_info "  2. Select the uploaded build"
+  print_info "  3. Fill in 'What's New' and submit for review"
+  print_info "  Check: https://appstoreconnect.apple.com/apps"
+}
+
 # ============================================
 # INTERACTIVE MENU
 # ============================================
@@ -404,8 +442,9 @@ show_menu() {
   printf "  %s1%s) Deploy ALL platforms\n" "$BOLD" "$NC"
   printf "  %s2%s) Deploy Web only\n" "$BOLD" "$NC"
   printf "  %s3%s) Deploy Desktop only\n" "$BOLD" "$NC"
-  printf "  %s4%s) Deploy iOS only\n" "$BOLD" "$NC"
-  printf "  %s5%s) Version bump only (no deploy)\n" "$BOLD" "$NC"
+  printf "  %s4%s) Deploy iOS only (TestFlight)\n" "$BOLD" "$NC"
+  printf "  %s5%s) Deploy iOS only (App Store release)\n" "$BOLD" "$NC"
+  printf "  %s6%s) Version bump only (no deploy)\n" "$BOLD" "$NC"
   printf "  %sq%s) Quit\n" "$BOLD" "$NC"
   echo ""
   read -p "Choice: " choice
@@ -415,7 +454,8 @@ show_menu() {
     2) DEPLOY_WEB=true ;;
     3) DEPLOY_DESKTOP=true ;;
     4) DEPLOY_IOS=true ;;
-    5) ;; # Version bump only
+    5) DEPLOY_IOS_RELEASE=true ;;
+    6) ;; # Version bump only
     q|Q) echo "Cancelled."; exit 0 ;;
     *) print_error "Invalid choice"; exit 1 ;;
   esac
@@ -457,6 +497,10 @@ show_summary() {
   if [[ "$DEPLOY_IOS" == true ]]; then
     print_info "iOS: Check TestFlight in ~15 minutes"
   fi
+
+  if [[ "$DEPLOY_IOS_RELEASE" == true ]]; then
+    print_info "iOS: Build uploaded to App Store Connect — select build and submit for review"
+  fi
 }
 
 # ============================================
@@ -469,6 +513,7 @@ show_usage() {
   echo "  --web           Deploy to Vercel (git push)"
   echo "  --desktop       Build macOS DMG"
   echo "  --ios           Upload to TestFlight"
+  echo "  --ios-release   Upload to App Store Connect (production)"
   echo "  --all           Deploy all platforms"
   echo "  --skip-checks   Skip tests/lint/typecheck"
   echo "  --patch         Bump patch version (x.y.Z)"
@@ -480,6 +525,7 @@ show_usage() {
   echo "  ./deploy.sh                    # Interactive mode"
   echo "  ./deploy.sh --all --patch      # Deploy all with patch bump"
   echo "  ./deploy.sh --web --minor      # Deploy web with minor bump"
+  echo "  ./deploy.sh --ios-release --patch  # Upload to App Store with patch bump"
   echo "  ./deploy.sh --desktop          # Build desktop only (no version bump)"
 }
 
@@ -495,6 +541,7 @@ main() {
       --web) DEPLOY_WEB=true; shift ;;
       --desktop) DEPLOY_DESKTOP=true; shift ;;
       --ios) DEPLOY_IOS=true; shift ;;
+      --ios-release) DEPLOY_IOS_RELEASE=true; shift ;;
       --all) DEPLOY_WEB=true; DEPLOY_DESKTOP=true; DEPLOY_IOS=true; shift ;;
       --skip-checks) SKIP_CHECKS=true; shift ;;
       --patch) VERSION_BUMP_TYPE="patch"; shift ;;
@@ -509,7 +556,7 @@ main() {
   CURRENT_VERSION=$(get_current_version)
 
   # If no CLI args, show interactive menu
-  if [[ "$DEPLOY_WEB" == false && "$DEPLOY_DESKTOP" == false && "$DEPLOY_IOS" == false && -z "$VERSION_BUMP_TYPE" ]]; then
+  if [[ "$DEPLOY_WEB" == false && "$DEPLOY_DESKTOP" == false && "$DEPLOY_IOS" == false && "$DEPLOY_IOS_RELEASE" == false && -z "$VERSION_BUMP_TYPE" ]]; then
     show_menu
     show_version_menu
   fi
@@ -532,7 +579,8 @@ main() {
   local platforms=""
   [[ "$DEPLOY_WEB" == true ]] && platforms+="Web "
   [[ "$DEPLOY_DESKTOP" == true ]] && platforms+="Desktop "
-  [[ "$DEPLOY_IOS" == true ]] && platforms+="iOS "
+  [[ "$DEPLOY_IOS" == true ]] && platforms+="iOS(TestFlight) "
+  [[ "$DEPLOY_IOS_RELEASE" == true ]] && platforms+="iOS(AppStore) "
   [[ -z "$platforms" ]] && platforms="(version bump only)"
 
   print_info "Platforms: $platforms"
@@ -546,7 +594,7 @@ main() {
   fi
 
   # Run pre-deploy checks (if any platform is selected)
-  if [[ "$DEPLOY_WEB" == true || "$DEPLOY_DESKTOP" == true || "$DEPLOY_IOS" == true ]]; then
+  if [[ "$DEPLOY_WEB" == true || "$DEPLOY_DESKTOP" == true || "$DEPLOY_IOS" == true || "$DEPLOY_IOS_RELEASE" == true ]]; then
     run_pre_deploy_checks
   fi
 
@@ -558,6 +606,7 @@ main() {
   # Deploy platforms (desktop and iOS first, web last since it commits)
   [[ "$DEPLOY_DESKTOP" == true ]] && deploy_desktop
   [[ "$DEPLOY_IOS" == true ]] && deploy_ios
+  [[ "$DEPLOY_IOS_RELEASE" == true ]] && deploy_ios_release
   [[ "$DEPLOY_WEB" == true ]] && deploy_web
 
   # Show summary
