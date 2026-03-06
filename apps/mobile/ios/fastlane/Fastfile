@@ -5,71 +5,90 @@ default_platform(:ios)
 
 platform :ios do
 
+  before_all do
+    # Load App Store Connect API key from env vars (recommended for CI/CD and cert management)
+    if ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+        is_key_content_base64: true,
+        in_house: false
+      )
+    end
+  end
+
   desc "Build and upload to TestFlight"
   lane :beta do
-    # Install CocoaPods dependencies (Podfile is at ios/App/Podfile)
+    setup_distribution_signing
+
     cocoapods(
       podfile: "App/Podfile",
       use_bundle_exec: false
     )
 
-    # Increment build number (handled by deploy.sh, but can also be done here)
-    # increment_build_number(xcodeproj: "App/App.xcodeproj")
-
-    # Build the app for App Store distribution
     build_app(
       workspace: "App/App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "com.perfecttask.app" => lane_context[SharedValues::SIGH_NAME]
+        }
+      },
       output_directory: "./build",
       output_name: "FlowApp.ipa",
-      clean: true,
-      xcargs: "-allowProvisioningUpdates"
+      clean: true
     )
 
-    # Upload to TestFlight
     upload_to_testflight(
       skip_waiting_for_build_processing: true,
       skip_submission: true
     )
 
-    # Clean up build artifacts
     clean_build_artifacts
   end
 
   desc "Build and upload to App Store Connect for production release"
   lane :release do
-    # Install CocoaPods dependencies
+    setup_distribution_signing
+
     cocoapods(
       podfile: "App/Podfile",
       use_bundle_exec: false
     )
 
-    # Build the app for App Store distribution
     build_app(
       workspace: "App/App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "com.perfecttask.app" => lane_context[SharedValues::SIGH_NAME]
+        }
+      },
+      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='#{lane_context[SharedValues::SIGH_NAME]}' CODE_SIGN_IDENTITY='Apple Distribution'",
       output_directory: "./build",
       output_name: "FlowApp.ipa",
-      clean: true,
-      xcargs: "-allowProvisioningUpdates"
+      clean: true
     )
 
     # Upload to App Store Connect
-    # Uses upload_to_testflight because the binary is identical —
-    # select the build in App Store Connect for production release
+    # Select the build in App Store Connect for production release
     upload_to_testflight(
       skip_waiting_for_build_processing: true,
       skip_submission: true
     )
 
-    # Clean up build artifacts
     clean_build_artifacts
   end
 
   desc "Build only (no upload)"
   lane :build_only do
+    setup_distribution_signing
+
     cocoapods(
       podfile: "App/Podfile",
       use_bundle_exec: false
@@ -79,10 +98,15 @@ platform :ios do
       workspace: "App/App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "com.perfecttask.app" => lane_context[SharedValues::SIGH_NAME]
+        }
+      },
       output_directory: "./build",
       output_name: "FlowApp.ipa",
-      clean: true,
-      xcargs: "-allowProvisioningUpdates"
+      clean: true
     )
   end
 
@@ -92,14 +116,28 @@ platform :ios do
   end
 
   desc "Register new devices"
-  lane :register_devices do
+  lane :add_devices do
     register_devices(devices_file: "./devices.txt")
     match(type: "development", force_for_new_devices: true)
   end
 
+  # Ensure Apple Distribution certificate and App Store provisioning profile exist.
+  # Downloads/creates them via App Store Connect API if needed.
+  private_lane :setup_distribution_signing do
+    get_certificates(
+      platform: "ios",
+      output_path: "./build"
+    )
+
+    get_provisioning_profile(
+      app_identifier: "com.perfecttask.app",
+      platform: "ios",
+      output_path: "./build"
+    )
+  end
+
 end
 
-# Error handling
 error do |lane, exception|
   puts "Error in lane #{lane}: #{exception.message}"
 end

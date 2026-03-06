@@ -665,14 +665,12 @@ export function TaskHub({ userId, selectedProjectIds, projectForTaskCreation, se
     >
       <div className="h-full flex flex-col">
         {/* Quick Add Bar */}
-        <div className="h-[57px] px-4 border-b border-gray-200 bg-white flex items-center w-full">
-          <div className="w-full">
-            <TaskQuickAdd
-              userId={userId}
-              defaultProjectId={selectedProjectIds[0] || "1"}
-              externalProjectId={projectForTaskCreation}
-            />
-          </div>
+        <div className="px-4 py-2 border-b border-gray-200 bg-white" style={{ flexShrink: 0, overflow: 'visible' }}>
+          <TaskQuickAdd
+            userId={userId}
+            defaultProjectId={selectedProjectIds[0] || "1"}
+            externalProjectId={projectForTaskCreation}
+          />
         </div>
 
         {/* Search/Filters Bar */}

@@ -55,6 +55,14 @@
 				<string>com.perfecttask.app</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Google Sign-In</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.542151415865-vi9594j0b1nf0slmbup5u75ka3id7m4k</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

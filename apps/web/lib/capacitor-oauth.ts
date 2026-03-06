@@ -1,6 +1,5 @@
 // apps/web/lib/capacitor-oauth.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { env } from '@/lib/env';
 
 // Detect if we're running in Capacitor
 export function isCapacitor(): boolean {
@@ -8,33 +7,30 @@ export function isCapacitor(): boolean {
 }
 
 /**
- * Handles the Google OAuth redirect for Capacitor.
- * This function just builds the URL and redirects the system browser.
- * The *listener* for the return is now in LoginForm.tsx.
+ * Handles Google OAuth for Capacitor using the native Google Sign-In SDK.
+ * Shows an in-app Google sign-in sheet instead of redirecting to Safari.
+ * Returns the Google ID token for exchange with Supabase.
  */
 export async function handleCapacitorGoogleOAuth(_supabase: SupabaseClient) {
   try {
-    console.log('🚀 Starting Capacitor Google OAuth redirect...');
+    const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
 
-    const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+    // Initialize the plugin
+    await GoogleAuth.initialize();
 
-    if (!supabaseUrl) {
-      throw new Error('Supabase URL not configured');
+    // Native Google sign-in sheet (stays in-app)
+    const googleUser = await GoogleAuth.signIn();
+
+    // Extract the ID token
+    const idToken = googleUser.authentication.idToken;
+
+    if (!idToken) {
+      throw new Error('No ID token received from Google');
     }
 
-    // Use the custom deep link scheme as the redirect URL.
-    const redirectUrl = encodeURIComponent('com.perfecttask.app://auth/callback');
-
-    const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectUrl}`;
-
-    console.log('✅ Opening system browser with OAuth URL:', oauthUrl);
-
-    // This is correct! It will open the system Safari/Chrome.
-    window.location.href = oauthUrl;
-
-    return { success: true };
+    return { success: true, idToken };
   } catch (error) {
-    console.error('❌ Error during Capacitor OAuth redirect:', error);
-    return { success: false, error: (error as Error).message };
+    console.error('Capacitor Google OAuth error:', error);
+    return { success: false, error: (error as Error).message, idToken: undefined };
   }
 }

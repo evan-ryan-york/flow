@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "1.0.27",
+  "version": "1.0.29",
   "description": "Flow Mobile",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,7 @@
     "open:android": "cap open android"
   },
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "6.0.0",
     "@capacitor/android": "^6.0.0",
     "@capacitor/app": "^6.0.0",
     "@capacitor/browser": "^6.0.5",
@@ -28,7 +29,8 @@
     "@capacitor/local-notifications": "^6.0.0",
     "@capacitor/preferences": "^6.0.3",
     "@capacitor/push-notifications": "^6.0.0",
-    "@capacitor/share": "^6.0.0"
+    "@capacitor/share": "^6.0.0",
+    "@codetrix-studio/capacitor-google-auth": "3.4.0-rc.4"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0"

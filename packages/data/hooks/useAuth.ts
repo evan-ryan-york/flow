@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { signUp, signIn, signOut, getSession, getCurrentUser, signInWithGoogleIdToken, type SignUpCredentials, type SignInCredentials } from '../services/authService';
+import { signUp, signIn, signOut, getSession, getCurrentUser, signInWithGoogleIdToken, signInWithAppleIdToken, deleteAccount, type SignUpCredentials, type SignInCredentials } from '../services/authService';
 
 // Query key constants
 const AUTH_KEYS = {
@@ -69,6 +69,29 @@ export const useSignInWithGoogleIdToken = () => {
     onSuccess: () => {
       // Invalidate auth queries after successful Google signin
       queryClient.invalidateQueries({ queryKey: ['auth'] });
+    },
+  });
+};
+
+export const useSignInWithAppleIdToken = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ idToken, nonce }: { idToken: string; nonce?: string }) =>
+      signInWithAppleIdToken(idToken, nonce),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
+    },
+  });
+};
+
+export const useDeleteAccount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: () => {
+      queryClient.clear();
     },
   });
 };

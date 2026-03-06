@@ -47,10 +47,10 @@ Build only (no upload)
 
 Increment build number
 
-### ios register_devices
+### ios add_devices
 
 ```sh
-[bundle exec] fastlane ios register_devices
+[bundle exec] fastlane ios add_devices
 ```
 
 Register new devices

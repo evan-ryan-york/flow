@@ -6,8 +6,35 @@ import { useSupabase } from '@/lib/providers';
 import { useSearchParams } from 'next/navigation';
 import { isTauri, handleTauriGoogleOAuth } from '@/lib/tauri-oauth';
 import { isCapacitor, handleCapacitorGoogleOAuth } from '@/lib/capacitor-oauth';
-import { App } from '@capacitor/app';
-import type { PluginListenerHandle } from '@capacitor/core';
+import type { User } from '@supabase/supabase-js';
+
+async function storeCapacitorSession(session: { access_token: string; refresh_token: string; expires_in: number; expires_at?: number; token_type: string }, user: User) {
+  const { Preferences } = await import('@capacitor/preferences');
+  const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
+
+  const sessionData = {
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    expires_in: session.expires_in,
+    expires_at: session.expires_at,
+    token_type: session.token_type,
+    user,
+  };
+
+  await Preferences.set({ key: storageKey, value: JSON.stringify(sessionData) });
+  await Preferences.set({ key: 'flow-app-access-token', value: session.access_token });
+  await Preferences.set({
+    key: 'flow-app-user-data',
+    value: JSON.stringify({
+      id: user.id,
+      email: user.email,
+      user_metadata: user.user_metadata,
+    }),
+  });
+
+  const { reinitializeSupabaseClient } = await import('@flow-app/data');
+  reinitializeSupabaseClient();
+}
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +42,6 @@ export function LoginForm() {
   const [emailSent, setEmailSent] = useState(false);
   const [isTauriEnv, setIsTauriEnv] = useState(false);
   const [isCapacitorEnv, setIsCapacitorEnv] = useState(false);
-  const [authUrlToProcess, setAuthUrlToProcess] = useState<string | null>(null); // <-- NEW STATE
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useSupabase();
@@ -24,12 +50,11 @@ export function LoginForm() {
   useEffect(() => {
     const detectedTauri = isTauri();
     const detectedCapacitor = isCapacitor();
-    console.log('🔍 Environment detection:', {
+    console.log('Environment detection:', {
       tauri: detectedTauri,
       capacitor: detectedCapacitor,
       protocol: window.location.protocol,
       hostname: window.location.hostname,
-      href: window.location.href,
     });
     setIsTauriEnv(detectedTauri);
     setIsCapacitorEnv(detectedCapacitor);
@@ -44,23 +69,19 @@ export function LoginForm() {
       const errorMessage = messageParam
         ? decodeURIComponent(messageParam)
         : 'Authentication failed';
-      console.error('🔴 Auth callback error:', errorMessage);
+      console.error('Auth callback error:', errorMessage);
       setError(`Authentication failed: ${errorMessage}`);
     }
   }, [searchParams]);
 
-  // This hook runs *after* the page reloads (from the deep link)
-  // It checks the URL hash for auth tokens and manually stores the session.
-  // NOTE: Only relevant for web OAuth flow, not Capacitor
+  // Check URL hash for auth tokens (web OAuth callback)
   useEffect(() => {
-    // Skip this in Capacitor since we handle OAuth via deep links
     if (isCapacitorEnv) return;
 
-    // Check if we just reloaded with auth tokens in the hash
     const hash = window.location.hash;
     if (hash.includes('access_token') && hash.includes('refresh_token')) {
-      console.log('🔐 Auth tokens found in URL hash on page load (web flow)');
-      setIsLoading(true); // Show loading spinner
+      console.log('Auth tokens found in URL hash on page load (web flow)');
+      setIsLoading(true);
 
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
@@ -69,355 +90,73 @@ export function LoginForm() {
       if (accessToken && refreshToken) {
         const storeSessionAndRedirect = async () => {
           try {
-            console.log('🔑 Storing session from URL hash...');
-
-            // For web, we can use setSession() since it doesn't hang there
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
-            if (error) {
-              throw error;
-            }
+            if (error) throw error;
 
-            console.log(
-              '✅ Session set successfully! Redirecting to dashboard...',
-            );
-            // Clear the hash from the URL
             window.history.replaceState(null, '', ' ');
             router.push('/dashboard');
           } catch (err) {
-            console.error('❌ Error setting session from hash:', err);
-            setError(
-              err instanceof Error ? err.message : 'Failed to log in',
-            );
+            console.error('Error setting session from hash:', err);
+            setError(err instanceof Error ? err.message : 'Failed to log in');
             setIsLoading(false);
-            window.history.replaceState(null, '', ' '); // Clear the hash on error too
+            window.history.replaceState(null, '', ' ');
           }
         };
 
-        // Call the async function
         storeSessionAndRedirect();
       }
     }
   }, [supabase, router, isCapacitorEnv]);
 
-  // Check for existing session on mount and redirect if logged in (run once)
+  // Check for existing session on mount and redirect if logged in
   useEffect(() => {
-    console.log('🔍 [LoginForm] Session check useEffect triggered');
     let isMounted = true;
 
     const checkSession = async () => {
       try {
-        console.log('🔍 [LoginForm] Starting checkSession, isCapacitor:', isCapacitorEnv);
-
-        // For Capacitor, check storage directly
         if (isCapacitorEnv) {
-          console.log('🔍 [LoginForm] Capacitor: Importing Preferences...');
           const { Preferences } = await import('@capacitor/preferences');
-          console.log('🔍 [LoginForm] Capacitor: Calling Preferences.get()...');
           const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
           const { value } = await Preferences.get({ key: storageKey });
-          console.log('🔍 [LoginForm] Capacitor: Preferences.get() returned, hasValue:', !!value);
 
           if (value && isMounted) {
             const session = JSON.parse(value);
             if (session.access_token) {
-              console.log(
-                '✅ [LoginForm] Session detected in storage on mount, redirecting to dashboard...',
-              );
               router.push('/dashboard');
-            } else {
-              console.log('🔍 [LoginForm] Value found but no access_token');
             }
-          } else {
-            console.log('🔍 [LoginForm] No session in storage');
           }
         } else {
-          console.log('🔍 [LoginForm] Web/Desktop: Calling supabase.auth.getSession()...');
-          // For web/desktop, getSession() is safe to use
           const {
             data: { session },
           } = await supabase.auth.getSession();
-          console.log('🔍 [LoginForm] Web/Desktop: getSession() returned, hasSession:', !!session);
 
           if (session && isMounted) {
-            console.log(
-              '✅ [LoginForm] Session detected on mount, redirecting to dashboard...',
-            );
             router.push('/dashboard');
           }
         }
       } catch (err) {
-        console.error('❌ [LoginForm] Error checking session on mount:', err);
-        console.error('❌ [LoginForm] Error stack:', err instanceof Error ? err.stack : 'No stack trace');
+        console.error('Error checking session on mount:', err);
       }
     };
 
     checkSession();
 
     return () => {
-      console.log('🔍 [LoginForm] Session check useEffect cleanup');
       isMounted = false;
     };
   }, [isCapacitorEnv, router, supabase]);
-
-  // --- REFACTORED LISTENER LOGIC ---
-  // This useEffect ONLY sets up the listeners
-  useEffect(() => {
-    // Only run this effect if in Capacitor
-    if (!isCapacitorEnv) {
-      return;
-    }
-
-    let stateListener: PluginListenerHandle | null = null;
-
-    const setupListeners = async () => {
-      // CRITICAL: Check if we already have a valid session in storage FIRST
-      let hasSession = false;
-      try {
-        const { Preferences } = await import('@capacitor/preferences');
-        const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
-        const { value } = await Preferences.get({ key: storageKey });
-        if (value) {
-          const session = JSON.parse(value);
-          if (session.access_token) {
-            console.log(
-              '✅ Found existing session in storage, redirecting to dashboard...',
-            );
-            router.push('/dashboard');
-            hasSession = true;
-          }
-        }
-      } catch (err) {
-        console.error('Error checking existing session:', err);
-      }
-
-      if (hasSession) {
-        console.log('✅ Session exists, NOT setting up app listeners.');
-        return; // Don't set up listeners if we're redirecting
-      }
-
-      console.log(
-        'No existing session, setting up Capacitor App state/URL listeners...',
-      );
-
-      // 1. Check if the app was opened with a URL (cold start)
-      // This runs once when the component mounts
-      App.getLaunchUrl().then((launchUrl) => {
-        if (launchUrl && launchUrl.url) {
-          console.log('App launched with URL, setting for processing...');
-          setAuthUrlToProcess(launchUrl.url); // <-- DECOUPLED
-        }
-      });
-
-      // 2. Listen for when the app resumes from background
-      // This is the main one for our OAuth flow
-      stateListener = await App.addListener('appStateChange', async (state) => {
-        // state.isActive is true when app comes to foreground
-        if (state.isActive) {
-          console.log('App resumed. Checking for launch URL...');
-          // Get the URL that opened the app
-          const launchUrl = await App.getLaunchUrl();
-          if (launchUrl && launchUrl.url) {
-            console.log('App resumed with URL, setting for processing...');
-            setAuthUrlToProcess(launchUrl.url); // <-- DECOUPLED
-          }
-        }
-      });
-    };
-
-    setupListeners();
-
-    // Clean up the listener when the component unmounts
-    return () => {
-      console.log('Removing Capacitor App state listener...');
-      stateListener?.remove();
-    };
-  }, [isCapacitorEnv, router]); // Removed supabase dependency, it's not needed here
-
-  // --- NEW useEffect TO PROCESS THE URL ---
-  // This hook watches the authUrlToProcess state and runs setSession
-  // *outside* of the native listener, avoiding the deadlock.
-  useEffect(() => {
-    if (!authUrlToProcess) {
-      return;
-    }
-
-    console.log('🚀 useEffect processing auth URL:', authUrlToProcess);
-
-    // This function will process the URL and log the user in
-    const handleAuthUrl = async (url: string) => {
-      console.log('📱 Processing auth URL:', url);
-
-      // Check if it's our auth callback
-      if (url.startsWith('com.perfecttask.app://auth/callback')) {
-        // We are back in the app!
-        // The URL has the hash fragment with auth tokens.
-
-        const authUrl = new URL(url);
-        const hash = authUrl.hash;
-        const params = new URLSearchParams(hash.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        const expiresAt = params.get('expires_at');
-
-        console.log(`✅ Auth tokens found! Setting session...`);
-        console.log('📊 Token info:', {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hasExpiresAt: !!expiresAt,
-          accessTokenLength: accessToken?.length,
-          refreshTokenLength: refreshToken?.length,
-        });
-
-        if (accessToken && refreshToken) {
-          try {
-            console.log('🎯 [LoginForm] Step 1: Setting loading state');
-            setIsLoading(true);
-            console.log('🎯 [LoginForm] Step 2: Starting manual session storage');
-            console.log('🔑 BYPASSING setSession() - manually storing session...');
-
-            // NUCLEAR OPTION: setSession() hangs in Capacitor no matter what we try.
-            // So we'll manually store the session in the exact format Supabase expects,
-            // then reinitialize the client to pick it up from storage.
-
-            console.log('🎯 [LoginForm] Step 3: Decoding JWT token');
-            // Decode JWT to get user info and expiry
-            const base64Url = accessToken.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(
-              // eslint-disable-next-line no-undef
-              atob(base64)
-                .split('')
-                .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-            );
-            const payload = JSON.parse(jsonPayload);
-
-            console.log('🎯 [LoginForm] Step 4: JWT decoded successfully:', {
-              sub: payload.sub,
-              email: payload.email,
-              exp: payload.exp,
-            });
-
-            console.log('🎯 [LoginForm] Step 5: Creating session data object');
-            // Create session object in Supabase's exact format
-            const sessionData = {
-              access_token: accessToken,
-              refresh_token: refreshToken,
-              expires_in: parseInt(expiresAt || '3600'),
-              expires_at: parseInt(expiresAt || '0'),
-              token_type: 'bearer',
-              user: {
-                id: payload.sub,
-                aud: payload.aud || 'authenticated',
-                role: payload.role || 'authenticated',
-                email: payload.email,
-                email_confirmed_at: payload.email_confirmed_at || new Date().toISOString(),
-                phone: payload.phone || '',
-                confirmed_at: payload.confirmed_at || new Date().toISOString(),
-                last_sign_in_at: new Date().toISOString(),
-                app_metadata: payload.app_metadata || {},
-                user_metadata: payload.user_metadata || {},
-                identities: [],
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-            };
-
-            console.log('🎯 [LoginForm] Step 6: Importing Capacitor Preferences...');
-            console.log('📦 Manually storing session to Capacitor Preferences...');
-            const { Preferences } = await import('@capacitor/preferences');
-            console.log('🎯 [LoginForm] Step 7: Preferences imported, calling Preferences.set()...');
-
-            const storageKey = 'sb-sprjddkfkwrrebazjxvf-auth-token';
-
-            await Preferences.set({
-              key: storageKey,
-              value: JSON.stringify(sessionData),
-            });
-
-            console.log('🎯 [LoginForm] Step 8: Preferences.set() completed');
-            console.log('✅ Session stored manually!');
-
-            console.log('🎯 [LoginForm] Step 9: Storing user data and access token separately...');
-            // ALSO store user data separately so dashboard can access it directly
-            const userData = {
-              id: sessionData.user.id,
-              email: sessionData.user.email,
-              user_metadata: sessionData.user.user_metadata,
-            };
-            await Preferences.set({
-              key: 'flow-app-user-data',
-              value: JSON.stringify(userData),
-            });
-
-            // Store access token separately for Supabase requests
-            await Preferences.set({
-              key: 'flow-app-access-token',
-              value: accessToken,
-            });
-            console.log('✅ User data and access token stored separately!');
-
-            console.log('🎯 [LoginForm] Step 10: Importing reinitializeSupabaseClient...');
-            // Now reinitialize the Supabase client to pick up the session from storage
-            console.log('🔄 Reinitializing Supabase client to load session from storage...');
-            const { reinitializeSupabaseClient } = await import('@flow-app/data');
-            console.log('🎯 [LoginForm] Step 11: Calling reinitializeSupabaseClient()...');
-            reinitializeSupabaseClient();
-
-            console.log('🎯 [LoginForm] Step 12: Client reinitialized!');
-            console.log('✅ Client reinitialized! Session should be loaded from storage automatically.');
-
-            console.log('🎯 [LoginForm] Step 13: Removing App listeners...');
-            // CRITICAL: Remove the App URL listeners to prevent re-processing
-            // We do this *after* success
-            await App.removeAllListeners();
-            console.log('🎯 [LoginForm] Step 14: App listeners removed');
-            console.log('🧹 Cleared App listeners');
-
-            console.log('🎯 [LoginForm] Step 15: Navigating to dashboard...');
-            console.log('🧭 Navigating to dashboard...');
-            // Use replace to prevent user from going "back" to the login screen
-            router.replace('/dashboard');
-            console.log('🎯 [LoginForm] Step 16: router.replace() called');
-          } catch (err) {
-            console.error('❌ Error in auth flow:', err);
-            console.error('❌ Error stack:', err instanceof Error ? err.stack : 'No stack trace');
-            setError(
-              err instanceof Error ? err.message : 'Failed to log in',
-            );
-            setIsLoading(false);
-          }
-        } else {
-          console.error('❌ Missing tokens:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-          });
-          setError('Missing authentication tokens');
-          setIsLoading(false);
-        }
-      } else {
-        console.log('URL is not an auth callback, ignoring.');
-      }
-
-      // Consume the URL so this doesn't run again
-      setAuthUrlToProcess(null);
-    };
-
-    handleAuthUrl(authUrlToProcess);
-  }, [authUrlToProcess, supabase, router]); // Add all dependencies
 
   const handleMagicLink = async (email: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Warn users about magic links in Tauri
       if (isTauriEnv) {
-        console.warn('⚠️  Magic links may not work reliably in desktop app');
+        console.warn('Magic links may not work reliably in desktop app');
         setError(
           'Magic links are not recommended for desktop app. Please use Google Sign-In instead.',
         );
@@ -425,13 +164,8 @@ export function LoginForm() {
         return;
       }
 
-      // Use origin for web
       const redirectTo = `${window.location.origin}/auth/callback`;
 
-      console.log('Sending magic link to:', email);
-      console.log('Redirect URL:', redirectTo);
-
-      // Create a direct client with implicit flow to bypass SSR's PKCE default
       const { createClient } = await import('@supabase/supabase-js');
       const directClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -453,14 +187,11 @@ export function LoginForm() {
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setEmailSent(true);
-      console.log('✅ Magic link sent successfully');
     } catch (error: unknown) {
-      console.error('❌ Magic link error:', error);
+      console.error('Magic link error:', error);
       setError(
         error instanceof Error
           ? error.message
@@ -476,40 +207,38 @@ export function LoginForm() {
       setIsLoading(true);
       setError(null);
 
-      console.log('🚀 Starting Google sign-in...');
-
-      // Use Capacitor-specific OAuth flow if in Capacitor environment
+      // Use Capacitor-specific OAuth flow (native Google SDK)
       if (isCapacitorEnv) {
-        console.log('📱 Using Capacitor OAuth flow...');
+        console.log('Using native Google Sign-In SDK...');
         const result = await handleCapacitorGoogleOAuth(supabase);
 
-        if (!result.success) {
-          console.error('❌ Capacitor OAuth failed:', result.error);
-          throw new Error(result.error || 'Failed to authenticate');
+        if (!result.success || !result.idToken) {
+          throw new Error(result.error || 'Failed to authenticate with Google');
         }
 
-        // Don't setIsLoading(false) here.
-        // We are now waiting for the app to re-open via deep link,
-        // so the disabled button is correct.
-        // The listener above will handle the callback and redirect.
+        // Exchange the Google ID token for a Supabase session
+        const { data, error: signInError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: result.idToken,
+        });
+
+        if (signInError) throw signInError;
+        if (!data.session || !data.user) throw new Error('No session returned from Supabase');
+
+        await storeCapacitorSession(data.session, data.user);
+        router.replace('/dashboard');
         return;
       }
 
       // Use Tauri-specific OAuth flow if in Tauri environment
       if (isTauriEnv) {
-        console.log('📱 Using Tauri OAuth flow...');
-        console.log('⏰ Current time:', new Date().toISOString());
-
+        console.log('Using Tauri OAuth flow...');
         const result = await handleTauriGoogleOAuth(supabase);
-        console.log('🔍 OAuth result:', result);
 
         if (!result.success) {
-          console.error('❌ OAuth failed:', result.error);
           throw new Error(result.error || 'Failed to authenticate');
         }
 
-        // Verify session was set (with retry logic for timing issues)
-        console.log('🔍 Checking for session after OAuth...');
         let session = null;
         let attempts = 0;
         const maxAttempts = 10;
@@ -518,60 +247,27 @@ export function LoginForm() {
           attempts++;
           const {
             data: { session: currentSession },
-            error: sessionError,
           } = await supabase.auth.getSession();
 
           if (currentSession) {
             session = currentSession;
-            console.log('✅ Session found after', attempts, 'attempt(s)');
             break;
           }
 
-          if (sessionError) {
-            console.error('❌ Session error:', sessionError);
-          }
-
-          // Wait 100ms before retrying
           if (attempts < maxAttempts) {
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
         }
 
-        console.log('🔍 Final session check after OAuth:', {
-          hasSession: !!session,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-          attempts,
-        });
-
         if (!session) {
-          console.error(
-            '❌ No session found after successful OAuth (tried',
-            attempts,
-            'times)',
-          );
-          throw new Error(
-            'Authentication succeeded but no session was created',
-          );
+          throw new Error('Authentication succeeded but no session was created');
         }
 
-        // Success! Session is now set, redirect to dashboard
-        console.log(
-          '✅ Tauri OAuth successful, redirecting to /dashboard...',
-        );
-        console.log('⏰ Redirect time:', new Date().toISOString());
         router.push('/dashboard');
         return;
       }
 
       // Web browser OAuth flow
-      console.log('🌐 Using web OAuth flow...');
-      console.log('Origin:', window.location.origin);
-      console.log(
-        'Redirect URL:',
-        `${window.location.origin}/auth/callback`,
-      );
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -580,20 +276,65 @@ export function LoginForm() {
         },
       });
 
-      if (error) {
-        console.error('❌ OAuth initiation error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Browser will automatically redirect to Google
-      console.log('✅ OAuth initiated:', data);
+      console.log('OAuth initiated:', data);
     } catch (error: unknown) {
-      console.error('❌ Google sign-in error:', error);
+      console.error('Google sign-in error:', error);
       setError(
         error instanceof Error
           ? error.message
           : 'Failed to sign in with Google',
       );
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (isCapacitorEnv) {
+        // Native Apple Sign-In (stays in-app via AuthenticationServices framework)
+        const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+        const result = await SignInWithApple.authorize({
+          clientId: 'com.perfecttask.app',
+          redirectURI: 'https://sprjddkfkwrrebazjxvf.supabase.co/auth/v1/callback',
+          scopes: 'email name',
+        });
+
+        const idToken = result.response.identityToken;
+        if (!idToken) {
+          throw new Error('No identity token received from Apple');
+        }
+
+        // Exchange Apple ID token for Supabase session
+        const { data, error: signInError } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: idToken,
+        });
+
+        if (signInError) throw signInError;
+        if (!data.session || !data.user) throw new Error('No session returned from Supabase');
+
+        await storeCapacitorSession(data.session, data.user);
+        router.replace('/dashboard');
+        return;
+      }
+
+      // Web/Desktop: standard OAuth redirect
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: unknown) {
+      console.error('Apple sign-in error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to sign in with Apple');
       setIsLoading(false);
     }
   };
@@ -630,7 +371,7 @@ export function LoginForm() {
       {emailSent ? (
         <div className="space-y-4">
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-            <p className="font-semibold mb-2">✓ Email sent!</p>
+            <p className="font-semibold mb-2">Check your email!</p>
             <p className="text-sm">
               Check your email and click the login link.
             </p>
@@ -695,7 +436,7 @@ export function LoginForm() {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <button
               onClick={handleGoogleSignIn}
               disabled={isLoading}
@@ -720,6 +461,17 @@ export function LoginForm() {
                 />
               </svg>
               Sign in with Google
+            </button>
+
+            <button
+              onClick={handleAppleSignIn}
+              disabled={isLoading}
+              className="w-full inline-flex justify-center items-center py-2 px-4 rounded-md shadow-sm bg-black text-sm font-medium text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+              </svg>
+              Sign in with Apple
             </button>
           </div>
         </>

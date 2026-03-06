@@ -169,3 +169,79 @@ export const signInWithGoogleIdToken = async (idToken: string): Promise<User> =>
     throw error;
   }
 };
+
+export const signInWithAppleIdToken = async (idToken: string, nonce?: string): Promise<User> => {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: idToken,
+      nonce,
+    });
+
+    if (error) {
+      throw new Error(`Apple sign in failed: ${error.message}`);
+    }
+
+    if (!data.user) {
+      throw new Error('Apple sign in failed: No user data returned');
+    }
+
+    return data.user;
+  } catch (error) {
+    console.error('AuthService.signInWithAppleIdToken error:', error);
+    throw error;
+  }
+};
+
+export const deleteAccount = async (): Promise<void> => {
+  try {
+    const supabase = getSupabaseClient();
+
+    let accessToken: string | null = null;
+    const isCapacitorEnv = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+    if (isCapacitorEnv) {
+      const { Preferences } = await import('@capacitor/preferences');
+      const { value } = await Preferences.get({ key: 'flow-app-access-token' });
+      accessToken = value;
+    } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessToken = session?.access_token ?? null;
+    }
+
+    if (!accessToken) {
+      throw new Error('No active session');
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/delete-account`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete account');
+    }
+
+    if (isCapacitorEnv) {
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.remove({ key: 'sb-sprjddkfkwrrebazjxvf-auth-token' });
+      await Preferences.remove({ key: 'flow-app-access-token' });
+      await Preferences.remove({ key: 'flow-app-user-data' });
+    }
+
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.error('AuthService.deleteAccount error:', error);
+    throw error;
+  }
+};

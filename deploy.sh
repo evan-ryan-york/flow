@@ -13,6 +13,13 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
+# Load environment variables from .env if it exists
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+  set -a
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
+
 # Colors - disabled for compatibility, uncomment if your terminal supports them
 # RED=$'\033[0;31m'
 # GREEN=$'\033[0;32m'
@@ -106,6 +113,16 @@ check_dependencies() {
   if [[ "$DEPLOY_IOS" == true || "$DEPLOY_IOS_RELEASE" == true ]]; then
     command -v xcodebuild >/dev/null || missing+=("xcodebuild (install Xcode)")
     command -v fastlane >/dev/null || missing+=("fastlane (brew install fastlane)")
+
+    # Check for App Store Connect API key (needed for cert/profile management)
+    if [[ -z "$APP_STORE_CONNECT_API_KEY_KEY_ID" || -z "$APP_STORE_CONNECT_API_KEY_ISSUER_ID" || -z "$APP_STORE_CONNECT_API_KEY_KEY" ]]; then
+      print_warning "App Store Connect API key env vars not set"
+      print_info "Fastlane will fall back to Apple ID auth (may require interactive login)"
+      print_info "For unattended builds, set these env vars:"
+      print_info "  APP_STORE_CONNECT_API_KEY_KEY_ID"
+      print_info "  APP_STORE_CONNECT_API_KEY_ISSUER_ID"
+      print_info "  APP_STORE_CONNECT_API_KEY_KEY (base64-encoded .p8 contents)"
+    fi
   fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
